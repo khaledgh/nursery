@@ -1,0 +1,52 @@
+{
+  "app": { "name": "Sunny Stars" },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "children": "Children",
+    "classrooms": "Classrooms",
+    "care": "Care Logging",
+    "attendance": "Attendance",
+    "reports": "Daily Reports",
+    "milestones": "Milestones",
+    "menus": "Meal Menus",
+    "plans": "Weekly Plans",
+    "community": "Community",
+    "announcements": "Announcements",
+    "events": "Events",
+    "reminders": "Reminders",
+    "invoices": "Invoices",
+    "locales": "Languages",
+    "settings": "Settings",
+    "audit": "Audit Logs",
+    "logout": "Sign out"
+  },
+  "auth": {
+    "title": "Sign in to Sunny Stars",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "signingIn": "Signing in…"
+  },
+  "common": {
+    "search": "Search…",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "actions": "Actions",
+    "confirmDelete": "Are you sure? This cannot be undone.",
+    "noData": "Nothing here yet",
+    "loading": "Loading…",
+    "page": "Page",
+    "of": "of",
+    "status": "Status",
+    "name": "Name",
+    "date": "Date",
+    "title": "Title",
+    "active": "Active",
+    "inactive": "Inactive"
+  }
+}

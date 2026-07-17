@@ -1,0 +1,52 @@
+{
+  "app": { "name": "Sunny Stars" },
+  "nav": {
+    "dashboard": "Översikt",
+    "users": "Användare",
+    "children": "Barn",
+    "classrooms": "Avdelningar",
+    "care": "Omsorgslogg",
+    "attendance": "Närvaro",
+    "reports": "Dagsrapporter",
+    "milestones": "Milstolpar",
+    "menus": "Matsedlar",
+    "plans": "Veckoplaner",
+    "community": "Gemenskap",
+    "announcements": "Meddelanden",
+    "events": "Evenemang",
+    "reminders": "Påminnelser",
+    "invoices": "Fakturor",
+    "locales": "Språk",
+    "settings": "Inställningar",
+    "audit": "Ändringslogg",
+    "logout": "Logga ut"
+  },
+  "auth": {
+    "title": "Logga in på Sunny Stars",
+    "email": "E-post",
+    "password": "Lösenord",
+    "submit": "Logga in",
+    "signingIn": "Loggar in…"
+  },
+  "common": {
+    "search": "Sök…",
+    "create": "Skapa",
+    "edit": "Redigera",
+    "delete": "Ta bort",
+    "cancel": "Avbryt",
+    "save": "Spara",
+    "saving": "Sparar…",
+    "actions": "Åtgärder",
+    "confirmDelete": "Är du säker? Detta kan inte ångras.",
+    "noData": "Inget här ännu",
+    "loading": "Laddar…",
+    "page": "Sida",
+    "of": "av",
+    "status": "Status",
+    "name": "Namn",
+    "date": "Datum",
+    "title": "Titel",
+    "active": "Aktiv",
+    "inactive": "Inaktiv"
+  }
+}

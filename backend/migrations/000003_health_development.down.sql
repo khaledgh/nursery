@@ -1,0 +1,17 @@
+DROP TABLE IF EXISTS report_ratings;
+DROP TABLE IF EXISTS daily_reports;
+DROP TABLE IF EXISTS child_achievements;
+DROP TABLE IF EXISTS achievement_templates;
+DROP TABLE IF EXISTS child_milestones;
+DROP TABLE IF EXISTS milestone_categories;
+DROP TABLE IF EXISTS health_notes;
+DROP TABLE IF EXISTS medical_documents;
+DROP TABLE IF EXISTS insurance_infos;
+DROP TABLE IF EXISTS emergency_contacts;
+DROP TABLE IF EXISTS vital_logs;
+DROP TABLE IF EXISTS growth_records;
+DROP TABLE IF EXISTS checkups;
+DROP TABLE IF EXISTS immunizations;
+DROP TABLE IF EXISTS medications;
+DROP TABLE IF EXISTS illness_logs;
+DROP TABLE IF EXISTS allergies;

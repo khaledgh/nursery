@@ -1,0 +1,14 @@
+DROP TABLE IF EXISTS reminders;
+DROP TABLE IF EXISTS meetup_rsvps;
+DROP TABLE IF EXISTS meetups;
+DROP TABLE IF EXISTS community_likes;
+DROP TABLE IF EXISTS community_comments;
+DROP TABLE IF EXISTS community_post_media;
+DROP TABLE IF EXISTS community_posts;
+DROP TABLE IF EXISTS announcement_reads;
+DROP TABLE IF EXISTS announcement_attachments;
+DROP TABLE IF EXISTS announcements;
+DROP TABLE IF EXISTS event_feedbacks;
+DROP TABLE IF EXISTS event_media;
+DROP TABLE IF EXISTS event_rsvps;
+DROP TABLE IF EXISTS events;

@@ -1,0 +1,25 @@
+# Secrets — never commit real environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+
+# Go
+backend/bin/
+backend/tmp/
+backend/uploads/
+coverage.out
+
+# Node
+node_modules/
+dist/
+.expo/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

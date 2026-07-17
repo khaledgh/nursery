@@ -1,0 +1,15 @@
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS locales;
+DROP TABLE IF EXISTS attendances;
+DROP TABLE IF EXISTS guardians;
+DROP TABLE IF EXISTS children;
+DROP TABLE IF EXISTS classroom_teachers;
+DROP TABLE IF EXISTS classroom_translations;
+DROP TABLE IF EXISTS classrooms;
+DROP TABLE IF EXISTS device_tokens;
+DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS media;
