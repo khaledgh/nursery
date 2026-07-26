@@ -62,10 +62,31 @@ type AuditLog struct {
 	CreatedAt   time.Time      `json:"created_at"`
 }
 
+// Notification categories. The parent app filters its inbox by these, so a
+// value outside this set renders in no tab at all.
+const (
+	CategoryUpdates   = "updates"
+	CategoryReminders = "reminders"
+	CategoryEvents    = "events"
+	CategoryMessages  = "messages"
+)
+
+// NotificationCategory maps an arbitrary label onto the set the app can show.
+// Announcements carry their own enum (health, general, ...) which would
+// otherwise leak through and land in no tab.
+func NotificationCategory(s string) string {
+	switch s {
+	case CategoryUpdates, CategoryReminders, CategoryEvents, CategoryMessages:
+		return s
+	default:
+		return CategoryUpdates
+	}
+}
+
 type Notification struct {
 	Base
 	UserID   uint64         `gorm:"not null;index" json:"user_id"`
-	Category string         `gorm:"size:30;not null" json:"category"` // updates | reminders | events | messages
+	Category string         `gorm:"size:30;not null" json:"category"` // see Category* constants
 	Title    string         `gorm:"size:191;not null" json:"title"`
 	Body     string         `gorm:"size:1000" json:"body"`
 	DataJSON datatypes.JSON `json:"data"`

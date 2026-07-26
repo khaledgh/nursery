@@ -61,6 +61,7 @@ func (h *EngagementHandler) Register(protected *echo.Group) {
 	staff.PUT("/events/:id/status", h.UpdateEventStatus)
 	staff.POST("/events/:id/media", h.AddEventMedia)
 	staff.POST("/announcements", h.CreateAnnouncement)
+	staff.POST("/announcements/:id/publish", h.PublishAnnouncement)
 	staff.POST("/reminders", h.CreateReminder)
 	staff.DELETE("/reminders/:id", h.DeleteReminder)
 }
@@ -250,6 +251,18 @@ func (h *EngagementHandler) CreateAnnouncement(c echo.Context) error {
 		return err
 	}
 	return response.Created(c, ann)
+}
+
+func (h *EngagementHandler) PublishAnnouncement(c echo.Context) error {
+	id, err := paramID(c)
+	if err != nil {
+		return err
+	}
+	ann, err := h.eng.Publish(c.Request().Context(), id, mw.UserID(c), c.RealIP())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, ann)
 }
 
 // --- community ---

@@ -41,7 +41,37 @@ func CreateChildResource[T any, PT childResourcePtr[T]](s *HealthService, ctx co
 		return apperr.Internal(err)
 	}
 	s.audit.Record(ctx, userID, "create", entity, item.GetID(), map[string]any{"child_id": childID}, ip)
+	// Staff add these from the dashboard, where the parent is not present to be
+	// told in person. Only the time-sensitive types notify — paperwork like
+	// insurance or documents would just be noise.
+	if title, ok := healthNotificationTitle(entity); ok && s.notifier != nil {
+		s.notifier.NotifyGuardians(ctx, childID, model.CategoryUpdates,
+			title, "Tap to view the details",
+			map[string]any{"screen": "health", "child_id": childID})
+	}
 	return nil
+}
+
+// healthNotificationTitle names the area without disclosing specifics: a push
+// is shown on a lock screen, outside the app's access controls. The second
+// return reports whether this record type is worth notifying about at all.
+func healthNotificationTitle(entity string) (string, bool) {
+	switch entity {
+	case "illness_log":
+		return "New illness report", true
+	case "medication":
+		return "Medication record updated", true
+	case "allergy":
+		return "Allergy record updated", true
+	case "vital_log":
+		return "New health check recorded", true
+	case "health_note":
+		return "New health note", true
+	default:
+		// immunization, checkup, growth_record, emergency_contact, insurance_info,
+		// medical_document: recorded for the file, not urgent for the parent.
+		return "", false
+	}
 }
 
 // UpdateChildResource overwrites an existing row (verified to belong to the

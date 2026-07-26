@@ -180,6 +180,13 @@ func (s *EngagementService) UpdateEventStatus(ctx context.Context, id uint64, st
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, actorID, "update", "event", ev.ID, map[string]any{"status": status}, ip)
+	// Cancellation is the one status change parents must not miss; "completed"
+	// is bookkeeping and would only add noise.
+	if status == "cancelled" {
+		s.notifier.NotifyRole(ctx, string(model.RoleParent), model.CategoryEvents,
+			"Event cancelled", ev.Title,
+			map[string]any{"screen": "events", "event_id": ev.ID})
+	}
 	return ev, nil
 }
 
@@ -238,6 +245,12 @@ func (s *EngagementService) AddEventMedia(ctx context.Context, eventID, actorID 
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, actorID, "create", "event_media", em.ID, map[string]any{"event_id": eventID}, ip)
+	// Photos are the payoff of an event for parents who could not attend.
+	// TODO: uploading an album sends one push per photo — route through the
+	// digest once it exists so a batch arrives as a single notification.
+	s.notifier.NotifyRole(ctx, string(model.RoleParent), model.CategoryEvents,
+		"New event photos 📷", "Photos have been added to the album",
+		map[string]any{"screen": "events", "event_id": eventID})
 	return em, nil
 }
 
@@ -389,10 +402,37 @@ func (s *EngagementService) CreateAnnouncement(ctx context.Context, req *dto.Cre
 	}
 	s.audit.Record(ctx, actorID, "create", "announcement", ann.ID, map[string]any{"title": ann.Title}, ip)
 	if ann.PublishedAt != nil {
-		s.notifier.NotifyRole(ctx, "", ann.Category, ann.Title, truncate(ann.Body, 120),
-			map[string]any{"screen": "announcements", "announcement_id": ann.ID})
+		s.announceToParents(ctx, ann)
 	}
 	return ann, nil
+}
+
+// Publish releases a draft. Without this a draft was unreachable: PublishedAt
+// was only ever set at creation time, so publish:false meant "never".
+func (s *EngagementService) Publish(ctx context.Context, id, actorID uint64, ip string) (*model.Announcement, error) {
+	var ann model.Announcement
+	if err := s.db.WithContext(ctx).First(&ann, id).Error; err != nil {
+		return nil, apperr.NotFound("announcement not found")
+	}
+	if ann.PublishedAt != nil {
+		return nil, apperr.Conflict("announcement is already published")
+	}
+	now := time.Now()
+	if err := s.db.WithContext(ctx).Model(&ann).Update("published_at", now).Error; err != nil {
+		return nil, apperr.Internal(err)
+	}
+	ann.PublishedAt = &now
+	s.audit.Record(ctx, actorID, "publish", "announcement", ann.ID, map[string]any{"title": ann.Title}, ip)
+	s.announceToParents(ctx, &ann)
+	return &ann, nil
+}
+
+// announceToParents targets parents only. Addressing every active user meant
+// admins and teachers were pushed the announcements they had just written.
+func (s *EngagementService) announceToParents(ctx context.Context, ann *model.Announcement) {
+	s.notifier.NotifyRole(ctx, string(model.RoleParent),
+		model.NotificationCategory(ann.Category), ann.Title, truncate(ann.Body, 120),
+		map[string]any{"screen": "announcements", "announcement_id": ann.ID})
 }
 
 // ---------- community ----------
@@ -452,6 +492,9 @@ func (s *EngagementService) CreatePost(ctx context.Context, role model.Role, use
 		return nil, apperr.From(txErr)
 	}
 	s.audit.Record(ctx, userID, "create", "community_post", post.ID, nil, ip)
+	// Deliberately not notified: NotifyRole cannot exclude the author, so every
+	// poster would be pushed their own post. Needs an audience-exclusion option
+	// on the notifier first; comments (which can exclude) already notify.
 	return post, nil
 }
 

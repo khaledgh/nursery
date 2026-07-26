@@ -12,6 +12,9 @@ type Notifier interface {
 	NotifyUser(ctx context.Context, userID uint64, category, title, body string, data map[string]any)
 	// NotifyRole pushes to every active user with the role ("" = everyone).
 	NotifyRole(ctx context.Context, role string, category, title, body string, data map[string]any)
+	// NotifyClassroomGuardians pushes once to every guardian of every child in
+	// the classroom. A parent with two children there is notified once.
+	NotifyClassroomGuardians(ctx context.Context, classroomID uint64, category, title, body string, data map[string]any)
 }
 
 // NoopNotifier is used until the OneSignal integration is configured.
@@ -21,3 +24,5 @@ func (NoopNotifier) NotifyGuardians(context.Context, uint64, string, string, str
 }
 func (NoopNotifier) NotifyUser(context.Context, uint64, string, string, string, map[string]any) {}
 func (NoopNotifier) NotifyRole(context.Context, string, string, string, string, map[string]any) {}
+func (NoopNotifier) NotifyClassroomGuardians(context.Context, uint64, string, string, string, map[string]any) {
+}

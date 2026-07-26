@@ -16,10 +16,11 @@ type HealthService struct {
 	db       *gorm.DB
 	childSvc *ChildService
 	audit    *AuditService
+	notifier Notifier
 }
 
-func NewHealthService(db *gorm.DB, childSvc *ChildService, audit *AuditService) *HealthService {
-	return &HealthService{db: db, childSvc: childSvc, audit: audit}
+func NewHealthService(db *gorm.DB, childSvc *ChildService, audit *AuditService, notifier Notifier) *HealthService {
+	return &HealthService{db: db, childSvc: childSvc, audit: audit, notifier: notifier}
 }
 
 func (s *HealthService) DB() *gorm.DB             { return s.db }

@@ -111,15 +111,9 @@ func (r *Runner) bringReminders(ctx context.Context) error {
 			if rem.ScopeID == nil {
 				continue
 			}
-			var childIDs []uint64
-			if err := r.db.WithContext(ctx).Model(&model.Child{}).
-				Where("classroom_id = ?", *rem.ScopeID).Pluck("id", &childIDs).Error; err != nil {
-				continue
-			}
-			for _, cid := range childIDs {
-				r.notifier.NotifyGuardians(ctx, cid, "reminders", rem.Title, rem.Description,
-					map[string]any{"screen": "reminders", "reminder_id": rem.ID})
-			}
+			r.notifier.NotifyClassroomGuardians(ctx, *rem.ScopeID, model.CategoryReminders,
+				rem.Title, rem.Description,
+				map[string]any{"screen": "reminders", "reminder_id": rem.ID})
 		}
 	}
 	return nil

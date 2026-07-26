@@ -15,10 +15,11 @@ type AttendanceService struct {
 	children   *repository.ChildRepo
 	childSvc   *ChildService
 	audit      *AuditService
+	notifier   Notifier
 }
 
-func NewAttendanceService(attendance *repository.AttendanceRepo, children *repository.ChildRepo, childSvc *ChildService, audit *AuditService) *AttendanceService {
-	return &AttendanceService{attendance: attendance, children: children, childSvc: childSvc, audit: audit}
+func NewAttendanceService(attendance *repository.AttendanceRepo, children *repository.ChildRepo, childSvc *ChildService, audit *AuditService, notifier Notifier) *AttendanceService {
+	return &AttendanceService{attendance: attendance, children: children, childSvc: childSvc, audit: audit, notifier: notifier}
 }
 
 func (s *AttendanceService) List(ctx context.Context, role model.Role, userID, childID uint64, q dto.ListAttendanceQuery) ([]model.Attendance, int64, error) {
@@ -73,6 +74,13 @@ func (s *AttendanceService) Request(ctx context.Context, role model.Role, userID
 	}
 	s.audit.Record(ctx, userID, "request", "attendance", stored.ID,
 		map[string]any{"child_id": childID, "status": req.Status, "date": req.Date}, ip)
+	// Sits in the staff review queue until someone confirms it, so tell them
+	// it is there rather than relying on the queue being checked.
+	if role == model.RoleParent {
+		s.notifier.NotifyRole(ctx, string(model.RoleTeacher), model.CategoryUpdates,
+			"New attendance request", "A parent submitted a request for "+req.Date,
+			map[string]any{"screen": "attendance", "child_id": childID})
+	}
 	return stored, nil
 }
 
@@ -93,6 +101,10 @@ func (s *AttendanceService) Confirm(ctx context.Context, role model.Role, userID
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, userID, "confirm", "attendance", a.ID, nil, ip)
+	// The parent raised this request and has been waiting on an answer.
+	s.notifier.NotifyGuardians(ctx, a.ChildID, model.CategoryUpdates,
+		"Attendance confirmed", "The nursery confirmed your attendance request",
+		map[string]any{"screen": "attendance", "child_id": a.ChildID})
 	return a, nil
 }
 
@@ -144,5 +156,12 @@ func (s *AttendanceService) CheckInOut(ctx context.Context, role model.Role, use
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, userID, action, "attendance", a.ID, map[string]any{"child_id": childID}, ip)
+	// Arrival and pickup are the two moments a parent most wants confirmed.
+	title, body := "Checked in", ch.FirstName+" arrived safely at the nursery"
+	if action == "check_out" {
+		title, body = "Checked out", ch.FirstName+" has been picked up"
+	}
+	s.notifier.NotifyGuardians(ctx, childID, model.CategoryUpdates, title, body,
+		map[string]any{"screen": "attendance", "child_id": childID})
 	return ch, nil
 }

@@ -147,6 +147,11 @@ func (s *PaymentService) CancelInvoice(ctx context.Context, id, actorID uint64, 
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, actorID, "cancel", "invoice", inv.ID, nil, ip)
+	// The payer may already have been reminded about this invoice, or be about
+	// to pay it.
+	s.notifier.NotifyUser(ctx, inv.PayerUserID, model.CategoryReminders,
+		"Invoice cancelled", "Invoice "+inv.InvoiceNo+" no longer needs to be paid",
+		map[string]any{"screen": "payments", "invoice_id": inv.ID})
 	return &inv, nil
 }
 

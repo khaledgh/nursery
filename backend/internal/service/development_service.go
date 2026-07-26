@@ -112,6 +112,13 @@ func (s *DevelopmentService) Assess(ctx context.Context, role model.Role, userID
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, userID, "assess", "child_milestone", m.ID, map[string]any{"child_id": childID, "category_id": req.CategoryID}, ip)
+	// Only on completion: this is an upsert staff revise as progress changes,
+	// and a push per percentage tweak would be noise.
+	if status == "achieved" {
+		s.notifier.NotifyGuardians(ctx, childID, model.CategoryUpdates,
+			"Milestone reached 🌟", "A new skill has been marked as achieved",
+			map[string]any{"screen": "milestones", "child_id": childID})
+	}
 	return m, nil
 }
 
