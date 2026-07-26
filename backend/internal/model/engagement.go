@@ -142,4 +142,7 @@ type Reminder struct {
 	WeatherAlert bool           `gorm:"not null;default:false" json:"weather_alert"`
 	Icon         string         `gorm:"size:50" json:"icon"`
 	CreatedBy    uint64         `gorm:"not null" json:"created_by"`
+	// Set once the reminder has been announced, whether at creation (same-day)
+	// or by the morning cron. Keeps a cron re-run from notifying twice.
+	NotifiedAt *time.Time `json:"notified_at"`
 }

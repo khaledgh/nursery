@@ -16,22 +16,24 @@ import (
 )
 
 type Runner struct {
-	cron     *cron.Cron
-	db       *gorm.DB
-	payments *service.PaymentService
-	tokens   *repository.TokenRepo
-	notifier service.Notifier
-	log      zerolog.Logger
+	cron       *cron.Cron
+	db         *gorm.DB
+	payments   *service.PaymentService
+	tokens     *repository.TokenRepo
+	notifier   service.Notifier
+	engagement *service.EngagementService
+	log        zerolog.Logger
 }
 
-func NewRunner(db *gorm.DB, payments *service.PaymentService, tokens *repository.TokenRepo, notifier service.Notifier, log zerolog.Logger) *Runner {
+func NewRunner(db *gorm.DB, payments *service.PaymentService, tokens *repository.TokenRepo, notifier service.Notifier, engagement *service.EngagementService, log zerolog.Logger) *Runner {
 	return &Runner{
-		cron:     cron.New(),
-		db:       db,
-		payments: payments,
-		tokens:   tokens,
-		notifier: notifier,
-		log:      log,
+		cron:       cron.New(),
+		db:         db,
+		payments:   payments,
+		tokens:     tokens,
+		notifier:   notifier,
+		engagement: engagement,
+		log:        log,
 	}
 }
 
@@ -88,32 +90,25 @@ func (r *Runner) eventReminders(ctx context.Context) error {
 	return nil
 }
 
-// bringReminders pushes today's dated "what to bring" reminders.
+// bringReminders pushes today's dated "what to bring" reminders. Same-day
+// reminders are announced when they are created, so this only picks up the ones
+// scheduled in advance.
 func (r *Runner) bringReminders(ctx context.Context) error {
 	today := time.Now().Format("2006-01-02")
 	var reminders []model.Reminder
 	if err := r.db.WithContext(ctx).
-		Where("date = ?", today).
+		Where("date = ? AND notified_at IS NULL", today).
 		Find(&reminders).Error; err != nil {
 		return err
 	}
-	for _, rem := range reminders {
-		switch rem.Scope {
-		case "global":
-			r.notifier.NotifyRole(ctx, string(model.RoleParent), "reminders", rem.Title, rem.Description,
-				map[string]any{"screen": "reminders", "reminder_id": rem.ID})
-		case "child":
-			if rem.ScopeID != nil {
-				r.notifier.NotifyGuardians(ctx, *rem.ScopeID, "reminders", rem.Title, rem.Description,
-					map[string]any{"screen": "reminders", "reminder_id": rem.ID})
-			}
-		case "classroom":
-			if rem.ScopeID == nil {
-				continue
-			}
-			r.notifier.NotifyClassroomGuardians(ctx, *rem.ScopeID, model.CategoryReminders,
-				rem.Title, rem.Description,
-				map[string]any{"screen": "reminders", "reminder_id": rem.ID})
+	now := time.Now()
+	for i := range reminders {
+		rem := &reminders[i]
+		r.engagement.NotifyReminder(ctx, rem)
+		// Marked per reminder so a failure part-way through does not re-notify
+		// the ones already sent on the next run.
+		if err := r.db.WithContext(ctx).Model(rem).Update("notified_at", now).Error; err != nil {
+			r.log.Error().Err(err).Uint64("reminder_id", rem.ID).Msg("failed to mark reminder notified")
 		}
 	}
 	return nil

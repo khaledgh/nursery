@@ -666,7 +666,38 @@ func (s *EngagementService) CreateReminder(ctx context.Context, req *dto.CreateR
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, actorID, "create", "reminder", r.ID, map[string]any{"scope": r.Scope}, ip)
+	// Reminders are otherwise only sent by the 07:00 cron on their date, so one
+	// created for today after 07:00 would never reach anyone. Future-dated ones
+	// still wait for the cron, which is what makes them a reminder.
+	if r.Date == time.Now().Format("2006-01-02") {
+		s.NotifyReminder(ctx, r)
+		now := time.Now()
+		if err := s.db.WithContext(ctx).Model(r).Update("notified_at", now).Error; err == nil {
+			r.NotifiedAt = &now
+		}
+	}
 	return r, nil
+}
+
+// NotifyReminder fans a reminder out to its scope. Shared with the cron so the
+// two paths cannot drift apart.
+func (s *EngagementService) NotifyReminder(ctx context.Context, r *model.Reminder) {
+	data := map[string]any{"screen": "reminders", "reminder_id": r.ID}
+	switch r.Scope {
+	case "global":
+		s.notifier.NotifyRole(ctx, string(model.RoleParent), model.CategoryReminders,
+			r.Title, r.Description, data)
+	case "child":
+		if r.ScopeID != nil {
+			s.notifier.NotifyGuardians(ctx, *r.ScopeID, model.CategoryReminders,
+				r.Title, r.Description, data)
+		}
+	case "classroom":
+		if r.ScopeID != nil {
+			s.notifier.NotifyClassroomGuardians(ctx, *r.ScopeID, model.CategoryReminders,
+				r.Title, r.Description, data)
+		}
+	}
 }
 
 func (s *EngagementService) DeleteReminder(ctx context.Context, id, actorID uint64, ip string) error {

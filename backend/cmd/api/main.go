@@ -176,7 +176,7 @@ func main() {
 	platformHandler.Register(protected)
 
 	// Background jobs
-	jobs := job.NewRunner(db, paymentSvc, tokenRepo, notifier, log)
+	jobs := job.NewRunner(db, paymentSvc, tokenRepo, notifier, engagementSvc, log)
 	jobs.Start()
 	defer jobs.Stop()
 
