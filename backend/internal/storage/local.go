@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,9 +15,10 @@ import (
 type LocalStorage struct {
 	root    string
 	baseURL string // e.g. https://api.example.com — media URLs are baseURL/api/v1/media/:id/file
+	signer  *Signer
 }
 
-func NewLocalStorage(root, baseURL string) (*LocalStorage, error) {
+func NewLocalStorage(root, baseURL string, signer *Signer) (*LocalStorage, error) {
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return nil, err
@@ -24,7 +26,7 @@ func NewLocalStorage(root, baseURL string) (*LocalStorage, error) {
 	if err := os.MkdirAll(abs, 0o750); err != nil {
 		return nil, fmt.Errorf("storage: create upload dir: %w", err)
 	}
-	return &LocalStorage{root: abs, baseURL: strings.TrimRight(baseURL, "/")}, nil
+	return &LocalStorage{root: abs, baseURL: strings.TrimRight(baseURL, "/"), signer: signer}, nil
 }
 
 // safePath joins key under root and rejects any traversal outside it.
@@ -88,9 +90,20 @@ func (s *LocalStorage) Open(ctx context.Context, key string) (io.ReadCloser, err
 	return os.Open(full)
 }
 
-// URL for local files points at the streaming endpoint, which enforces auth.
+// URL for local files points at the streaming endpoint. Image tags cannot send an
+// Authorization header, so access is carried by a short-lived signature instead.
 func (s *LocalStorage) URL(key string) string {
-	return s.baseURL + "/api/v1/media/stream/" + key
+	// Escape each segment individually: "/" must stay a path separator.
+	parts := strings.Split(key, "/")
+	for i, p := range parts {
+		parts[i] = url.PathEscape(p)
+	}
+	u := s.baseURL + "/api/v1/media/stream/" + strings.Join(parts, "/")
+	if s.signer == nil {
+		return u
+	}
+	// Signed over the raw key, which is what the handler recovers after routing.
+	return u + "?" + s.signer.Query(key)
 }
 
 func (s *LocalStorage) Driver() string { return "local" }

@@ -46,6 +46,10 @@ type AuthConfig struct {
 type StorageConfig struct {
 	Driver         string `env:"STORAGE_DRIVER" envDefault:"local"`
 	LocalUploadDir string `env:"LOCAL_UPLOAD_DIR" envDefault:"./uploads"`
+	// Signs local media URLs so <img>/<Image> can load them without an auth
+	// header. Falls back to the access secret when unset.
+	MediaURLSecret string        `env:"MEDIA_URL_SECRET"`
+	MediaURLTTL    time.Duration `env:"MEDIA_URL_TTL" envDefault:"24h"`
 	S3Bucket       string `env:"S3_BUCKET"`
 	S3Region       string `env:"S3_REGION"`
 	S3AccessKey    string `env:"S3_ACCESS_KEY"`

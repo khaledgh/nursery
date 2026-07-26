@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type Media struct {
@@ -16,6 +17,22 @@ type Media struct {
 	Width      int     `json:"width,omitempty"`
 	Height     int     `json:"height,omitempty"`
 	UploadedBy uint64  `gorm:"not null;index" json:"-"`
+}
+
+// MediaURLBuilder rebuilds a local media URL from its storage path. Set once at
+// startup by the storage layer.
+//
+// The stored URL cannot be served as-is: it was written when the row was created,
+// so it carries whatever host the API had then and a signature that expires. Media
+// is embedded in many responses, so recomputing it in one AfterFind hook is what
+// keeps every read path correct instead of each service remembering to re-sign.
+var MediaURLBuilder func(path string) string
+
+func (m *Media) AfterFind(*gorm.DB) error {
+	if MediaURLBuilder != nil && m.Disk == "local" && m.Path != "" {
+		m.URL = MediaURLBuilder(m.Path)
+	}
+	return nil
 }
 
 type Locale struct {

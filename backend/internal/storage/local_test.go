@@ -9,7 +9,7 @@ import (
 
 func newTestStorage(t *testing.T) *LocalStorage {
 	t.Helper()
-	s, err := NewLocalStorage(t.TempDir(), "http://localhost:8080")
+	s, err := NewLocalStorage(t.TempDir(), "http://localhost:8080", nil)
 	if err != nil {
 		t.Fatalf("init: %v", err)
 	}

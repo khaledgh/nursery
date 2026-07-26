@@ -24,6 +24,7 @@ import (
 	"github.com/sunnystars/backend/internal/handler"
 	"github.com/sunnystars/backend/internal/job"
 	mw "github.com/sunnystars/backend/internal/middleware"
+	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/notification"
 	"github.com/sunnystars/backend/internal/payment"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -52,9 +53,14 @@ func main() {
 		log.Fatal().Err(err).Msg("database connection failed")
 	}
 
-	store, err := buildStorage(cfg)
+	signer := mediaSigner(cfg)
+	store, err := buildStorage(cfg, signer)
 	if err != nil {
 		log.Fatal().Err(err).Msg("storage init failed")
+	}
+	// Re-sign local media URLs on every read; the column value is stale by design.
+	if local, ok := store.(*storage.LocalStorage); ok {
+		model.MediaURLBuilder = local.URL
 	}
 
 	jwts := jwtutil.NewManager(cfg.Auth.AccessSecret, cfg.Auth.AccessTTL, cfg.App.URL)
@@ -137,6 +143,9 @@ func main() {
 	})
 	public := api.Group("", authLimiter)
 	protected := api.Group("", mw.JWT(jwts))
+	// Signed media URLs are unauthenticated but must not share the auth
+	// brute-force limiter: one gallery view is dozens of image requests.
+	media := api.Group("")
 
 	// Public locale list so clients can render the language picker pre-login.
 	api.GET("/locales", func(c echo.Context) error {
@@ -152,7 +161,7 @@ func main() {
 	handler.NewChildHandler(childSvc).Register(protected)
 	handler.NewClassroomHandler(classroomSvc).Register(protected)
 	handler.NewAttendanceHandler(attendanceSvc).Register(protected)
-	handler.NewMediaHandler(mediaSvc).Register(protected)
+	handler.NewMediaHandler(mediaSvc, signer).Register(media, protected)
 	handler.NewCareHandler(careSvc).Register(protected)
 	handler.NewHealthHandler(healthSvc).Register(protected)
 	handler.NewDevelopmentHandler(devSvc).Register(protected)
@@ -229,7 +238,21 @@ func buildPaymentProvider(cfg *config.Config, log zerolog.Logger) payment.Provid
 	return payment.NewMockProvider()
 }
 
-func buildStorage(cfg *config.Config) (storage.Storage, error) {
+// mediaSigner is nil for s3, which issues its own presigned URLs. For local disk
+// it both stamps outgoing URLs and verifies incoming ones, so the two must share
+// one instance.
+func mediaSigner(cfg *config.Config) *storage.Signer {
+	if cfg.Storage.Driver == "s3" {
+		return nil
+	}
+	secret := cfg.Storage.MediaURLSecret
+	if secret == "" {
+		secret = cfg.Auth.AccessSecret
+	}
+	return storage.NewSigner(secret, cfg.Storage.MediaURLTTL)
+}
+
+func buildStorage(cfg *config.Config, signer *storage.Signer) (storage.Storage, error) {
 	switch cfg.Storage.Driver {
 	case "s3":
 		return storage.NewS3Storage(context.Background(), storage.S3Options{
@@ -240,7 +263,7 @@ func buildStorage(cfg *config.Config) (storage.Storage, error) {
 			Endpoint:  cfg.Storage.S3Endpoint,
 		})
 	default:
-		return storage.NewLocalStorage(cfg.Storage.LocalUploadDir, cfg.App.URL)
+		return storage.NewLocalStorage(cfg.Storage.LocalUploadDir, cfg.App.URL, signer)
 	}
 }
 
