@@ -11,6 +11,7 @@ import { SectionHeader } from "../src/components/SectionHeader";
 import { TimelineItem } from "../src/components/Timeline";
 import { Card, Loading, Screen } from "../src/components/ui";
 import { toISODate } from "../src/lib/stats";
+import { useRefreshAll } from "../src/lib/useRefreshAll";
 import { useActiveChild } from "../src/store/activeChild";
 import { colors, fonts, radius, safeIcon, spacing } from "../src/theme";
 
@@ -24,6 +25,7 @@ export default function ClassroomScreen() {
   const classmates = useClassmates(classroomId);
   const today = toISODate(new Date());
   const diary = useDiary(child?.id, { from: today, to: today });
+  const { refreshing, onRefresh } = useRefreshAll(classroom, schedule, classmates, diary);
 
   if (classroom.isLoading) {
     return (
@@ -34,8 +36,9 @@ export default function ClassroomScreen() {
   }
   const room = classroom.data;
   if (!room) {
+    // Refreshable: a failed load is exactly when the user wants to retry.
     return (
-      <Screen>
+      <Screen refreshing={refreshing} onRefresh={onRefresh}>
         <EmptyState icon="school" title={t("common.empty")} />
       </Screen>
     );
@@ -47,7 +50,7 @@ export default function ClassroomScreen() {
     .slice(0, 10);
 
   return (
-    <Screen refreshing={classroom.isRefetching} onRefresh={() => void classroom.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {/* Banner */}
       <Card style={styles.banner}>
         {room.image?.url ? (

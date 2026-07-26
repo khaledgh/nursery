@@ -13,6 +13,14 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.sunnystars.mobile",
+      infoPlist: {
+        // Lets a push wake the app to fetch before the notification is shown.
+        UIBackgroundModes: ["remote-notification"],
+      },
+      entitlements: {
+        // Switched to "production" by the plugin's production mode at build time.
+        "aps-environment": "development",
+      },
     },
     android: {
       package: "app.sunnystars.mobile",
@@ -28,6 +36,16 @@ module.exports = {
       favicon: "./assets/favicon.png",
     },
     plugins: [
+      // Must stay first in this array, otherwise the iOS build fails with
+      // "OneSignal/OneSignal.h file not found".
+      [
+        "onesignal-expo-plugin",
+        {
+          mode: process.env.NODE_ENV === "production" ? "production" : "development",
+          // This app never asks for location, so keep that dependency out.
+          disableLocation: true,
+        },
+      ],
       "expo-router",
       "expo-secure-store",
       "expo-localization",
@@ -37,6 +55,7 @@ module.exports = {
     ],
     extra: {
       apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "",
+      oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID ?? "",
     },
   },
 };

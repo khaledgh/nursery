@@ -12,6 +12,7 @@ import { SegmentTabs } from "../../src/components/SegmentTabs";
 import { TipBanner } from "../../src/components/TipBanner";
 import { Card, Loading, Screen } from "../../src/components/ui";
 import { childAgeLabel, formatDate } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, radius, safeIcon, spacing } from "../../src/theme";
 
@@ -55,13 +56,14 @@ export default function MilestonesScreen() {
 
   const milestones = useMilestones(child?.id);
   const achievements = useAchievements(child?.id);
+  const { refreshing, onRefresh } = useRefreshAll(milestones, achievements);
 
   const all = milestones.data ?? [];
   const current = all.filter((m) => m.status === "in_progress");
   const shown = tab === "all" ? all : current;
 
   return (
-    <Screen refreshing={milestones.isRefetching} onRefresh={() => void milestones.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {child && (
         <HeroCard
           variant="tint"

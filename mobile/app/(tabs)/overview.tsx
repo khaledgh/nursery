@@ -14,6 +14,7 @@ import { TipBanner } from "../../src/components/TipBanner";
 import { WeekSelector } from "../../src/components/WeekSelector";
 import { Card, Loading, Screen } from "../../src/components/ui";
 import { addDays, childAgeLabel, startOfWeek, toISODate, weekRange } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, radius, REPORT_RATING, safeIcon, spacing } from "../../src/theme";
 
@@ -29,6 +30,7 @@ export default function OverviewScreen() {
 
   const plan = useWeeklyPlan(child?.classroom_id, toISODate(weekStart));
   const reports = useReports(child?.id, weekRange(weekStart));
+  const { refreshing, onRefresh } = useRefreshAll(plan, reports);
 
   const items = plan.data?.items ?? [];
   const learning = items.filter((i) => i.kind === "learning_area");
@@ -43,7 +45,7 @@ export default function OverviewScreen() {
   };
 
   return (
-    <Screen refreshing={plan.isRefetching} onRefresh={() => void plan.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       <ChildSwitcher />
 
       {child && (

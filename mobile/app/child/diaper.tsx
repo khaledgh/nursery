@@ -19,6 +19,7 @@ import {
   toISODate,
   weekRange,
 } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, COMFORT, fonts, spacing, STOOL, WETNESS } from "../../src/theme";
 
@@ -30,6 +31,7 @@ export default function DiaperScreen() {
   const monday = startOfWeek(new Date());
   const diapers = useDiapers(child?.id, { from: today, to: today });
   const weekDiapers = useDiapers(child?.id, { ...weekRange(monday), per_page: 100 });
+  const { refreshing, onRefresh } = useRefreshAll(diapers, weekDiapers);
 
   const logs = [...(diapers.data ?? [])].sort((a, b) => a.time.localeCompare(b.time));
   const last = logs[logs.length - 1];
@@ -47,7 +49,7 @@ export default function DiaperScreen() {
   });
 
   return (
-    <Screen refreshing={diapers.isRefetching} onRefresh={() => void diapers.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {child && (
         <HeroCard
           photoUrl={child.avatar?.url}

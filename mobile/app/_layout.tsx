@@ -14,9 +14,14 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
 import "../src/i18n";
+import { initPush } from "../src/lib/push";
 import { colors, fonts } from "../src/theme";
 
 void SplashScreen.preventAutoHideAsync();
+
+// Outside the component: the OneSignal SDK must initialise once per app start,
+// not on every remount of the root layout.
+initPush();
 
 const queryClient = new QueryClient({
   defaultOptions: {

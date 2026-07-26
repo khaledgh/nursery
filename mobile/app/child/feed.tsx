@@ -22,6 +22,7 @@ import {
   toISODate,
   weekRange,
 } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { accents, colors, fonts, MEAL_STATUS, MEAL_TYPE, radius, spacing } from "../../src/theme";
 
@@ -35,6 +36,7 @@ export default function FeedScreen() {
   const meals = useMeals(child?.id, { from: today, to: today });
   const weekMeals = useMeals(child?.id, { ...weekRange(monday), per_page: 100 });
   const hydration = useHydration(child?.id, { from: today, to: today });
+  const { refreshing, onRefresh } = useRefreshAll(meals, weekMeals, hydration);
 
   const todayMeals = [...(meals.data ?? [])].sort((a, b) => a.served_at.localeCompare(b.served_at));
   const pct = appetitePct(todayMeals);
@@ -59,7 +61,7 @@ export default function FeedScreen() {
   });
 
   return (
-    <Screen refreshing={meals.isRefetching} onRefresh={() => void meals.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {child && (
         <HeroCard
           photoUrl={child.avatar?.url}

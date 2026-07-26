@@ -11,6 +11,7 @@ import { PillBadge } from "../../src/components/PillBadge";
 import { SectionHeader } from "../../src/components/SectionHeader";
 import { Card, Loading, Screen } from "../../src/components/ui";
 import { formatDate, formatTime } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { colors, fonts, NOTIFICATION_CATEGORY, radius, spacing } from "../../src/theme";
 
 export default function MessageDetailScreen() {
@@ -21,6 +22,7 @@ export default function MessageDetailScreen() {
 
   const announcement = useAnnouncement(announcementId);
   const ack = useAcknowledge();
+  const { refreshing, onRefresh } = useRefreshAll(announcement);
 
   // The detail GET lacks per-user state; read it from any cached list row.
   const cachedRows = qc
@@ -38,8 +40,9 @@ export default function MessageDetailScreen() {
   }
   const a = announcement.data;
   if (!a) {
+    // Refreshable: a failed load is exactly when the user wants to retry.
     return (
-      <Screen>
+      <Screen refreshing={refreshing} onRefresh={onRefresh}>
         <Text style={styles.body}>{t("common.error")}</Text>
       </Screen>
     );
@@ -50,7 +53,7 @@ export default function MessageDetailScreen() {
   const files = (a.attachments ?? []).filter((x) => x.media && !x.media.mime?.startsWith("image/"));
 
   return (
-    <Screen>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       <Card style={styles.headerCard}>
         <IconCircle name={visual.icon} accent={visual.accent} size={52} squircle />
         <View style={{ flex: 1, gap: 4 }}>

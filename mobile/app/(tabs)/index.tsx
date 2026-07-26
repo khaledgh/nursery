@@ -22,6 +22,7 @@ import { SectionHeader } from "../../src/components/SectionHeader";
 import { TimelineItem } from "../../src/components/Timeline";
 import { Card, Screen } from "../../src/components/ui";
 import { childAgeLabel, formatTime, relationshipLabel, toISODate } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { useAuthStore } from "../../src/store/auth";
 import { colors, fonts, radius, safeIcon, spacing, type AccentName } from "../../src/theme";
@@ -50,6 +51,7 @@ export default function HomeScreen() {
   const dashboard = useDashboard(child?.id);
   const schedule = useClassroomSchedule(child?.classroom_id);
   const unread = useUnreadCount();
+  const { refreshing, onRefresh } = useRefreshAll(dashboard, schedule, unread);
   const requestAttendance = useRequestAttendance(child?.id);
 
   const [action, setAction] = useState<AttendanceAction | null>(null);
@@ -104,7 +106,7 @@ export default function HomeScreen() {
     );
 
   return (
-    <Screen refreshing={dashboard.isRefetching} onRefresh={() => void dashboard.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {/* Greeting header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <View style={{ flex: 1 }}>

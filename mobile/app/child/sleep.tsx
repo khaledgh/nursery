@@ -20,6 +20,7 @@ import {
   toISODate,
   weekRange,
 } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { accents, colors, fonts, spacing } from "../../src/theme";
 
@@ -34,6 +35,7 @@ export default function SleepScreen() {
   const monday = startOfWeek(new Date());
   const naps = useSleep(child?.id, { from: today, to: today });
   const weekNaps = useSleep(child?.id, { ...weekRange(monday), per_page: 50 });
+  const { refreshing, onRefresh } = useRefreshAll(naps, weekNaps);
 
   const nap = naps.data?.[0];
   const phases = nap
@@ -67,7 +69,7 @@ export default function SleepScreen() {
   });
 
   return (
-    <Screen refreshing={naps.isRefetching} onRefresh={() => void naps.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {child && (
         <HeroCard
           photoUrl={child.avatar?.url}

@@ -12,6 +12,7 @@ import { SectionHeader } from "../../src/components/SectionHeader";
 import { StatTile } from "../../src/components/StatTile";
 import { Card, Loading, Screen } from "../../src/components/ui";
 import { formatTime, minutesLabel, toISODate } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, MEAL_STATUS, radius, spacing } from "../../src/theme";
 
@@ -31,16 +32,18 @@ export default function ReportScreen() {
   const date = params.date ?? toISODate(new Date());
 
   const reports = useReports(child?.id, { from: date, to: date, per_page: 1 });
+
   const report = reports.data?.[0];
   const isToday = date === toISODate(new Date());
   const dashboard = useDashboard(isToday ? child?.id : undefined);
+  const { refreshing, onRefresh } = useRefreshAll(reports, dashboard);
 
   const meals = dashboard.data?.meals ?? [];
   const nap = dashboard.data?.sleep?.[0];
   const diaperCount = dashboard.data?.diapers?.length ?? 0;
 
   return (
-    <Screen refreshing={reports.isRefetching} onRefresh={() => void reports.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {child && (
         <HeroCard
           variant="tint"

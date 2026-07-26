@@ -11,6 +11,7 @@ import { TipBanner } from "../../src/components/TipBanner";
 import { WeekSelector } from "../../src/components/WeekSelector";
 import { Card, Loading, Screen } from "../../src/components/ui";
 import { addDays, isSameDay, startOfWeek, toISODate } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { accents, colors, fonts, MEAL_TYPE, radius, spacing, type AccentName } from "../../src/theme";
 
@@ -27,6 +28,7 @@ export default function MealsScheduleScreen() {
   const [selectedDay, setSelectedDay] = useState(() => toISODate(new Date()));
 
   const menu = useWeeklyMenu(child?.classroom_id, toISODate(weekStart));
+  const { refreshing, onRefresh } = useRefreshAll(menu);
   const rate = useRateMenu(child?.classroom_id);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -35,7 +37,7 @@ export default function MealsScheduleScreen() {
   const myRating = (m: WeeklyMenu) => m.ratings?.find((r) => r.child_id === child?.id)?.rating;
 
   return (
-    <Screen refreshing={menu.isRefetching} onRefresh={() => void menu.refetch()}>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {child && (
         <HeroCard
           variant="tint"

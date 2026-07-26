@@ -12,6 +12,7 @@ import { SectionHeader } from "../../src/components/SectionHeader";
 import { TipBanner } from "../../src/components/TipBanner";
 import { Card, Loading, Screen } from "../../src/components/ui";
 import { formatDate, formatTime } from "../../src/lib/stats";
+import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, radius, spacing } from "../../src/theme";
 
@@ -24,6 +25,7 @@ export default function EventDetailScreen() {
   const detail = useEvent(eventId);
   const media = useEventMedia(eventId);
   const feedback = useEventFeedback();
+  const { refreshing, onRefresh } = useRefreshAll(detail, media);
   const [comment, setComment] = useState("");
   const [showAllPhotos, setShowAllPhotos] = useState(false);
 
@@ -36,8 +38,9 @@ export default function EventDetailScreen() {
   }
   const event = detail.data?.event;
   if (!event) {
+    // Refreshable: a failed load is exactly when the user wants to retry.
     return (
-      <Screen>
+      <Screen refreshing={refreshing} onRefresh={onRefresh}>
         <Text style={styles.metaText}>{t("common.error")}</Text>
       </Screen>
     );
@@ -49,7 +52,7 @@ export default function EventDetailScreen() {
   const albumPhotos = photos.map((m) => ({ url: m.media!.url, caption: m.caption || undefined }));
 
   return (
-    <Screen>
+    <Screen refreshing={refreshing} onRefresh={onRefresh}>
       {/* Header card */}
       <Card style={styles.headerCard}>
         {event.status === "completed" && (
