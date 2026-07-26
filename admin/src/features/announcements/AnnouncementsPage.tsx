@@ -9,7 +9,8 @@ import { DataTable, type Column } from "../../components/DataTable";
 import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
 import { usePagedList } from "../../hooks/usePagedList";
-import { api, errorMessage } from "../../lib/api";
+import { api } from "../../lib/api";
+import { applyServerErrors } from "../../lib/formErrors";
 import type { Announcement } from "../../types/api";
 
 interface AnnouncementRow {
@@ -52,7 +53,7 @@ export function AnnouncementsPage() {
       form.reset({ category: "general", publish: true, title: "", body: "" });
       void list.refetch();
     },
-    onError: (err) => setError(errorMessage(err)),
+    onError: (err) => setError(applyServerErrors(form, err)),
   });
 
   const columns: Column<AnnouncementRow>[] = [

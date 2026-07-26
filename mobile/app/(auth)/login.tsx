@@ -11,8 +11,10 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, errorMessage } from "../../src/api/client";
+import { api } from "../../src/api/client";
 import { PrimaryButton } from "../../src/components/Buttons";
+import { FieldError } from "../../src/components/FieldError";
+import { useFieldErrors } from "../../src/lib/useFieldErrors";
 import type { AuthUser, TokenPair } from "../../src/store/auth";
 import { useAuthStore } from "../../src/store/auth";
 import { colors, fonts, radius, spacing } from "../../src/theme";
@@ -23,12 +25,12 @@ export default function LoginScreen() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const errors = useFieldErrors();
 
   const submit = async () => {
     setBusy(true);
-    setError("");
+    errors.reset();
     try {
       const res = await api.post<{ data: { user: AuthUser; tokens: TokenPair } }>("/auth/login", {
         email: email.trim(),
@@ -38,7 +40,7 @@ export default function LoginScreen() {
       setAuth(tokens, user);
       router.replace("/(tabs)");
     } catch (err) {
-      setError(errorMessage(err));
+      errors.capture(err);
     } finally {
       setBusy(false);
     }
@@ -56,7 +58,7 @@ export default function LoginScreen() {
         </View>
         <View style={styles.form}>
           <Text style={styles.label}>{t("auth.email")}</Text>
-          <View style={styles.inputWrap}>
+          <View style={[styles.inputWrap, errors.fieldError("email") && styles.inputWrapError]}>
             <Ionicons name="mail-outline" size={18} color={colors.textMuted} />
             <TextInput
               style={styles.input}
@@ -67,8 +69,9 @@ export default function LoginScreen() {
               onChangeText={setEmail}
             />
           </View>
+          <FieldError message={errors.fieldError("email")} />
           <Text style={styles.label}>{t("auth.password")}</Text>
-          <View style={styles.inputWrap}>
+          <View style={[styles.inputWrap, errors.fieldError("password") && styles.inputWrapError]}>
             <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} />
             <TextInput
               style={styles.input}
@@ -78,7 +81,8 @@ export default function LoginScreen() {
               onChangeText={setPassword}
             />
           </View>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <FieldError message={errors.fieldError("password")} />
+          {errors.message ? <Text style={styles.error}>{errors.message}</Text> : null}
           <PrimaryButton
             label={t("auth.submit")}
             onPress={() => void submit()}
@@ -124,6 +128,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  inputWrapError: { borderColor: colors.danger },
   input: { flex: 1, paddingVertical: 12, fontFamily: fonts.semibold, color: colors.text },
   error: { color: colors.danger, fontSize: 13, fontFamily: fonts.semibold },
 });

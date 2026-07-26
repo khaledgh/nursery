@@ -11,6 +11,7 @@ import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
 import { usePagedList } from "../../hooks/usePagedList";
 import { api, errorMessage } from "../../lib/api";
+import { applyServerErrors } from "../../lib/formErrors";
 import { ScheduleEditor } from "./ScheduleEditor";
 import type { Classroom, ItemResponse, ListResponse, Locale, User } from "../../types/api";
 
@@ -104,7 +105,7 @@ export function ClassroomsPage() {
       setEditing(null);
       void list.refetch();
     },
-    onError: (err) => setError(errorMessage(err)),
+    onError: (err) => setError(applyServerErrors(form, err)),
   });
 
   const remove = useMutation({

@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "../store/auth";
 import type { ApiErrorBody, LoginResponse } from "../types/api";
+import { parseApiError } from "./apiError";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8080/api/v1",
@@ -59,17 +60,15 @@ api.interceptors.response.use(
   },
 );
 
-/** Extracts a human-readable message from an API error. */
+export { parseApiError } from "./apiError";
+export type { ParsedApiError } from "./apiError";
+
+/**
+ * Extracts a human-readable message from an API error.
+ *
+ * Prefer `applyServerErrors` in forms — it puts messages on the inputs that
+ * failed. This remains for banners and non-form mutations.
+ */
 export function errorMessage(err: unknown): string {
-  if (axios.isAxiosError<ApiErrorBody>(err)) {
-    const body = err.response?.data?.error;
-    if (body?.fields) {
-      return Object.entries(body.fields)
-        .map(([f, m]) => `${f} ${m}`)
-        .join("; ");
-    }
-    if (body?.message) return body.message;
-    if (err.code === "ERR_NETWORK") return "Cannot reach the server";
-  }
-  return "Something went wrong";
+  return parseApiError(err).message;
 }

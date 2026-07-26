@@ -10,7 +10,8 @@ import { DataTable, type Column } from "../../components/DataTable";
 import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
 import { usePagedList } from "../../hooks/usePagedList";
-import { api, errorMessage } from "../../lib/api";
+import { api } from "../../lib/api";
+import { applyServerErrors } from "../../lib/formErrors";
 import { HealthPanel } from "./HealthPanel";
 import type { Child, Classroom, ItemResponse, ListResponse, User } from "../../types/api";
 
@@ -114,7 +115,7 @@ export function ChildrenPage() {
       setEditing(null);
       void list.refetch();
     },
-    onError: (err) => setError(errorMessage(err)),
+    onError: (err) => setError(applyServerErrors(form, err)),
   });
 
   const remove = useMutation({
@@ -135,7 +136,8 @@ export function ChildrenPage() {
       gForm.reset({ relationship: "mother", is_primary: false, can_pickup: true, parent_user_id: "" });
       void guardiansDetail.refetch();
     },
-    onError: (err) => setError(errorMessage(err)),
+    // gForm, not form: "already a guardian" belongs on the guardian picker.
+    onError: (err) => setError(applyServerErrors(gForm, err)),
   });
 
   const removeGuardian = useMutation({

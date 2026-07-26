@@ -9,7 +9,8 @@ import { DataTable, type Column } from "../../components/DataTable";
 import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
 import { usePagedList } from "../../hooks/usePagedList";
-import { api, errorMessage } from "../../lib/api";
+import { api } from "../../lib/api";
+import { applyServerErrors } from "../../lib/formErrors";
 import { ImageUpload } from "../../components/ImageUpload";
 import { EventMediaPanel } from "./EventMediaPanel";
 import type { EventItem, Media } from "../../types/api";
@@ -57,7 +58,7 @@ export function EventsPage() {
       form.reset();
       void list.refetch();
     },
-    onError: (err) => setError(errorMessage(err)),
+    onError: (err) => setError(applyServerErrors(form, err)),
   });
 
   const setStatus = useMutation({

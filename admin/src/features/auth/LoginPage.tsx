@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { FormField } from "../../components/FormField";
-import { api, errorMessage } from "../../lib/api";
+import { api } from "../../lib/api";
+import { applyServerErrors } from "../../lib/formErrors";
 import { useAuthStore } from "../../store/auth";
 import type { ItemResponse, LoginResponse } from "../../types/api";
 
@@ -20,11 +21,12 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { accessToken, user, setTokens } = useAuthStore();
   const [error, setError] = useState("");
+  const form = useForm<FormValues>({ resolver: zodResolver(schema) });
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = form;
 
   if (accessToken && user && user.role !== "parent") return <Navigate to="/" replace />;
 
@@ -40,7 +42,7 @@ export function LoginPage() {
       setTokens(tokens, authUser);
       navigate("/");
     } catch (err) {
-      setError(errorMessage(err));
+      setError(applyServerErrors(form, err));
     }
   };
 

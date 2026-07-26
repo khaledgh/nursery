@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 )
 
 type Code string
@@ -66,7 +67,37 @@ func NotFound(msg string) *Error     { return New(CodeNotFound, msg) }
 func Conflict(msg string) *Error     { return New(CodeConflict, msg) }
 
 func Validation(fields map[string]string) *Error {
-	return &Error{Code: CodeValidation, Message: "validation failed", Fields: fields}
+	return &Error{Code: CodeValidation, Message: validationSummary(fields), Fields: fields}
+}
+
+// validationSummary renders one readable line for clients that only display
+// Message; Fields stays authoritative for per-input rendering. Keys are sorted
+// because Go randomizes map iteration — without it the same request would
+// return a different message each time.
+func validationSummary(fields map[string]string) string {
+	if len(fields) == 0 {
+		return "validation failed"
+	}
+	keys := make([]string, 0, len(fields))
+	for k := range fields {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	first := keys[0] + " " + fields[keys[0]]
+	if len(keys) == 1 {
+		return first
+	}
+	return fmt.Sprintf("%s (and %d more)", first, len(keys)-1)
+}
+
+// ConflictField reports a conflict caused by one request field, so clients can
+// render it under that input instead of in a page-level banner.
+func ConflictField(field, msg string) *Error {
+	return &Error{
+		Code:    CodeConflict,
+		Message: field + " " + msg,
+		Fields:  map[string]string{field: msg},
+	}
 }
 
 // Internal wraps an unexpected error with a generic client-safe message.

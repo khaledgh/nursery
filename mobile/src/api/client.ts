@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import Constants from "expo-constants";
 import { useAuthStore, type AuthUser, type TokenPair } from "../store/auth";
+import { parseApiError } from "./apiError";
 
 // On a device "localhost" is the device itself, so in development derive the
 // API host from the Metro dev server (same machine as the API). An explicit
@@ -64,11 +65,15 @@ api.interceptors.response.use(
   },
 );
 
+export { parseApiError } from "./apiError";
+export type { ParsedApiError } from "./apiError";
+
+/**
+ * Extracts a human-readable message from an API error.
+ *
+ * Prefer useFieldErrors in forms — it puts messages on the inputs that failed.
+ * This remains for banners and non-form requests.
+ */
 export function errorMessage(err: unknown): string {
-  if (axios.isAxiosError(err)) {
-    const body = err.response?.data as { error?: { message?: string } } | undefined;
-    if (body?.error?.message) return body.error.message;
-    if (err.code === "ERR_NETWORK") return "Cannot reach the server";
-  }
-  return "Something went wrong";
+  return parseApiError(err).message;
 }

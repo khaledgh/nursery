@@ -158,7 +158,7 @@ func (s *ClassroomService) AssignTeacher(ctx context.Context, classroomID uint64
 		return apperr.Internal(err)
 	}
 	if already {
-		return apperr.Conflict("teacher is already assigned to this classroom")
+		return apperr.ConflictField("teacher_user_id", "is already assigned to this classroom")
 	}
 	ct := &model.ClassroomTeacher{
 		ClassroomID:   classroomID,

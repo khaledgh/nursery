@@ -10,7 +10,8 @@ import { DataTable, type Column } from "../../components/DataTable";
 import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
 import { usePagedList } from "../../hooks/usePagedList";
-import { api, errorMessage } from "../../lib/api";
+import { api } from "../../lib/api";
+import { applyServerErrors } from "../../lib/formErrors";
 import type { User } from "../../types/api";
 
 const schema = z.object({
@@ -53,7 +54,11 @@ export function UsersPage() {
   const save = useMutation({
     mutationFn: async (values: FormValues) => {
       if (editing === "new") {
-        if (!values.password) throw new Error("password required");
+        if (!values.password) {
+          // Only new users must supply one, so this cannot live in the schema.
+          form.setError("password", { type: "required", message: "is required for new users" });
+          throw new Error("");
+        }
         await api.post("/admin/users", { ...values, phone: values.phone || undefined });
       } else if (editing) {
         await api.put(`/admin/users/${editing.id}`, {
@@ -69,7 +74,7 @@ export function UsersPage() {
       setEditing(null);
       void list.refetch();
     },
-    onError: (err) => setError(err instanceof Error && err.message === "password required" ? "Password is required for new users" : errorMessage(err)),
+    onError: (err) => setError(applyServerErrors(form, err)),
   });
 
   const remove = useMutation({

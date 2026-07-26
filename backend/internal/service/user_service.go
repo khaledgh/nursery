@@ -38,7 +38,7 @@ func (s *UserService) Create(ctx context.Context, req *dto.CreateUserRequest, ac
 		return nil, apperr.Internal(err)
 	}
 	if exists {
-		return nil, apperr.Conflict("email is already in use")
+		return nil, apperr.ConflictField("email", "is already in use")
 	}
 	pwHash, err := hash.Password(req.Password)
 	if err != nil {
@@ -76,7 +76,7 @@ func (s *UserService) Update(ctx context.Context, id uint64, req *dto.UpdateUser
 			return nil, apperr.Internal(err)
 		}
 		if exists {
-			return nil, apperr.Conflict("email is already in use")
+			return nil, apperr.ConflictField("email", "is already in use")
 		}
 		u.Email = *req.Email
 		changed["email"] = *req.Email

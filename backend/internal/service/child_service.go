@@ -139,7 +139,7 @@ func (s *ChildService) AddGuardian(ctx context.Context, childID uint64, req *dto
 		return nil, apperr.Internal(err)
 	}
 	if exists {
-		return nil, apperr.Conflict("this user is already a guardian of the child")
+		return nil, apperr.ConflictField("parent_user_id", "is already a guardian of this child")
 	}
 	g := &model.Guardian{
 		ParentUserID: req.ParentUserID,

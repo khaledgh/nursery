@@ -8,7 +8,8 @@ import { z } from "zod";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
-import { api, errorMessage } from "../../lib/api";
+import { api } from "../../lib/api";
+import { applyServerErrors } from "../../lib/formErrors";
 import type { ItemResponse, Reminder } from "../../types/api";
 
 const schema = z.object({
@@ -58,7 +59,7 @@ export function RemindersPage() {
       form.reset({ scope: "global", kind: "general", weather_alert: false, title: "", description: "", date: "", scope_id: "" });
       void reminders.refetch();
     },
-    onError: (err) => setError(errorMessage(err)),
+    onError: (err) => setError(applyServerErrors(form, err)),
   });
 
   const remove = useMutation({
