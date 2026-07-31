@@ -163,7 +163,6 @@ export default function TeacherChildHub() {
           />
         </View>
 
-        <SectionTitle>{" "}</SectionTitle>
         <ActionCard
           icon="book"
           accent="primary"
