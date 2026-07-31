@@ -1,7 +1,13 @@
 {
-  "tabs": { "home": "الرئيسية", "diary": "اليوميات", "overview": "نظرة عامة", "messages": "الرسائل", "more": "المزيد" },
+  "tabs": {
+    "home": "الرئيسية",
+    "diary": "اليوميات",
+    "overview": "نظرة عامة",
+    "messages": "الرسائل",
+    "more": "المزيد"
+  },
   "auth": {
-    "title": "Sunny Stars",
+    "title": "Little Talent Childcare",
     "subtitle": "سجّل الدخول لمتابعة يوم طفلك",
     "email": "البريد الإلكتروني",
     "password": "كلمة المرور",
@@ -354,19 +360,88 @@
     "changePhoto": "تغيير الصورة"
   },
   "enums": {
-    "mealStatus": { "ate_well": "أكل جيداً", "ate_half": "أكل النصف", "ate_little": "أكل قليلاً", "didnt_eat": "لم يأكل" },
-    "mealType": { "breakfast": "الفطور", "lunch": "الغداء", "snack": "وجبة خفيفة", "dinner": "العشاء" },
-    "menuRating": { "eats": "يأكله", "sometimes": "أحياناً", "doesnt_eat": "لا يأكله" },
-    "wetness": { "dry": "جاف", "wet": "مبلل", "heavy": "مبلل جداً" },
-    "stool": { "none": "لا يوجد", "hard": "صلب", "normal": "طبيعي", "soft": "لين", "loose": "رخو", "diarrhea": "إسهال" },
-    "comfort": { "happy": "مرتاح", "fussy": "متضايق" },
-    "mood": { "happy": "سعيد", "calm": "هادئ", "sleepy": "نعسان", "fussy": "متضايق", "energetic": "نشيط" },
-    "reportRating": { "thriving": "مزدهر", "doing_well": "يبلي حسناً", "improving": "يتحسن", "needs_support": "يحتاج دعماً" },
-    "reportMood": { "social": "اجتماعي", "creative": "مبدع", "happy": "سعيد", "calm": "هادئ" },
-    "moodRating": { "great": "ممتاز!", "good": "جيد", "okay": "مقبول" },
-    "milestoneStatus": { "not_started": "لم يبدأ", "in_progress": "قيد التقدم", "achieved": "تحقق" },
-    "invoiceStatus": { "due": "مستحقة", "paid": "مدفوعة", "overdue": "متأخرة", "cancelled": "ملغاة" },
-    "severity": { "mild": "خفيفة", "moderate": "متوسطة", "severe": "شديدة" }
+    "mealStatus": {
+      "ate_well": "أكل جيداً",
+      "ate_half": "أكل النصف",
+      "ate_little": "أكل قليلاً",
+      "didnt_eat": "لم يأكل"
+    },
+    "mealType": {
+      "breakfast": "الفطور",
+      "lunch": "الغداء",
+      "snack": "وجبة خفيفة",
+      "dinner": "العشاء"
+    },
+    "menuRating": {
+      "eats": "يأكله",
+      "sometimes": "أحياناً",
+      "doesnt_eat": "لا يأكله"
+    },
+    "wetness": {
+      "dry": "جاف",
+      "wet": "مبلل",
+      "heavy": "مبلل جداً"
+    },
+    "stool": {
+      "none": "لا يوجد",
+      "hard": "صلب",
+      "normal": "طبيعي",
+      "soft": "لين",
+      "loose": "رخو",
+      "diarrhea": "إسهال"
+    },
+    "comfort": {
+      "happy": "مرتاح",
+      "fussy": "متضايق"
+    },
+    "mood": {
+      "happy": "سعيد",
+      "calm": "هادئ",
+      "sleepy": "نعسان",
+      "fussy": "متضايق",
+      "energetic": "نشيط"
+    },
+    "reportRating": {
+      "thriving": "مزدهر",
+      "doing_well": "يبلي حسناً",
+      "improving": "يتحسن",
+      "needs_support": "يحتاج دعماً"
+    },
+    "reportMood": {
+      "social": "اجتماعي",
+      "creative": "مبدع",
+      "happy": "سعيد",
+      "calm": "هادئ"
+    },
+    "moodRating": {
+      "great": "ممتاز!",
+      "good": "جيد",
+      "okay": "مقبول"
+    },
+    "milestoneStatus": {
+      "not_started": "لم يبدأ",
+      "in_progress": "قيد التقدم",
+      "achieved": "تحقق"
+    },
+    "invoiceStatus": {
+      "due": "مستحقة",
+      "paid": "مدفوعة",
+      "overdue": "متأخرة",
+      "cancelled": "ملغاة"
+    },
+    "severity": {
+      "mild": "خفيفة",
+      "moderate": "متوسطة",
+      "severe": "شديدة"
+    },
+    "diaryType": {
+      "meal": "وجبة",
+      "sleep": "نوم",
+      "activity": "نشاط",
+      "diaper": "حفاض",
+      "note": "ملاحظة",
+      "photo": "صورة"
+    }
   },
   "common": {
     "loading": "جارٍ التحميل…",
@@ -380,6 +455,121 @@
     "viewAll": "عرض الكل",
     "empty": "لا شيء هنا بعد"
   },
-  "diaperScreen": { "title": "الحفاض", "empty": "لم تُسجّل تغييرات حفاض" },
-  "milestonesScreen": { "title": "المعالم", "achievements": "الإنجازات" }
+  "diaperScreen": {
+    "title": "الحفاض",
+    "empty": "لم تُسجّل تغييرات حفاض"
+  },
+  "milestonesScreen": {
+    "title": "المعالم",
+    "achievements": "الإنجازات"
+  },
+  "teacher": {
+    "tabs": {
+      "today": "اليوم",
+      "quickLog": "تسجيل سريع",
+      "class": "الفصل",
+      "more": "المزيد"
+    },
+    "roster": {
+      "title": "اليوم",
+      "subtitle_one": "طفل واحد",
+      "subtitle_two": "طفلان",
+      "subtitle_few": "{{count}} أطفال",
+      "subtitle_many": "{{count}} طفلاً",
+      "subtitle_other": "{{count}} طفل",
+      "in": "حاضر",
+      "out": "خرج",
+      "absent": "غائب",
+      "all": "الكل",
+      "notCheckedIn": "لم يسجّل الحضور",
+      "noMeal": "لا وجبة بعد",
+      "noNap": "لا قيلولة بعد",
+      "needsReport": "يحتاج تقريراً",
+      "checkIn": "تسجيل الحضور",
+      "checkOut": "تسجيل الانصراف",
+      "selected": "{{count}} محدد",
+      "selectAll": "تحديد الكل",
+      "clear": "مسح",
+      "bulkCheckIn": "تسجيل الحضور ({{count}})",
+      "bulkCheckOut": "تسجيل الانصراف ({{count}})",
+      "empty": "لا يوجد أطفال مسندون إليك بعد.",
+      "logged": "سُجّل اليوم",
+      "notLogged": "لم يُسجّل بعد"
+    },
+    "quickLog": {
+      "title": "تسجيل سريع",
+      "subtitle": "اختر النشاط ثم سجّل لكل الأطفال.",
+      "meal": "وجبة",
+      "nap": "قيلولة",
+      "diaper": "حفاض",
+      "note": "ملاحظة",
+      "mealDesc": "سجّل ما تناوله الجميع",
+      "napDesc": "سجّل أوقات النوم",
+      "diaperDesc": "سجّل التغييرات",
+      "noteDesc": "أرسل ملاحظة للأهل"
+    },
+    "batch": {
+      "mealTitle": "تسجيل وجبة",
+      "napTitle": "تسجيل قيلولة",
+      "diaperTitle": "تسجيل حفاض",
+      "save": "حفظ {{count}} سجلات",
+      "saveOne": "حفظ سجل واحد",
+      "saving": "جارٍ الحفظ...",
+      "nothingSelected": "اضغط على طفل للبدء.",
+      "savedAll": "تم حفظ {{count}} سجلات",
+      "partial": "تم حفظ {{saved}}، وفشل {{failed}}",
+      "retryFailed": "إعادة المحاولة ({{count}})",
+      "alreadyLogged": "سُجّل مسبقاً"
+    },
+    "child": {
+      "todayAtGlance": "ملخص اليوم",
+      "allergyWarning": "الحساسية",
+      "addDiary": "إضافة مذكرة",
+      "dailyReport": "التقرير اليومي",
+      "healthIncidents": "الصحة والحوادث",
+      "milestonesLink": "مراحل التطور",
+      "meals": "الوجبات",
+      "nap": "القيلولة",
+      "diapers": "الحفاضات",
+      "water": "الماء",
+      "noEntries": "لم يُسجّل شيء اليوم بعد."
+    },
+    "care": {
+      "mealType": "الوجبة",
+      "mealStatus": "كم تناول؟",
+      "servedAt": "وقت التقديم",
+      "napStart": "بدأ النوم",
+      "napEnd": "استيقظ",
+      "duration": "المدة",
+      "wetness": "البلل",
+      "stool": "البراز",
+      "comfort": "المزاج",
+      "cups": "أكواب الماء",
+      "note": "ملاحظة (اختياري)",
+      "notePlaceholder": "هل من إضافة؟"
+    },
+    "diaryEntry": {
+      "title": "مذكرة يومية",
+      "type": "النوع",
+      "entryTitle": "العنوان",
+      "titlePlaceholder": "ماذا حدث؟",
+      "body": "التفاصيل",
+      "bodyPlaceholder": "أخبر الأهل بما حدث...",
+      "photos": "الصور",
+      "addPhoto": "إضافة صورة",
+      "camera": "الكاميرا",
+      "library": "المعرض",
+      "notifyParents": "إشعار الأهل",
+      "notifyHint": "سيُرسل إشعاراً الآن."
+    },
+    "common": {
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "retry": "إعادة المحاولة",
+      "saved": "تم الحفظ",
+      "failed": "تعذّر الحفظ. تحقق من الاتصال وحاول مجدداً.",
+      "offline": "يبدو أنك غير متصل.",
+      "search": "ابحث عن طفل"
+    }
+  }
 }

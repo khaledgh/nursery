@@ -1,4 +1,4 @@
-# Sunny Stars — Nursery / Childcare Management Platform
+# Little Talent Childcare — Nursery / Childcare Management Platform
 
 A multilingual childcare platform connecting **parents**, **teachers**, and
 **administrators** around each child's daily life. Built from

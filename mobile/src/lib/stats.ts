@@ -22,6 +22,25 @@ export function toISODate(d: Date): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+/**
+ * RFC3339 timestamp carrying the device's UTC offset.
+ *
+ * Date.prototype.toISOString() converts to UTC and appends "Z", which silently
+ * moves an 18:00 nap into the following day for eastern offsets — the server
+ * buckets care logs by calendar date, so that lands the entry on the wrong day.
+ */
+export function toLocalRFC3339(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const offsetMin = -d.getTimezoneOffset();
+  const sign = offsetMin >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMin);
+  const zone = offsetMin === 0 ? "Z" : `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${zone}`
+  );
+}
+
 export function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }

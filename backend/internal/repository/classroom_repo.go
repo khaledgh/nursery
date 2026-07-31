@@ -22,12 +22,20 @@ func (r *ClassroomRepo) ByID(ctx context.Context, id uint64) (*model.Classroom, 
 	return &cr, err
 }
 
-func (r *ClassroomRepo) List(ctx context.Context, q dto.PageQuery) ([]model.Classroom, int64, error) {
+// List returns classrooms visible to the caller: teachers see only rooms they
+// are assigned to, admins see all. Writes were already blocked by
+// AuthorizeClassroom, but an unscoped list still disclosed the whole nursery's
+// room structure to any teacher.
+func (r *ClassroomRepo) List(ctx context.Context, q dto.PageQuery, role model.Role, userID uint64) ([]model.Classroom, int64, error) {
 	var (
 		rooms []model.Classroom
 		total int64
 	)
 	tx := r.db.WithContext(ctx).Model(&model.Classroom{})
+	if role == model.RoleTeacher {
+		tx = tx.Where("classrooms.id IN (?)",
+			r.db.Model(&model.ClassroomTeacher{}).Select("classroom_id").Where("teacher_user_id = ?", userID))
+	}
 	if q.Search != "" {
 		tx = tx.Where("name LIKE ?", "%"+q.Search+"%")
 	}

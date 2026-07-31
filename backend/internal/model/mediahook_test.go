@@ -27,8 +27,10 @@ func TestAfterFindRebuildsLocalURL(t *testing.T) {
 	}
 }
 
-// A media row with no Path (or an s3 row) must keep whatever URL it has.
-func TestAfterFindLeavesNonLocalAlone(t *testing.T) {
+// s3/R2 rows are rebuilt too. Their objects are served through the same signed
+// stream endpoint as local files, so a stored bucket URL must never be handed
+// back to a client: doing so would bypass the access check entirely.
+func TestAfterFindRebuildsS3(t *testing.T) {
 	old := MediaURLBuilder
 	defer func() { MediaURLBuilder = old }()
 	MediaURLBuilder = func(string) string { return "REBUILT" }
@@ -37,7 +39,22 @@ func TestAfterFindLeavesNonLocalAlone(t *testing.T) {
 	if err := m.AfterFind(nil); err != nil {
 		t.Fatal(err)
 	}
+	if m.URL != "REBUILT" {
+		t.Fatalf("s3 URL not rebuilt, stale bucket URL leaked: %s", m.URL)
+	}
+}
+
+// A row with no Path has nothing to sign, so it must keep whatever URL it has.
+func TestAfterFindLeavesPathlessAlone(t *testing.T) {
+	old := MediaURLBuilder
+	defer func() { MediaURLBuilder = old }()
+	MediaURLBuilder = func(string) string { return "REBUILT" }
+
+	m := &Media{Disk: "s3", Path: "", URL: "https://cdn.example/a.jpg"}
+	if err := m.AfterFind(nil); err != nil {
+		t.Fatal(err)
+	}
 	if m.URL != "https://cdn.example/a.jpg" {
-		t.Fatalf("s3 URL was overwritten: %s", m.URL)
+		t.Fatalf("pathless URL was overwritten: %s", m.URL)
 	}
 }

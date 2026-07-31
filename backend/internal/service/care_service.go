@@ -28,6 +28,16 @@ func NewCareService(care *repository.CareRepo, children *repository.ChildRepo, c
 
 // --- diary ---
 
+// shouldNotifyDiary reports whether guardians get a push for this entry.
+//
+// Nil means the client did not send the field, which must keep notifying: the
+// admin panel and older app builds predate the flag. Staff posting a burst of
+// photos from the phone opt out explicitly so twenty pictures do not become
+// twenty lock-screen notifications.
+func shouldNotifyDiary(req *dto.CreateDiaryEntryRequest) bool {
+	return req.Notify == nil || *req.Notify
+}
+
 func (s *CareService) ListDiary(ctx context.Context, role model.Role, userID, childID uint64, q dto.RangeQuery) ([]model.DiaryEntry, int64, error) {
 	if err := s.childSvc.Authorize(ctx, role, userID, childID); err != nil {
 		return nil, 0, err
@@ -63,8 +73,10 @@ func (s *CareService) CreateDiary(ctx context.Context, role model.Role, userID, 
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, userID, "create", "diary_entry", entry.ID, map[string]any{"child_id": childID, "type": req.Type}, ip)
-	s.notifier.NotifyGuardians(ctx, childID, "updates", "New diary update", req.Title,
-		map[string]any{"screen": "diary", "child_id": childID, "entry_id": entry.ID})
+	if shouldNotifyDiary(req) {
+		s.notifier.NotifyGuardians(ctx, childID, "updates", "New diary update", req.Title,
+			map[string]any{"screen": "diary", "child_id": childID, "entry_id": entry.ID})
+	}
 	return entry, nil
 }
 

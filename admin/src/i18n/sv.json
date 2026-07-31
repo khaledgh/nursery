@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Sunny Stars" },
+  "app": { "name": "Little Talent Childcare" },
   "nav": {
     "dashboard": "Översikt",
     "users": "Användare",
@@ -22,7 +22,7 @@
     "logout": "Logga ut"
   },
   "auth": {
-    "title": "Logga in på Sunny Stars",
+    "title": "Logga in på Little Talent Childcare",
     "email": "E-post",
     "password": "Lösenord",
     "submit": "Logga in",

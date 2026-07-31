@@ -50,11 +50,13 @@ type StorageConfig struct {
 	// header. Falls back to the access secret when unset.
 	MediaURLSecret string        `env:"MEDIA_URL_SECRET"`
 	MediaURLTTL    time.Duration `env:"MEDIA_URL_TTL" envDefault:"24h"`
-	S3Bucket       string `env:"S3_BUCKET"`
-	S3Region       string `env:"S3_REGION"`
-	S3AccessKey    string `env:"S3_ACCESS_KEY"`
-	S3SecretKey    string `env:"S3_SECRET_KEY"`
-	S3Endpoint     string `env:"S3_ENDPOINT"`
+	S3Bucket    string `env:"S3_BUCKET"`
+	S3Region    string `env:"S3_REGION"`
+	S3AccessKey string `env:"S3_ACCESS_KEY"`
+	S3SecretKey string `env:"S3_SECRET_KEY"`
+	S3Endpoint  string `env:"S3_ENDPOINT"`
+	// Cloudflare R2 and MinIO address buckets as <endpoint>/<bucket>/<key>.
+	S3PathStyle bool `env:"S3_PATH_STYLE" envDefault:"true"`
 }
 
 type OneSignalConfig struct {
@@ -107,8 +109,16 @@ func (c *Config) validate() error {
 	default:
 		return fmt.Errorf("config: STORAGE_DRIVER must be 'local' or 's3', got %q", c.Storage.Driver)
 	}
-	if c.Storage.Driver == "s3" && (c.Storage.S3Bucket == "" || c.Storage.S3Region == "") {
-		return fmt.Errorf("config: S3 storage requires S3_BUCKET and S3_REGION")
+	if c.Storage.Driver == "s3" {
+		// R2 uses the literal region "auto"; any value is accepted, but the SDK
+		// needs one to sign requests, so it stays required.
+		if c.Storage.S3Bucket == "" || c.Storage.S3Region == "" {
+			return fmt.Errorf("config: S3 storage requires S3_BUCKET and S3_REGION (use 'auto' for Cloudflare R2)")
+		}
+		// Fail at boot rather than on the first upload.
+		if c.Storage.S3AccessKey == "" || c.Storage.S3SecretKey == "" {
+			return fmt.Errorf("config: S3 storage requires S3_ACCESS_KEY and S3_SECRET_KEY")
+		}
 	}
 	return nil
 }

@@ -69,6 +69,37 @@ func TestVerifyRejectsGarbage(t *testing.T) {
 	}
 }
 
+// Repeated reads must yield a byte-identical URL, or expo-image's cache (keyed
+// on the full URI) misses and every render re-downloads the image.
+func TestQueryIsStableAcrossReads(t *testing.T) {
+	s := NewSigner("secret-that-is-long-enough-for-hmac", time.Hour)
+	first := s.Query(testKey)
+	for i := 0; i < 5; i++ {
+		if got := s.Query(testKey); got != first {
+			t.Fatalf("signature churned between reads: %s != %s", got, first)
+		}
+	}
+}
+
+// The S3/R2 driver must hand back the signed API stream URL. A bucket URL here
+// would publish child photos to anyone holding the link.
+func TestS3URLIsSignedStreamURL(t *testing.T) {
+	signer := NewSigner("secret-that-is-long-enough-for-hmac", time.Hour)
+	s := NewS3StorageForTest("media", "https://acct.r2.cloudflarestorage.com", "auto", "https://api.example.com", signer)
+
+	got := s.URL(testKey)
+	if strings.Contains(got, "r2.cloudflarestorage.com") || strings.Contains(got, "amazonaws.com") {
+		t.Fatalf("bucket URL leaked to client: %s", got)
+	}
+	if !strings.HasPrefix(got, "https://api.example.com/api/v1/media/stream/") {
+		t.Fatalf("not an API stream URL: %s", got)
+	}
+	exp, sig := parse(t, strings.SplitN(got, "?", 2)[1])
+	if err := s.signer.Verify(testKey, exp, sig); err != nil {
+		t.Fatalf("s3 URL carries an invalid signature: %v", err)
+	}
+}
+
 // URL keys contain "/" and must survive escaping as path separators.
 func TestURLKeepsPathSeparators(t *testing.T) {
 	s, err := NewLocalStorage(t.TempDir(), "http://localhost:8080", NewSigner("secret-that-is-long-enough-for-hmac", time.Hour))

@@ -132,7 +132,7 @@ func seedDemo(db *gorm.DB, log zerolog.Logger) {
 
 	// ---- classroom + teachers + schedule ----
 	room := &model.Classroom{
-		Name: "Sunny Stars Room", RoomLocation: "First Floor", AgeGroup: "3–5 years",
+		Name: "Little Talent Room", RoomLocation: "First Floor", AgeGroup: "3–5 years",
 		Capacity: 16, OpensAt: "07:00", ClosesAt: "18:00",
 	}
 	mustCreate("classroom", room)
@@ -681,7 +681,7 @@ func seedMore(db *gorm.DB, log zerolog.Logger) {
 		{"Lost & Found Overflowing", "Please check the lost & found box by the entrance — we have many unclaimed jackets and water bottles.", "reminders", 21},
 		{"Flu Season Tips 🤧", "A few simple habits help keep everyone healthy: wash hands often and keep sick children home until fever-free for 24h.", "health", 25},
 		{"Library Visit", "Next Tuesday we walk to the local library for story hour. Permission slips go home today.", "events", 30},
-		{"Welcome Ms. Sophia!", "Please join us in welcoming Ms. Sophia, our new assistant teacher in the Sunny Stars Room.", "general", 35},
+		{"Welcome Ms. Sophia!", "Please join us in welcoming Ms. Sophia, our new assistant teacher in the Little Talent Room.", "general", 35},
 	}
 	for _, a := range announcements {
 		publishedAt := now.AddDate(0, 0, -a.daysAgo)
@@ -700,7 +700,7 @@ func seedMore(db *gorm.DB, log zerolog.Logger) {
 		{"Teddy Bear Picnic 🧸", "Bring your favorite teddy for a cozy picnic with songs and snacks.", "Greenfield Park", 35, "upcoming"},
 		{"Halloween Party 🎃", "Spooky fun, games, and lots of treats!", "Main Hall", -45, "completed"},
 		{"Christmas Celebration 🎄", "Carols, games, and festive joy for everyone.", "Main Hall", -60, "completed"},
-		{"Parents Day 💖", "A special day to celebrate our amazing parents.", "Sunny Stars Room", -75, "completed"},
+		{"Parents Day 💖", "A special day to celebrate our amazing parents.", "Little Talent Room", -75, "completed"},
 	}
 	for _, e := range events {
 		starts := time.Date(now.Year(), now.Month(), now.Day(), 10, 0, 0, 0, time.Local).AddDate(0, 0, e.daysFromNow)

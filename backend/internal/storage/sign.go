@@ -5,7 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -32,9 +34,46 @@ func (s *Signer) sum(key string, exp int64) string {
 }
 
 // Query returns the "exp=...&sig=..." pair to append to a media URL.
+//
+// The deadline is rounded up to a whole TTL window rather than being computed
+// from the exact current time. Two reads of the same file therefore produce a
+// byte-identical URL for the life of that window, which is what lets the mobile
+// image cache hit: expo-image keys its cache on the full URI, so a signature
+// that changed on every read would force a re-download of every image.
 func (s *Signer) Query(key string) string {
-	exp := time.Now().Add(s.ttl).Unix()
+	exp := s.expiry()
 	return fmt.Sprintf("exp=%d&sig=%s", exp, s.sum(key, exp))
+}
+
+func (s *Signer) expiry() int64 {
+	now := time.Now()
+	ttl := int64(s.ttl / time.Second)
+	// A non-positive TTL means "already expired" and must stay that way; only
+	// round when there is a real window to round to.
+	if ttl <= 0 {
+		return now.Add(s.ttl).Unix()
+	}
+	// Round up to a TTL boundary so repeated reads of the same key produce an
+	// identical URL. Adding a second window guarantees a read landing just
+	// before a boundary still gets a usefully long lifetime.
+	return (now.Unix()/ttl + 2) * ttl
+}
+
+// StreamURL builds the signed, API-relative URL that serves key. Both storage
+// drivers return this: media is access-checked by the API, never fetched from
+// the bucket directly, so the URL shape must not depend on the backend.
+func StreamURL(baseURL, key string, signer *Signer) string {
+	// Escape each segment individually: "/" must stay a path separator.
+	parts := strings.Split(key, "/")
+	for i, p := range parts {
+		parts[i] = url.PathEscape(p)
+	}
+	u := strings.TrimRight(baseURL, "/") + "/api/v1/media/stream/" + strings.Join(parts, "/")
+	if signer == nil {
+		return u
+	}
+	// Signed over the raw key, which is what the handler recovers after routing.
+	return u + "?" + signer.Query(key)
 }
 
 // Verify reports whether sig matches key and the deadline has not passed.

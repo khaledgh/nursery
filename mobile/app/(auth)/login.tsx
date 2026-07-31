@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -16,8 +17,8 @@ import { PrimaryButton } from "../../src/components/Buttons";
 import { FieldError } from "../../src/components/FieldError";
 import { useFieldErrors } from "../../src/lib/useFieldErrors";
 import type { AuthUser, TokenPair } from "../../src/store/auth";
-import { useAuthStore } from "../../src/store/auth";
-import { colors, fonts, radius, spacing } from "../../src/theme";
+import { homeRouteForRole, useAuthStore } from "../../src/store/auth";
+import { colors, fonts, gradients, radius, spacing } from "../../src/theme";
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -38,7 +39,7 @@ export default function LoginScreen() {
       });
       const { user, tokens } = res.data.data;
       setAuth(tokens, user);
-      router.replace("/(tabs)");
+      router.replace(homeRouteForRole(user.role));
     } catch (err) {
       errors.capture(err);
     } finally {
@@ -47,11 +48,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <LinearGradient colors={["#8b5cf6", "#5b21b6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.root}>
+    <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.root}>
       <KeyboardAvoidingView style={styles.inner} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.hero}>
           <View style={styles.logoCircle}>
-            <Ionicons name="sunny" size={44} color="#fbbf24" />
+            <Image source={require("../../assets/logo-mark.png")} style={styles.logo} contentFit="contain" />
           </View>
           <Text style={styles.title}>{t("auth.title")}</Text>
           <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
@@ -99,11 +100,15 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   inner: { flex: 1, justifyContent: "center" },
   hero: { alignItems: "center", marginBottom: spacing.xl },
+  logo: {
+    width: 60,
+    height: 60,
+  },
   logoCircle: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(255,255,255,0.92)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.md,

@@ -31,7 +31,7 @@
     @apply block text-sm font-medium text-slate-700 mb-1;
   }
   .card {
-    @apply bg-white rounded-2xl border border-brand-100 shadow-[0_4px_12px_rgba(124,58,237,0.05)];
+    @apply bg-white rounded-2xl border border-brand-100 shadow-[0_4px_12px_rgba(63,114,34,0.05)];
   }
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;

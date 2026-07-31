@@ -1,7 +1,13 @@
 {
-  "tabs": { "home": "Home", "diary": "Diary", "overview": "Overview", "messages": "Messages", "more": "More" },
+  "tabs": {
+    "home": "Home",
+    "diary": "Diary",
+    "overview": "Overview",
+    "messages": "Messages",
+    "more": "More"
+  },
   "auth": {
-    "title": "Sunny Stars",
+    "title": "Little Talent Childcare",
     "subtitle": "Sign in to follow your child's day",
     "email": "Email",
     "password": "Password",
@@ -342,19 +348,88 @@
     "changePhoto": "Change photo"
   },
   "enums": {
-    "mealStatus": { "ate_well": "Ate well", "ate_half": "Ate half", "ate_little": "Ate a little", "didnt_eat": "Didn't eat" },
-    "mealType": { "breakfast": "Breakfast", "lunch": "Lunch", "snack": "Snack", "dinner": "Dinner" },
-    "menuRating": { "eats": "Eats it", "sometimes": "Sometimes", "doesnt_eat": "Doesn't eat" },
-    "wetness": { "dry": "Dry", "wet": "Wet", "heavy": "Heavy" },
-    "stool": { "none": "No stool", "hard": "Hard", "normal": "Normal", "soft": "Soft", "loose": "Loose", "diarrhea": "Diarrhea" },
-    "comfort": { "happy": "Comfortable", "fussy": "Fussy" },
-    "mood": { "happy": "Happy", "calm": "Calm", "sleepy": "Sleepy", "fussy": "Fussy", "energetic": "Energetic" },
-    "reportRating": { "thriving": "Thriving", "doing_well": "Doing well", "improving": "Improving", "needs_support": "Needs support" },
-    "reportMood": { "social": "Social", "creative": "Creative", "happy": "Happy", "calm": "Calm" },
-    "moodRating": { "great": "Great!", "good": "Good", "okay": "Okay" },
-    "milestoneStatus": { "not_started": "Not started", "in_progress": "In progress", "achieved": "Achieved" },
-    "invoiceStatus": { "due": "Due", "paid": "Paid", "overdue": "Overdue", "cancelled": "Cancelled" },
-    "severity": { "mild": "Mild", "moderate": "Moderate", "severe": "Severe" }
+    "mealStatus": {
+      "ate_well": "Ate well",
+      "ate_half": "Ate half",
+      "ate_little": "Ate a little",
+      "didnt_eat": "Didn't eat"
+    },
+    "mealType": {
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "snack": "Snack",
+      "dinner": "Dinner"
+    },
+    "menuRating": {
+      "eats": "Eats it",
+      "sometimes": "Sometimes",
+      "doesnt_eat": "Doesn't eat"
+    },
+    "wetness": {
+      "dry": "Dry",
+      "wet": "Wet",
+      "heavy": "Heavy"
+    },
+    "stool": {
+      "none": "No stool",
+      "hard": "Hard",
+      "normal": "Normal",
+      "soft": "Soft",
+      "loose": "Loose",
+      "diarrhea": "Diarrhea"
+    },
+    "comfort": {
+      "happy": "Comfortable",
+      "fussy": "Fussy"
+    },
+    "mood": {
+      "happy": "Happy",
+      "calm": "Calm",
+      "sleepy": "Sleepy",
+      "fussy": "Fussy",
+      "energetic": "Energetic"
+    },
+    "reportRating": {
+      "thriving": "Thriving",
+      "doing_well": "Doing well",
+      "improving": "Improving",
+      "needs_support": "Needs support"
+    },
+    "reportMood": {
+      "social": "Social",
+      "creative": "Creative",
+      "happy": "Happy",
+      "calm": "Calm"
+    },
+    "moodRating": {
+      "great": "Great!",
+      "good": "Good",
+      "okay": "Okay"
+    },
+    "milestoneStatus": {
+      "not_started": "Not started",
+      "in_progress": "In progress",
+      "achieved": "Achieved"
+    },
+    "invoiceStatus": {
+      "due": "Due",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "cancelled": "Cancelled"
+    },
+    "severity": {
+      "mild": "Mild",
+      "moderate": "Moderate",
+      "severe": "Severe"
+    },
+    "diaryType": {
+      "meal": "Meal",
+      "sleep": "Sleep",
+      "activity": "Activity",
+      "diaper": "Diaper",
+      "note": "Note",
+      "photo": "Photo"
+    }
   },
   "common": {
     "loading": "Loading…",
@@ -368,6 +443,118 @@
     "viewAll": "View all",
     "empty": "Nothing here yet"
   },
-  "diaperScreen": { "title": "Diaper", "empty": "No diaper changes logged" },
-  "milestonesScreen": { "title": "Milestones", "achievements": "Achievements" }
+  "diaperScreen": {
+    "title": "Diaper",
+    "empty": "No diaper changes logged"
+  },
+  "milestonesScreen": {
+    "title": "Milestones",
+    "achievements": "Achievements"
+  },
+  "teacher": {
+    "tabs": {
+      "today": "Today",
+      "quickLog": "Quick log",
+      "class": "Class",
+      "more": "More"
+    },
+    "roster": {
+      "title": "Today",
+      "subtitle_one": "{{count}} child",
+      "subtitle_other": "{{count}} children",
+      "in": "In",
+      "out": "Out",
+      "absent": "Absent",
+      "all": "All",
+      "notCheckedIn": "Not checked in",
+      "noMeal": "No meal yet",
+      "noNap": "No nap yet",
+      "needsReport": "Needs report",
+      "checkIn": "Check in",
+      "checkOut": "Check out",
+      "selected": "{{count}} selected",
+      "selectAll": "Select all",
+      "clear": "Clear",
+      "bulkCheckIn": "Check in ({{count}})",
+      "bulkCheckOut": "Check out ({{count}})",
+      "empty": "No children assigned to you yet.",
+      "logged": "Logged today",
+      "notLogged": "Not logged yet"
+    },
+    "quickLog": {
+      "title": "Quick log",
+      "subtitle": "Pick an activity, then sweep the class.",
+      "meal": "Meal",
+      "nap": "Nap",
+      "diaper": "Diaper",
+      "note": "Note",
+      "mealDesc": "Log what everyone ate",
+      "napDesc": "Log nap times",
+      "diaperDesc": "Log changes",
+      "noteDesc": "Send a note home"
+    },
+    "batch": {
+      "mealTitle": "Log meal",
+      "napTitle": "Log nap",
+      "diaperTitle": "Log diaper",
+      "save": "Save {{count}} entries",
+      "saveOne": "Save 1 entry",
+      "saving": "Saving...",
+      "nothingSelected": "Tap a child to start logging.",
+      "savedAll": "Saved {{count}} entries",
+      "partial": "Saved {{saved}}, {{failed}} failed",
+      "retryFailed": "Retry failed ({{count}})",
+      "alreadyLogged": "Already logged"
+    },
+    "child": {
+      "todayAtGlance": "Today at a glance",
+      "allergyWarning": "Allergies",
+      "addDiary": "Add diary entry",
+      "dailyReport": "Daily report",
+      "healthIncidents": "Health & incidents",
+      "milestonesLink": "Milestones",
+      "meals": "Meals",
+      "nap": "Nap",
+      "diapers": "Diapers",
+      "water": "Water",
+      "noEntries": "Nothing logged yet today."
+    },
+    "care": {
+      "mealType": "Meal",
+      "mealStatus": "How much?",
+      "servedAt": "Served at",
+      "napStart": "Fell asleep",
+      "napEnd": "Woke up",
+      "duration": "Duration",
+      "wetness": "Wetness",
+      "stool": "Stool",
+      "comfort": "Mood",
+      "cups": "Cups of water",
+      "note": "Note (optional)",
+      "notePlaceholder": "Anything to add?"
+    },
+    "diaryEntry": {
+      "title": "Diary entry",
+      "type": "Type",
+      "entryTitle": "Title",
+      "titlePlaceholder": "What happened?",
+      "body": "Details",
+      "bodyPlaceholder": "Tell the parents about it...",
+      "photos": "Photos",
+      "addPhoto": "Add photo",
+      "camera": "Camera",
+      "library": "Library",
+      "notifyParents": "Notify parents",
+      "notifyHint": "Sends a push notification now."
+    },
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "retry": "Retry",
+      "saved": "Saved",
+      "failed": "Could not save. Check your connection and try again.",
+      "offline": "You appear to be offline.",
+      "search": "Search children"
+    }
+  }
 }

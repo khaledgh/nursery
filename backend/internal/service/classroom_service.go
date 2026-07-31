@@ -20,8 +20,8 @@ func NewClassroomService(classrooms *repository.ClassroomRepo, users *repository
 	return &ClassroomService{classrooms: classrooms, users: users, locales: locales, audit: audit}
 }
 
-func (s *ClassroomService) List(ctx context.Context, q dto.PageQuery, locale string) ([]model.Classroom, int64, error) {
-	rooms, total, err := s.classrooms.List(ctx, q)
+func (s *ClassroomService) List(ctx context.Context, q dto.PageQuery, locale string, role model.Role, userID uint64) ([]model.Classroom, int64, error) {
+	rooms, total, err := s.classrooms.List(ctx, q, role, userID)
 	if err != nil {
 		return nil, 0, apperr.Internal(err)
 	}

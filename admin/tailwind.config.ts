@@ -8,18 +8,20 @@ export default {
         sans: ["Nunito", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
-        // Purple design system from the mockups.
+        // Green scale sampled from the Little Talent Childcare logo. Every
+        // `brand-*` utility across the admin resolves through here, so the
+        // whole panel rebrands from this one ramp.
         brand: {
-          50: "#f5f3ff",
-          100: "#ede9fe",
-          200: "#ddd6fe",
-          300: "#c4b5fd",
-          400: "#a78bfa",
-          500: "#8b5cf6",
-          600: "#7c3aed",
-          700: "#6d28d9",
-          800: "#5b21b6",
-          900: "#4c1d95",
+          50: "#f4f9ef",
+          100: "#e8f4dd",
+          200: "#d1e8bc",
+          300: "#b3d894",
+          400: "#8fc464",
+          500: "#7cb342",
+          600: "#5b9c34",
+          700: "#4a8a2a",
+          800: "#3f7222",
+          900: "#2f551a",
         },
       },
     },

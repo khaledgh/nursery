@@ -69,6 +69,12 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(teacher)" options={{ headerShown: false }} />
+        {/* Teacher screens live under teacher/* so they never collide with the
+            parent-facing, read-only child/* routes. */}
+        <Stack.Screen name="teacher/child/[id]" options={{ title: "" }} />
+        <Stack.Screen name="teacher/child/[id]/diary" options={{ title: t("teacher.diaryEntry.title") }} />
+        <Stack.Screen name="teacher/batch/[kind]" options={{ title: t("teacher.batch.mealTitle") }} />
         <Stack.Screen name="child/feed" options={{ title: t("feed.title") }} />
         <Stack.Screen name="child/sleep" options={{ title: t("sleep.title") }} />
         <Stack.Screen name="child/diaper" options={{ title: t("diaper.title") }} />

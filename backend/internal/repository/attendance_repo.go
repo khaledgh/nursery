@@ -45,13 +45,22 @@ func (r *AttendanceRepo) ForChildOnDate(ctx context.Context, childID uint64, dat
 
 // ListPending returns unconfirmed parent requests (today onward) for the
 // staff review queue, newest dates first.
-func (r *AttendanceRepo) ListPending(ctx context.Context, q dto.PageQuery) ([]model.Attendance, int64, error) {
+//
+// Scoped by role: a teacher sees only requests for children in their own
+// classrooms. Without this a teacher's review queue would list every child in
+// the nursery, including ones they have no relationship to.
+func (r *AttendanceRepo) ListPending(ctx context.Context, q dto.PageQuery, role model.Role, userID uint64) ([]model.Attendance, int64, error) {
 	var (
 		rows  []model.Attendance
 		total int64
 	)
 	tx := r.db.WithContext(ctx).Model(&model.Attendance{}).
 		Where("confirmed_at IS NULL AND requested_by IS NOT NULL AND date >= ?", time.Now().Format("2006-01-02"))
+	if role == model.RoleTeacher {
+		tx = tx.Where("child_id IN (?)",
+			r.db.Model(&model.Child{}).Select("id").Where("classroom_id IN (?)",
+				r.db.Model(&model.ClassroomTeacher{}).Select("classroom_id").Where("teacher_user_id = ?", userID)))
+	}
 	if err := tx.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}

@@ -417,3 +417,119 @@ export function usePayInvoice() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["invoices"] }),
   });
 }
+
+// ---- teacher ----
+
+/**
+ * The children assigned to the signed-in teacher. `GET /children` is already
+ * scoped server-side (teacher → their classrooms), so no dedicated endpoint is
+ * needed; `present_status` and `checked_in_at` come back on each row, which is
+ * what the roster renders.
+ */
+export function useTeacherRoster() {
+  return useQuery({
+    queryKey: ["teacherRoster"],
+    queryFn: () => list<Child>("/children", { per_page: 100, sort: "first_name" }),
+  });
+}
+
+/** Invalidates everything a care write can affect for one child. */
+function invalidateChild(qc: ReturnType<typeof useQueryClient>, childId: number) {
+  void qc.invalidateQueries({ queryKey: ["dashboard", childId] });
+  void qc.invalidateQueries({ queryKey: ["teacherRoster"] });
+}
+
+export function useCheckInOut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { childId: number; action: "check_in" | "check_out" }) =>
+      (await api.post<ItemResponse<Attendance>>(`/children/${input.childId}/check`, { action: input.action })).data
+        .data,
+    onSuccess: (_res, input) => invalidateChild(qc, input.childId),
+  });
+}
+
+export interface MealInput {
+  childId: number;
+  meal_type: string;
+  status: string;
+  note?: string;
+  served_at?: string;
+}
+
+export function useLogMeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ childId, ...body }: MealInput) =>
+      (await api.post<ItemResponse<MealLog>>(`/children/${childId}/meals`, body)).data.data,
+    onSuccess: (_res, input) => invalidateChild(qc, input.childId),
+  });
+}
+
+export interface SleepInput {
+  childId: number;
+  start_at: string;
+  end_at?: string;
+  quality?: number;
+  note?: string;
+}
+
+export function useLogSleep() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ childId, ...body }: SleepInput) =>
+      (await api.post<ItemResponse<SleepLog>>(`/children/${childId}/sleep`, body)).data.data,
+    onSuccess: (_res, input) => invalidateChild(qc, input.childId),
+  });
+}
+
+export interface DiaperInput {
+  childId: number;
+  wetness: string;
+  stool: string;
+  comfort?: string;
+  note?: string;
+  occurred_at?: string;
+}
+
+export function useLogDiaper() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ childId, ...body }: DiaperInput) =>
+      (await api.post<ItemResponse<DiaperLog>>(`/children/${childId}/diaper`, body)).data.data,
+    onSuccess: (_res, input) => invalidateChild(qc, input.childId),
+  });
+}
+
+export function useUpsertHydration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { childId: number; cups: number }) =>
+      (await api.put<ItemResponse<HydrationLog>>(`/children/${input.childId}/hydration`, { cups: input.cups })).data
+        .data,
+    onSuccess: (_res, input) => invalidateChild(qc, input.childId),
+  });
+}
+
+export interface DiaryInput {
+  childId: number;
+  type: string;
+  title: string;
+  body?: string;
+  media_ids?: number[];
+  occurred_at?: string;
+  /** Omit to notify guardians (the default); false posts the entry silently. */
+  notify?: boolean;
+}
+
+export function useCreateDiary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ childId, ...body }: DiaryInput) =>
+      (await api.post<ItemResponse<DiaryEntry>>(`/children/${childId}/diary`, body)).data.data,
+    onSuccess: (_res, input) => {
+      invalidateChild(qc, input.childId);
+      void qc.invalidateQueries({ queryKey: ["diary", input.childId] });
+    },
+  });
+}

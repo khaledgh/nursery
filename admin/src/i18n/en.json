@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Sunny Stars" },
+  "app": { "name": "Little Talent Childcare" },
   "nav": {
     "dashboard": "Dashboard",
     "users": "Users",
@@ -22,7 +22,7 @@
     "logout": "Sign out"
   },
   "auth": {
-    "title": "Sign in to Sunny Stars",
+    "title": "Sign in to Little Talent Childcare",
     "email": "Email",
     "password": "Password",
     "submit": "Sign in",

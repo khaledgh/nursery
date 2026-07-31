@@ -29,9 +29,10 @@ func (s *AttendanceService) List(ctx context.Context, role model.Role, userID, c
 	return s.attendance.ListForChild(ctx, childID, q)
 }
 
-// ListPending is the staff review queue of unconfirmed parent requests.
-func (s *AttendanceService) ListPending(ctx context.Context, q dto.PageQuery) ([]model.Attendance, int64, error) {
-	rows, total, err := s.attendance.ListPending(ctx, q)
+// ListPending is the staff review queue of unconfirmed parent requests, scoped
+// to the caller's own classrooms when they are a teacher.
+func (s *AttendanceService) ListPending(ctx context.Context, q dto.PageQuery, role model.Role, userID uint64) ([]model.Attendance, int64, error) {
+	rows, total, err := s.attendance.ListPending(ctx, q, role, userID)
 	if err != nil {
 		return nil, 0, apperr.Internal(err)
 	}

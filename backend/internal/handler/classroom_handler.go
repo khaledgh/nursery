@@ -39,7 +39,7 @@ func (h *ClassroomHandler) List(c echo.Context) error {
 		return apperr.BadRequest("invalid query parameters")
 	}
 	q.Normalize()
-	rooms, total, err := h.classrooms.List(c.Request().Context(), q, mw.RequestLocale(c))
+	rooms, total, err := h.classrooms.List(c.Request().Context(), q, mw.RequestLocale(c), mw.Role(c), mw.UserID(c))
 	if err != nil {
 		return err
 	}

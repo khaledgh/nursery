@@ -58,10 +58,10 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("storage init failed")
 	}
-	// Re-sign local media URLs on every read; the column value is stale by design.
-	if local, ok := store.(*storage.LocalStorage); ok {
-		model.MediaURLBuilder = local.URL
-	}
+	// Re-sign media URLs on every read; the column value is stale by design.
+	// Applies to every driver, since all media is served through the signed
+	// stream endpoint rather than fetched from the bucket directly.
+	model.MediaURLBuilder = store.URL
 
 	jwts := jwtutil.NewManager(cfg.Auth.AccessSecret, cfg.Auth.AccessTTL, cfg.App.URL)
 
@@ -238,13 +238,11 @@ func buildPaymentProvider(cfg *config.Config, log zerolog.Logger) payment.Provid
 	return payment.NewMockProvider()
 }
 
-// mediaSigner is nil for s3, which issues its own presigned URLs. For local disk
-// it both stamps outgoing URLs and verifies incoming ones, so the two must share
-// one instance.
+// mediaSigner stamps outgoing media URLs and verifies incoming ones, so both
+// sides must share one instance. Every driver needs it: media is streamed
+// through the API rather than fetched from the bucket, so an S3/R2 object is
+// gated by exactly the same signature as a file on local disk.
 func mediaSigner(cfg *config.Config) *storage.Signer {
-	if cfg.Storage.Driver == "s3" {
-		return nil
-	}
 	secret := cfg.Storage.MediaURLSecret
 	if secret == "" {
 		secret = cfg.Auth.AccessSecret
@@ -261,6 +259,9 @@ func buildStorage(cfg *config.Config, signer *storage.Signer) (storage.Storage, 
 			AccessKey: cfg.Storage.S3AccessKey,
 			SecretKey: cfg.Storage.S3SecretKey,
 			Endpoint:  cfg.Storage.S3Endpoint,
+			PathStyle: cfg.Storage.S3PathStyle,
+			BaseURL:   cfg.App.URL,
+			Signer:    signer,
 		})
 	default:
 		return storage.NewLocalStorage(cfg.Storage.LocalUploadDir, cfg.App.URL, signer)

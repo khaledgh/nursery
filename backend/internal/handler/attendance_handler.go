@@ -35,7 +35,7 @@ func (h *AttendanceHandler) ListPending(c echo.Context) error {
 		return apperr.BadRequest("invalid query parameters")
 	}
 	q.Normalize()
-	rows, total, err := h.attendance.ListPending(c.Request().Context(), q)
+	rows, total, err := h.attendance.ListPending(c.Request().Context(), q, mw.Role(c), mw.UserID(c))
 	if err != nil {
 		return err
 	}

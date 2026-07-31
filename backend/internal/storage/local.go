@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,17 +92,7 @@ func (s *LocalStorage) Open(ctx context.Context, key string) (io.ReadCloser, err
 // URL for local files points at the streaming endpoint. Image tags cannot send an
 // Authorization header, so access is carried by a short-lived signature instead.
 func (s *LocalStorage) URL(key string) string {
-	// Escape each segment individually: "/" must stay a path separator.
-	parts := strings.Split(key, "/")
-	for i, p := range parts {
-		parts[i] = url.PathEscape(p)
-	}
-	u := s.baseURL + "/api/v1/media/stream/" + strings.Join(parts, "/")
-	if s.signer == nil {
-		return u
-	}
-	// Signed over the raw key, which is what the handler recovers after routing.
-	return u + "?" + s.signer.Query(key)
+	return StreamURL(s.baseURL, key, s.signer)
 }
 
 func (s *LocalStorage) Driver() string { return "local" }

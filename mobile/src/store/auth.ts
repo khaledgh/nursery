@@ -39,6 +39,15 @@ const secureStorage: StateStorage = {
   },
 };
 
+/**
+ * Where a signed-in user belongs. Teachers get the staff experience; admins
+ * fall through to the parent tabs, which is where the read-only views live.
+ * Kept in one place so login, the root redirect, and both layout guards can
+ * never disagree about it.
+ */
+export const homeRouteForRole = (role: Role | undefined): "/(teacher)" | "/(tabs)" =>
+  role === "teacher" ? "/(teacher)" : "/(tabs)";
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({

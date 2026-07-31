@@ -1,15 +1,17 @@
 import type { TextStyle, ViewStyle } from "react-native";
 
-// Purple design system from the mockups.
+// Brand palette sampled from the Little Talent Childcare logo: the green of the
+// arc under the wordmark, with the mark's blue as the secondary tone.
 export const colors = {
-  primary: "#7c3aed",
-  primaryDark: "#5b21b6",
-  primaryLight: "#ede9fe",
-  bg: "#f5f3ff",
+  primary: "#5b9c34",
+  primaryDark: "#3f7222",
+  primaryLight: "#e8f4dd",
+  secondary: "#4070a0",
+  bg: "#f4f9ef",
   card: "#ffffff",
-  text: "#1e1b2e",
+  text: "#1f2a17",
   textMuted: "#6b7280",
-  border: "#ebe7f5",
+  border: "#e2ecd8",
   success: "#10b981",
   warning: "#f59e0b",
   danger: "#ef4444",
@@ -24,7 +26,9 @@ export interface Accent {
 
 /** Per-feature pastel accents: icon color (main), circle fill (tint), text on tint (dark). */
 export const accents = {
-  primary: { main: "#7c3aed", tint: "#ede9fe", dark: "#5b21b6" },
+  // Only `primary` follows the brand; the rest encode feature meaning (meals,
+  // sleep, diaper, health...) and drive the enum→visual maps, so they stay put.
+  primary: { main: "#5b9c34", tint: "#e8f4dd", dark: "#3f7222" },
   meals: { main: "#f59e0b", tint: "#fef3c7", dark: "#b45309" },
   sleep: { main: "#6366f1", tint: "#e0e7ff", dark: "#4338ca" },
   activity: { main: "#10b981", tint: "#d1fae5", dark: "#047857" },
@@ -40,8 +44,8 @@ export const accents = {
 export type AccentName = keyof typeof accents;
 
 export const gradients = {
-  hero: ["#8b5cf6", "#6d28d9"] as const,
-  lavender: ["#f3f0ff", "#ede9fe"] as const,
+  hero: ["#7cb342", "#4a8a2a"] as const,
+  lavender: ["#f1f8e9", "#e8f4dd"] as const,
 };
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
@@ -67,7 +71,7 @@ export const type = {
 
 export const shadows = {
   card: {
-    shadowColor: "#7c3aed",
+    shadowColor: "#3f7222",
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },

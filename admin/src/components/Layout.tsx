@@ -75,7 +75,17 @@ export function Layout() {
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-60 flex-col bg-brand-900 text-brand-100">
-        <div className="px-6 py-5 text-lg font-bold text-white">☀️ {t("app.name")}</div>
+        {/* The logo mark reads on the dark sidebar; the artwork's own wordmark is
+            dark blue and would not, so the name is rendered as text beside it. */}
+        <div className="flex items-center gap-3 px-6 py-5">
+          <img
+            src="/logo.png"
+            alt=""
+            aria-hidden="true"
+            className="h-9 w-9 shrink-0 rounded-lg bg-white p-1"
+          />
+          <span className="text-base font-bold leading-tight text-white">{t("app.name")}</span>
+        </div>
         <nav className="flex-1 space-y-1 px-3">
           {NAV.map(({ to, icon: Icon, key, end }) => (
             <NavLink

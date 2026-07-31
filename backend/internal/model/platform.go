@@ -28,8 +28,13 @@ type Media struct {
 // keeps every read path correct instead of each service remembering to re-sign.
 var MediaURLBuilder func(path string) string
 
+// Rebuilt for every disk, not just local: S3/R2 objects are served through the
+// same signed stream endpoint, so their stored URL carries an expired signature
+// too. The builder is set from whichever driver is active, and a row written by
+// the other driver still resolves because the key, not the host, is what is
+// signed.
 func (m *Media) AfterFind(*gorm.DB) error {
-	if MediaURLBuilder != nil && m.Disk == "local" && m.Path != "" {
+	if MediaURLBuilder != nil && m.Path != "" {
 		m.URL = MediaURLBuilder(m.Path)
 	}
 	return nil

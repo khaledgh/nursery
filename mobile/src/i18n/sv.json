@@ -1,7 +1,13 @@
 {
-  "tabs": { "home": "Hem", "diary": "Dagbok", "overview": "Översikt", "messages": "Meddelanden", "more": "Mer" },
+  "tabs": {
+    "home": "Hem",
+    "diary": "Dagbok",
+    "overview": "Översikt",
+    "messages": "Meddelanden",
+    "more": "Mer"
+  },
   "auth": {
-    "title": "Sunny Stars",
+    "title": "Little Talent Childcare",
     "subtitle": "Logga in för att följa ditt barns dag",
     "email": "E-post",
     "password": "Lösenord",
@@ -342,19 +348,88 @@
     "changePhoto": "Byt foto"
   },
   "enums": {
-    "mealStatus": { "ate_well": "Åt bra", "ate_half": "Åt hälften", "ate_little": "Åt lite", "didnt_eat": "Åt inte" },
-    "mealType": { "breakfast": "Frukost", "lunch": "Lunch", "snack": "Mellanmål", "dinner": "Middag" },
-    "menuRating": { "eats": "Äter det", "sometimes": "Ibland", "doesnt_eat": "Äter inte" },
-    "wetness": { "dry": "Torr", "wet": "Våt", "heavy": "Mycket våt" },
-    "stool": { "none": "Ingen avföring", "hard": "Hård", "normal": "Normal", "soft": "Mjuk", "loose": "Lös", "diarrhea": "Diarré" },
-    "comfort": { "happy": "Bekväm", "fussy": "Gnällig" },
-    "mood": { "happy": "Glad", "calm": "Lugn", "sleepy": "Sömnig", "fussy": "Gnällig", "energetic": "Energisk" },
-    "reportRating": { "thriving": "Blomstrar", "doing_well": "Går bra", "improving": "Förbättras", "needs_support": "Behöver stöd" },
-    "reportMood": { "social": "Social", "creative": "Kreativ", "happy": "Glad", "calm": "Lugn" },
-    "moodRating": { "great": "Toppen!", "good": "Bra", "okay": "Okej" },
-    "milestoneStatus": { "not_started": "Ej påbörjad", "in_progress": "Pågår", "achieved": "Uppnådd" },
-    "invoiceStatus": { "due": "Förfaller", "paid": "Betald", "overdue": "Försenad", "cancelled": "Makulerad" },
-    "severity": { "mild": "Mild", "moderate": "Måttlig", "severe": "Allvarlig" }
+    "mealStatus": {
+      "ate_well": "Åt bra",
+      "ate_half": "Åt hälften",
+      "ate_little": "Åt lite",
+      "didnt_eat": "Åt inte"
+    },
+    "mealType": {
+      "breakfast": "Frukost",
+      "lunch": "Lunch",
+      "snack": "Mellanmål",
+      "dinner": "Middag"
+    },
+    "menuRating": {
+      "eats": "Äter det",
+      "sometimes": "Ibland",
+      "doesnt_eat": "Äter inte"
+    },
+    "wetness": {
+      "dry": "Torr",
+      "wet": "Våt",
+      "heavy": "Mycket våt"
+    },
+    "stool": {
+      "none": "Ingen avföring",
+      "hard": "Hård",
+      "normal": "Normal",
+      "soft": "Mjuk",
+      "loose": "Lös",
+      "diarrhea": "Diarré"
+    },
+    "comfort": {
+      "happy": "Bekväm",
+      "fussy": "Gnällig"
+    },
+    "mood": {
+      "happy": "Glad",
+      "calm": "Lugn",
+      "sleepy": "Sömnig",
+      "fussy": "Gnällig",
+      "energetic": "Energisk"
+    },
+    "reportRating": {
+      "thriving": "Blomstrar",
+      "doing_well": "Går bra",
+      "improving": "Förbättras",
+      "needs_support": "Behöver stöd"
+    },
+    "reportMood": {
+      "social": "Social",
+      "creative": "Kreativ",
+      "happy": "Glad",
+      "calm": "Lugn"
+    },
+    "moodRating": {
+      "great": "Toppen!",
+      "good": "Bra",
+      "okay": "Okej"
+    },
+    "milestoneStatus": {
+      "not_started": "Ej påbörjad",
+      "in_progress": "Pågår",
+      "achieved": "Uppnådd"
+    },
+    "invoiceStatus": {
+      "due": "Förfaller",
+      "paid": "Betald",
+      "overdue": "Försenad",
+      "cancelled": "Makulerad"
+    },
+    "severity": {
+      "mild": "Mild",
+      "moderate": "Måttlig",
+      "severe": "Allvarlig"
+    },
+    "diaryType": {
+      "meal": "Måltid",
+      "sleep": "Sömn",
+      "activity": "Aktivitet",
+      "diaper": "Blöja",
+      "note": "Notering",
+      "photo": "Foto"
+    }
   },
   "common": {
     "loading": "Laddar…",
@@ -368,6 +443,118 @@
     "viewAll": "Visa alla",
     "empty": "Inget här ännu"
   },
-  "diaperScreen": { "title": "Blöja", "empty": "Inga blöjbyten loggade" },
-  "milestonesScreen": { "title": "Milstolpar", "achievements": "Prestationer" }
+  "diaperScreen": {
+    "title": "Blöja",
+    "empty": "Inga blöjbyten loggade"
+  },
+  "milestonesScreen": {
+    "title": "Milstolpar",
+    "achievements": "Prestationer"
+  },
+  "teacher": {
+    "tabs": {
+      "today": "Idag",
+      "quickLog": "Snabblogg",
+      "class": "Avdelning",
+      "more": "Mer"
+    },
+    "roster": {
+      "title": "Idag",
+      "subtitle_one": "{{count}} barn",
+      "subtitle_other": "{{count}} barn",
+      "in": "Inne",
+      "out": "Ute",
+      "absent": "Frånvarande",
+      "all": "Alla",
+      "notCheckedIn": "Ej incheckade",
+      "noMeal": "Ingen måltid än",
+      "noNap": "Ingen vila än",
+      "needsReport": "Behöver rapport",
+      "checkIn": "Checka in",
+      "checkOut": "Checka ut",
+      "selected": "{{count}} valda",
+      "selectAll": "Välj alla",
+      "clear": "Rensa",
+      "bulkCheckIn": "Checka in ({{count}})",
+      "bulkCheckOut": "Checka ut ({{count}})",
+      "empty": "Inga barn är kopplade till dig än.",
+      "logged": "Loggat idag",
+      "notLogged": "Inte loggat än"
+    },
+    "quickLog": {
+      "title": "Snabblogg",
+      "subtitle": "Välj aktivitet och gå igenom gruppen.",
+      "meal": "Måltid",
+      "nap": "Vila",
+      "diaper": "Blöja",
+      "note": "Notis",
+      "mealDesc": "Logga vad alla åt",
+      "napDesc": "Logga vilotider",
+      "diaperDesc": "Logga byten",
+      "noteDesc": "Skicka en notis hem"
+    },
+    "batch": {
+      "mealTitle": "Logga måltid",
+      "napTitle": "Logga vila",
+      "diaperTitle": "Logga blöja",
+      "save": "Spara {{count}} poster",
+      "saveOne": "Spara 1 post",
+      "saving": "Sparar...",
+      "nothingSelected": "Tryck på ett barn för att börja.",
+      "savedAll": "Sparade {{count}} poster",
+      "partial": "Sparade {{saved}}, {{failed}} misslyckades",
+      "retryFailed": "Försök igen ({{count}})",
+      "alreadyLogged": "Redan loggat"
+    },
+    "child": {
+      "todayAtGlance": "Dagen i korthet",
+      "allergyWarning": "Allergier",
+      "addDiary": "Lägg till dagboksinlägg",
+      "dailyReport": "Dagsrapport",
+      "healthIncidents": "Hälsa & incidenter",
+      "milestonesLink": "Milstolpar",
+      "meals": "Måltider",
+      "nap": "Vila",
+      "diapers": "Blöjor",
+      "water": "Vatten",
+      "noEntries": "Inget loggat idag än."
+    },
+    "care": {
+      "mealType": "Måltid",
+      "mealStatus": "Hur mycket?",
+      "servedAt": "Serverades",
+      "napStart": "Somnade",
+      "napEnd": "Vaknade",
+      "duration": "Längd",
+      "wetness": "Blöt",
+      "stool": "Avföring",
+      "comfort": "Humör",
+      "cups": "Glas vatten",
+      "note": "Notering (valfritt)",
+      "notePlaceholder": "Något att tillägga?"
+    },
+    "diaryEntry": {
+      "title": "Dagboksinlägg",
+      "type": "Typ",
+      "entryTitle": "Rubrik",
+      "titlePlaceholder": "Vad hände?",
+      "body": "Detaljer",
+      "bodyPlaceholder": "Berätta för föräldrarna...",
+      "photos": "Foton",
+      "addPhoto": "Lägg till foto",
+      "camera": "Kamera",
+      "library": "Bibliotek",
+      "notifyParents": "Meddela föräldrar",
+      "notifyHint": "Skickar en pushnotis nu."
+    },
+    "common": {
+      "save": "Spara",
+      "cancel": "Avbryt",
+      "retry": "Försök igen",
+      "saved": "Sparat",
+      "failed": "Kunde inte spara. Kontrollera anslutningen och försök igen.",
+      "offline": "Du verkar vara offline.",
+      "search": "Sök barn"
+    }
+  }
 }

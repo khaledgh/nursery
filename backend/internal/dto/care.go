@@ -7,6 +7,10 @@ type CreateDiaryEntryRequest struct {
 	OccurredAt string   `json:"occurred_at" validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
 	MediaIDs   []uint64 `json:"media_ids" validate:"omitempty,max=10"`
 	IsLive     bool     `json:"is_live"`
+	// Notify controls whether guardians get a push for this entry. A pointer so
+	// an omitted field still notifies, preserving the behaviour of every client
+	// that predates the flag; staff posting a burst of photos can opt out.
+	Notify *bool `json:"notify"`
 }
 
 type CreateMealLogRequest struct {
