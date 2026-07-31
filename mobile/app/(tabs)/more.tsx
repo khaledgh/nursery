@@ -4,8 +4,8 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { api } from "../../src/api/client";
-import type { ItemResponse, Media } from "../../src/api/types";
+import { api, uploadMedia } from "../../src/api/client";
+import type { ItemResponse } from "../../src/api/types";
 import { ActionCard } from "../../src/components/ActionCard";
 import { ChildAvatar } from "../../src/components/ChildAvatar";
 import { SectionHeader } from "../../src/components/SectionHeader";
@@ -46,13 +46,8 @@ export default function MoreScreen() {
     if (!asset) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      // @ts-expect-error React Native FormData file shape
-      form.append("file", { uri: asset.uri, name: "avatar.jpg", type: asset.mimeType ?? "image/jpeg" });
-      const uploaded = await api.post<ItemResponse<Media>>("/media", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const res = await api.put<ItemResponse<AuthUser>>("/users/me/avatar", { media_id: uploaded.data.data.id });
+      const uploaded = await uploadMedia(asset.uri, asset.mimeType ?? "image/jpeg");
+      const res = await api.put<ItemResponse<AuthUser>>("/users/me/avatar", { media_id: uploaded.id });
       if (accessToken && refreshToken) {
         setAuth({ access_token: accessToken, refresh_token: refreshToken }, res.data.data);
       }

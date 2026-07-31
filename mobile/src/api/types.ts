@@ -19,6 +19,7 @@ export interface Media {
   id: number;
   url: string;
   mime: string;
+  created_at?: string;
 }
 
 export interface Guardian {

@@ -10,6 +10,7 @@ import {
   useDashboard,
   useRequestAttendance,
   useUnreadCount,
+  useChildMedia,
 } from "../../src/api/hooks";
 import { ChildAvatar } from "../../src/components/ChildAvatar";
 import { ChildSwitcher } from "../../src/components/ChildSwitcher";
@@ -31,6 +32,7 @@ type AttendanceAction = "absent" | "late" | "early_pickup";
 
 const QUICK_ACCESS: { icon: string; accent: AccentName; key: string; href: string }[] = [
   { icon: "book", accent: "primary", key: "tabs.diary", href: "/diary" },
+  { icon: "images", accent: "activity", key: "home.gallery", href: "/child/gallery" },
   { icon: "restaurant", accent: "meals", key: "home.meals", href: "/child/feed" },
   { icon: "calendar", accent: "events", key: "home.events", href: "/events" },
   { icon: "chatbubbles", accent: "hydration", key: "tabs.messages", href: "/messages" },
@@ -51,7 +53,8 @@ export default function HomeScreen() {
   const dashboard = useDashboard(child?.id);
   const schedule = useClassroomSchedule(child?.classroom_id);
   const unread = useUnreadCount();
-  const { refreshing, onRefresh } = useRefreshAll(dashboard, schedule, unread);
+  const mediaQuery = useChildMedia(child?.id, 1);
+  const { refreshing, onRefresh } = useRefreshAll(dashboard, schedule, unread, mediaQuery);
   const requestAttendance = useRequestAttendance(child?.id);
 
   const [action, setAction] = useState<AttendanceAction | null>(null);
@@ -219,6 +222,21 @@ export default function HomeScreen() {
                 onAction={() => router.push("/diary")}
               />
               <PhotoStrip photos={recentPhotos} />
+            </>
+          )}
+
+          {/* Gallery preview */}
+          {mediaQuery.data && mediaQuery.data.length > 0 && (
+            <>
+              <SectionHeader
+                title={t("gallery.title")}
+                actionLabel={t("common.viewAll")}
+                onAction={() => router.push("/child/gallery")}
+              />
+              <PhotoStrip
+                photos={mediaQuery.data.map((m) => ({ url: m.url }))}
+                onPressMore={() => router.push("/child/gallery")}
+              />
             </>
           )}
 

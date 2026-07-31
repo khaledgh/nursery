@@ -1,12 +1,32 @@
 import { api } from "./api";
 import type { ItemResponse, Media } from "../types/api";
 
-/** Uploads one file to POST /media and returns the stored media row. */
+interface PresignUploadResponse {
+  media_id: number;
+  upload_url: string;
+}
+
+/**
+ * Uploads a file straight to R2, bypassing this API for the bytes: reserve a
+ * key (POST /media/presign-upload) -> PUT the file directly to the returned
+ * URL -> tell the API the upload landed (POST /media/:id/confirm).
+ */
 export async function uploadMedia(file: File): Promise<Media> {
-  const form = new FormData();
-  form.append("file", file);
-  const res = await api.post<ItemResponse<Media>>("/media", form, {
-    headers: { "Content-Type": "multipart/form-data" },
+  const presign = await api.post<ItemResponse<PresignUploadResponse>>("/media/presign-upload", {
+    mime: file.type,
+    size: file.size,
   });
-  return res.data.data;
+  const { media_id, upload_url } = presign.data.data;
+
+  const put = await fetch(upload_url, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type },
+  });
+  if (!put.ok) {
+    throw new Error(`upload to storage failed with status ${put.status}`);
+  }
+
+  const confirmed = await api.post<ItemResponse<Media>>(`/media/${media_id}/confirm`);
+  return confirmed.data.data;
 }

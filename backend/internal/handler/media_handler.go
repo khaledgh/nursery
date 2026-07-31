@@ -7,6 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/sunnystars/backend/internal/dto"
 	mw "github.com/sunnystars/backend/internal/middleware"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -26,12 +27,16 @@ func NewMediaHandler(media *service.MediaService, signer *storage.Signer) *Media
 
 func (h *MediaHandler) Register(public, protected *echo.Group) {
 	protected.POST("/media", h.Upload)
+	protected.POST("/media/presign-upload", h.PresignUpload)
+	protected.POST("/media/:id/confirm", h.ConfirmUpload)
 	protected.DELETE("/media/:id", h.Delete)
 	// Streaming is public-routed but not unauthenticated: image tags cannot send
 	// a bearer token, so the signed query string is the credential. See Stream.
 	public.GET("/media/stream/*", h.Stream)
 }
 
+// Upload is the legacy multipart path: bytes are relayed through this server
+// to storage. Kept for the local-disk driver, which has no presign story.
 func (h *MediaHandler) Upload(c echo.Context) error {
 	fh, err := c.FormFile("file")
 	if err != nil {
@@ -42,6 +47,37 @@ func (h *MediaHandler) Upload(c echo.Context) error {
 		return err
 	}
 	return response.Created(c, media)
+}
+
+// PresignUpload reserves a Media row and returns a URL the client PUTs the
+// file to directly, so the bytes never pass through this server.
+func (h *MediaHandler) PresignUpload(c echo.Context) error {
+	req, err := dto.Bind[dto.PresignUploadRequest](c)
+	if err != nil {
+		return err
+	}
+	media, uploadURL, err := h.media.PresignUpload(c.Request().Context(), mw.UserID(c), req.Mime, req.Size)
+	if err != nil {
+		return err
+	}
+	return response.Created(c, map[string]any{
+		"media_id":   media.ID,
+		"upload_url": uploadURL,
+	})
+}
+
+// ConfirmUpload verifies a client's direct PUT landed as declared and flips
+// the row to ready, returning it with a live presigned read URL.
+func (h *MediaHandler) ConfirmUpload(c echo.Context) error {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		return apperr.BadRequest("invalid media id")
+	}
+	media, err := h.media.ConfirmUpload(c.Request().Context(), id, mw.UserID(c))
+	if err != nil {
+		return err
+	}
+	return response.OK(c, media)
 }
 
 func (h *MediaHandler) Delete(c echo.Context) error {

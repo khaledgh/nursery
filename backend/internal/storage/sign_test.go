@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"net/url"
 	"strconv"
 	"strings"
@@ -81,9 +82,10 @@ func TestQueryIsStableAcrossReads(t *testing.T) {
 	}
 }
 
-// The S3/R2 driver must hand back the signed API stream URL. A bucket URL here
-// would publish child photos to anyone holding the link.
-func TestS3URLIsSignedStreamURL(t *testing.T) {
+// The S3/R2 driver's legacy fallback (no presign client wired up) must hand
+// back the signed API stream URL, not a bucket URL, to remain safe on
+// drivers/tests that never construct a live client.
+func TestS3URLFallsBackToSignedStreamURL(t *testing.T) {
 	signer := NewSigner("secret-that-is-long-enough-for-hmac", time.Hour)
 	s := NewS3StorageForTest("media", "https://acct.r2.cloudflarestorage.com", "auto", "https://api.example.com", signer)
 
@@ -97,6 +99,57 @@ func TestS3URLIsSignedStreamURL(t *testing.T) {
 	exp, sig := parse(t, strings.SplitN(got, "?", 2)[1])
 	if err := s.signer.Verify(testKey, exp, sig); err != nil {
 		t.Fatalf("s3 URL carries an invalid signature: %v", err)
+	}
+}
+
+// The direct-to-R2 path must hand back a SigV4-presigned GET straight to the
+// bucket (that's the whole point — the API no longer proxies reads), and
+// that URL must actually carry a signature and expiry, not a bare object URL.
+func TestS3URLIsPresignedWhenClientIsLive(t *testing.T) {
+	s := NewS3StorageWithPresignForTest("media", "https://acct.r2.cloudflarestorage.com", "auto", time.Hour)
+
+	got := s.URL(testKey)
+	if !strings.Contains(got, "acct.r2.cloudflarestorage.com") {
+		t.Fatalf("expected a direct bucket URL, got: %s", got)
+	}
+	if !strings.Contains(got, "X-Amz-Signature=") || !strings.Contains(got, "X-Amz-Expires=") {
+		t.Fatalf("URL is not presigned: %s", got)
+	}
+}
+
+// URL() must reuse a cached presigned GET for repeated reads of the same key
+// within the TTL window, or expo-image (which caches by full URI) would
+// re-download the same photo on every render.
+func TestS3URLIsCachedAcrossReads(t *testing.T) {
+	s := NewS3StorageWithPresignForTest("media", "https://acct.r2.cloudflarestorage.com", "auto", time.Hour)
+
+	first := s.URL(testKey)
+	for i := 0; i < 5; i++ {
+		if got := s.URL(testKey); got != first {
+			t.Fatalf("presigned URL churned between reads: %s != %s", got, first)
+		}
+	}
+}
+
+// PresignGet always re-signs, unlike URL()'s cache — the confirm step wants a
+// guaranteed-fresh signature, not a possibly-stale cached one.
+func TestS3PresignPutAndGetAreSigned(t *testing.T) {
+	s := NewS3StorageWithPresignForTest("media", "https://acct.r2.cloudflarestorage.com", "auto", time.Hour)
+
+	put, err := s.PresignPut(context.Background(), testKey, "image/jpeg", 1024, 5*time.Minute)
+	if err != nil {
+		t.Fatalf("PresignPut: %v", err)
+	}
+	if !strings.Contains(put, "X-Amz-Signature=") {
+		t.Fatalf("PresignPut result not signed: %s", put)
+	}
+
+	get, err := s.PresignGet(context.Background(), testKey, time.Hour)
+	if err != nil {
+		t.Fatalf("PresignGet: %v", err)
+	}
+	if !strings.Contains(get, "X-Amz-Signature=") {
+		t.Fatalf("PresignGet result not signed: %s", get)
 	}
 }
 

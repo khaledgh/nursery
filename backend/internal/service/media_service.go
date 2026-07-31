@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -18,7 +19,13 @@ import (
 	"github.com/sunnystars/backend/internal/storage"
 )
 
-const maxUploadBytes = 15 << 20 // 15 MiB
+const (
+	maxUploadBytes = 15 << 20 // 15 MiB
+	// uploadURLTTL is how long a presigned PUT stays valid — long enough for
+	// a slow mobile connection to finish, short enough that a leaked URL
+	// (e.g. logged, cached) is useless soon after.
+	uploadURLTTL = 5 * time.Minute
+)
 
 // allowedUploads maps the *sniffed* content type to the stored extension.
 // The client-declared filename/extension is never trusted.
@@ -64,12 +71,10 @@ func (s *MediaService) Upload(ctx context.Context, userID uint64, fh *multipart.
 		return nil, apperr.Internal(err)
 	}
 
-	// Random server-generated key — client filenames never reach the filesystem.
-	token, err := hash.RandomToken()
+	key, err := randomKey(ext)
 	if err != nil {
 		return nil, apperr.Internal(err)
 	}
-	key := path.Join(time.Now().Format("2006/01"), token+ext)
 
 	stored, err := s.store.Put(ctx, key, io.LimitReader(f, maxUploadBytes), mime, fh.Size)
 	if err != nil {
@@ -89,6 +94,102 @@ func (s *MediaService) Upload(ctx context.Context, userID uint64, fh *multipart.
 		return nil, apperr.Internal(err)
 	}
 	return media, nil
+}
+
+// randomKey builds a server-generated storage key — client filenames never
+// reach the filesystem or bucket, and the client cannot influence where its
+// own upload lands.
+func randomKey(ext string) (string, error) {
+	token, err := hash.RandomToken()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(time.Now().Format("2006/01"), token+ext), nil
+}
+
+// PresignUpload reserves a key and hands back a URL the client PUTs bytes to
+// directly, so the request body never passes through this server. The Media
+// row is created immediately in "pending" status: it exists so the key is
+// tracked (and can be swept up if the upload never happens), but AfterFind
+// withholds a URL for it until ConfirmUpload verifies the object landed.
+func (s *MediaService) PresignUpload(ctx context.Context, userID uint64, mime string, size int64) (*model.Media, string, error) {
+	if size <= 0 || size > maxUploadBytes {
+		return nil, "", apperr.BadRequest(fmt.Sprintf("file must be between 1 byte and %d MB", maxUploadBytes>>20))
+	}
+	ext, ok := allowedUploads[mime]
+	if !ok {
+		return nil, "", apperr.BadRequest("unsupported file type; allowed: jpeg, png, gif, webp, pdf")
+	}
+	key, err := randomKey(ext)
+	if err != nil {
+		return nil, "", apperr.Internal(err)
+	}
+	uploadURL, err := s.store.PresignPut(ctx, key, mime, size, uploadURLTTL)
+	if err != nil {
+		if errors.Is(err, storage.ErrPresignUnsupported) {
+			return nil, "", apperr.BadRequest("direct upload is not available; use POST /media")
+		}
+		return nil, "", apperr.Internal(err)
+	}
+
+	media := &model.Media{
+		Disk:       s.store.Driver(),
+		Path:       key,
+		Mime:       mime,
+		Size:       size,
+		UploadedBy: userID,
+		Status:     model.MediaPending,
+	}
+	if err := s.db.WithContext(ctx).Create(media).Error; err != nil {
+		return nil, "", apperr.Internal(err)
+	}
+	return media, uploadURL, nil
+}
+
+// ConfirmUpload checks that a client's direct PUT actually landed as
+// declared and flips the row to "ready". The server never saw the bytes
+// itself, so HeadObject against the bucket is the only server-side
+// verification a presigned-upload flow can do; it replaces the content
+// sniffing the old multipart path did inline.
+func (s *MediaService) ConfirmUpload(ctx context.Context, id, userID uint64) (*model.Media, error) {
+	var media model.Media
+	if err := s.db.WithContext(ctx).First(&media, id).Error; err != nil {
+		return nil, apperr.NotFound("media not found")
+	}
+	if media.UploadedBy != userID {
+		return nil, apperr.Forbidden("you can only confirm your own uploads")
+	}
+	if media.Status == model.MediaReady {
+		return &media, nil
+	}
+
+	info, err := s.store.Head(ctx, media.Path)
+	if err != nil {
+		return nil, apperr.BadRequest("upload not found — PUT the file to the presigned URL before confirming")
+	}
+	if info.Mime != "" && info.Mime != media.Mime {
+		_ = s.db.WithContext(ctx).Delete(&media).Error
+		_ = s.store.Delete(ctx, media.Path)
+		return nil, apperr.BadRequest("uploaded content-type does not match the presigned request")
+	}
+	if info.Size <= 0 || info.Size > maxUploadBytes {
+		_ = s.db.WithContext(ctx).Delete(&media).Error
+		_ = s.store.Delete(ctx, media.Path)
+		return nil, apperr.BadRequest("uploaded file size is invalid")
+	}
+
+	media.Size = info.Size
+	media.Status = model.MediaReady
+	if err := s.db.WithContext(ctx).Model(&media).Updates(map[string]any{
+		"size":   media.Size,
+		"status": media.Status,
+	}).Error; err != nil {
+		return nil, apperr.Internal(err)
+	}
+	if err := media.AfterFind(nil); err != nil {
+		return nil, apperr.Internal(err)
+	}
+	return &media, nil
 }
 
 func (s *MediaService) Delete(ctx context.Context, id, actorID uint64, isAdmin bool) error {

@@ -59,8 +59,8 @@ func main() {
 		log.Fatal().Err(err).Msg("storage init failed")
 	}
 	// Re-sign media URLs on every read; the column value is stale by design.
-	// Applies to every driver, since all media is served through the signed
-	// stream endpoint rather than fetched from the bucket directly.
+	// Local disk gets the HMAC-signed stream URL; S3/R2 gets a presigned GET
+	// straight to the bucket, so reads bypass this server entirely.
 	model.MediaURLBuilder = store.URL
 
 	jwts := jwtutil.NewManager(cfg.Auth.AccessSecret, cfg.Auth.AccessTTL, cfg.App.URL)
@@ -238,10 +238,9 @@ func buildPaymentProvider(cfg *config.Config, log zerolog.Logger) payment.Provid
 	return payment.NewMockProvider()
 }
 
-// mediaSigner stamps outgoing media URLs and verifies incoming ones, so both
-// sides must share one instance. Every driver needs it: media is streamed
-// through the API rather than fetched from the bucket, so an S3/R2 object is
-// gated by exactly the same signature as a file on local disk.
+// mediaSigner stamps outgoing media URLs and verifies incoming ones for the
+// local-disk driver, which has no bucket to presign against and so still
+// streams files through the API behind an HMAC-signed URL.
 func mediaSigner(cfg *config.Config) *storage.Signer {
 	secret := cfg.Storage.MediaURLSecret
 	if secret == "" {
@@ -262,6 +261,10 @@ func buildStorage(cfg *config.Config, signer *storage.Signer) (storage.Storage, 
 			PathStyle: cfg.Storage.S3PathStyle,
 			BaseURL:   cfg.App.URL,
 			Signer:    signer,
+			// Media is read directly from R2 via a presigned URL rather than
+			// proxied through this API, so reuse the same TTL that used to
+			// govern the stream signature.
+			ReadTTL: cfg.Storage.MediaURLTTL,
 		})
 	default:
 		return storage.NewLocalStorage(cfg.Storage.LocalUploadDir, cfg.App.URL, signer)

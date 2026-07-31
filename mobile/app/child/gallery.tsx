@@ -1,20 +1,23 @@
 import { Image } from "expo-image";
 import * as FileSystem from "expo-file-system/legacy";
-import * as MediaLibrary from "expo-media-library";
+import * as MediaLibrary from "expo-media-library/legacy";
 import * as Sharing from "expo-sharing";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  SectionList,
   FlatList,
   Modal,
   Pressable,
   StyleSheet,
   Text,
   View,
+  Animated,
+  PanResponder,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -25,10 +28,242 @@ import { Loading } from "../../src/components/ui";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, radius, spacing } from "../../src/theme";
 
-const { width } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const columns = 3;
 // Calculate item size with spacing: padding is md (16), gap between items is sm (8)
-const itemSize = (width - spacing.md * 2 - spacing.sm * (columns - 1)) / columns;
+const itemSize = (SCREEN_WIDTH - spacing.md * 2 - spacing.sm * (columns - 1)) / columns;
+
+interface ZoomableImageProps {
+  uri: string;
+  onZoomStateChange: (isZoomed: boolean) => void;
+}
+
+function ZoomableImage({ uri, onZoomStateChange }: ZoomableImageProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+
+  const currentScale = useRef(1);
+  const currentPan = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const scaleListener = scale.addListener(({ value }) => {
+      currentScale.current = value;
+    });
+    const panListener = pan.addListener(({ x, y }) => {
+      currentPan.current = { x, y };
+    });
+    return () => {
+      scale.removeListener(scaleListener);
+      pan.removeListener(panListener);
+    };
+  }, []);
+
+  const lastDistance = useRef<number | null>(null);
+  const initialScale = useRef(1);
+  const lastTap = useRef<number>(0);
+
+  const reset = () => {
+    Animated.parallel([
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pan, {
+        toValue: { x: 0, y: 0 },
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onZoomStateChange(false);
+    });
+  };
+
+  const handleDoubleTap = () => {
+    if (currentScale.current > 1) {
+      reset();
+    } else {
+      Animated.parallel([
+        Animated.timing(scale, {
+          toValue: 2.5,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pan, {
+          toValue: { x: 0, y: 0 },
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        onZoomStateChange(true);
+      });
+    }
+  };
+
+  const handlePress = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      handleDoubleTap();
+    }
+    lastTap.current = now;
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return currentScale.current > 1 || gestureState.numberActiveTouches === 2;
+      },
+      onPanResponderGrant: (evt) => {
+        pan.setOffset({ x: currentPan.current.x, y: currentPan.current.y });
+        pan.setValue({ x: 0, y: 0 });
+
+        const touches = evt.nativeEvent.touches;
+        if (touches.length === 2) {
+          const dx = touches[0].pageX - touches[1].pageX;
+          const dy = touches[0].pageY - touches[1].pageY;
+          lastDistance.current = Math.sqrt(dx * dx + dy * dy);
+          initialScale.current = currentScale.current;
+        }
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const touches = evt.nativeEvent.touches;
+        if (touches.length === 2 && lastDistance.current !== null) {
+          const dx = touches[0].pageX - touches[1].pageX;
+          const dy = touches[0].pageY - touches[1].pageY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          let nextScale = (distance / lastDistance.current) * initialScale.current;
+          nextScale = Math.max(1, Math.min(nextScale, 4));
+          scale.setValue(nextScale);
+          onZoomStateChange(nextScale > 1);
+        } else if (touches.length === 1 && currentScale.current > 1) {
+          pan.setValue({ x: gestureState.dx, y: gestureState.dy });
+        }
+      },
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
+        lastDistance.current = null;
+
+        if (currentScale.current <= 1) {
+          reset();
+        } else {
+          const maxTx = (SCREEN_WIDTH * (currentScale.current - 1)) / 2;
+          const maxTy = (SCREEN_HEIGHT * (currentScale.current - 1)) / 2;
+
+          let targetX = currentPan.current.x;
+          let targetY = currentPan.current.y;
+
+          if (Math.abs(targetX) > maxTx) {
+            targetX = targetX > 0 ? maxTx : -maxTx;
+          }
+          if (Math.abs(targetY) > maxTy) {
+            targetY = targetY > 0 ? maxTy : -maxTy;
+          }
+
+          Animated.timing(pan, {
+            toValue: { x: targetX, y: targetY },
+            duration: 150,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        reset();
+      },
+    })
+  ).current;
+
+  return (
+    <View style={zoomStyles.container} {...panResponder.panHandlers}>
+      <Pressable onPress={handlePress} style={zoomStyles.pressable}>
+        <Animated.Image
+          source={{ uri }}
+          style={[
+            zoomStyles.image,
+            {
+              transform: [
+                { scale },
+                { translateX: pan.x },
+                { translateY: pan.y },
+              ],
+            },
+          ]}
+          resizeMode="contain"
+        />
+      </Pressable>
+    </View>
+  );
+}
+
+const zoomStyles = StyleSheet.create({
+  container: {
+    width: SCREEN_WIDTH,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  pressable: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+});
+
+const formatDateHeader = (dateStr: string, t: any) => {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return t("common.today", "Today");
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return t("common.yesterday", "Yesterday");
+  } else {
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+};
+
+const getGroupedSections = (mediaList: Media[], t: any) => {
+  const groups: { [key: string]: Media[] } = {};
+
+  mediaList.forEach((item) => {
+    const dateStr = item.created_at || new Date().toISOString();
+    const datePart = dateStr.split("T")[0]; // YYYY-MM-DD
+    if (!groups[datePart]) {
+      groups[datePart] = [];
+    }
+    groups[datePart].push(item);
+  });
+
+  const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+  const sections: { title: string; data: Media[][] }[] = sortedDates.map((dateStr) => {
+    const items = groups[dateStr];
+    const chunked: Media[][] = [];
+    for (let i = 0; i < items.length; i += columns) {
+      chunked.push(items.slice(i, i + columns));
+    }
+    return {
+      title: formatDateHeader(dateStr, t),
+      data: chunked,
+    };
+  });
+
+  return sections;
+};
 
 export default function GalleryScreen() {
   const { t } = useTranslation();
@@ -36,7 +271,8 @@ export default function GalleryScreen() {
 
   const [page, setPage] = useState(1);
   const [allMedia, setAllMedia] = useState<Media[]>([]);
-  const [selectedPhoto, setSelectedPhoto] = useState<Media | null>(null);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  const [pagerScrollEnabled, setPagerScrollEnabled] = useState(true);
 
   const [actionLoading, setActionLoading] = useState<"save" | "share" | null>(null);
 
@@ -65,25 +301,22 @@ export default function GalleryScreen() {
   };
 
   const saveToGallery = async (photo: Media) => {
-    if (!photo.url) return;
+    if (!photo || !photo.url) return;
     try {
       setActionLoading("save");
 
-      // Request media library write permission
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(t("gallery.title"), t("gallery.permissionDenied"));
         return;
       }
 
-      // Download the photo to document directory
       const ext = photo.mime.split("/")[1] || "jpg";
       const filename = `child_photo_${photo.id}.${ext}`;
       const localUri = `${FileSystem.documentDirectory}${filename}`;
 
       const { uri } = await FileSystem.downloadAsync(photo.url, localUri);
 
-      // Save to device photo library
       await MediaLibrary.saveToLibraryAsync(uri);
       Alert.alert(t("gallery.title"), t("gallery.saveSuccess"));
     } catch (err) {
@@ -95,25 +328,22 @@ export default function GalleryScreen() {
   };
 
   const shareToWhatsApp = async (photo: Media) => {
-    if (!photo.url) return;
+    if (!photo || !photo.url) return;
     try {
       setActionLoading("share");
 
-      // Verify device can share files
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
         Alert.alert(t("gallery.title"), t("gallery.shareError"));
         return;
       }
 
-      // Download the photo to cache directory with proper extension so share sheet handles it as image
       const ext = photo.mime.split("/")[1] || "jpg";
       const filename = `share_photo_${photo.id}.${ext}`;
       const localUri = `${FileSystem.cacheDirectory}${filename}`;
 
       const { uri } = await FileSystem.downloadAsync(photo.url, localUri);
 
-      // Share local file natively (which includes WhatsApp, showing it as a photo)
       await Sharing.shareAsync(uri, {
         mimeType: photo.mime || "image/jpeg",
         dialogTitle: t("gallery.title"),
@@ -126,34 +356,67 @@ export default function GalleryScreen() {
     }
   };
 
-  const renderThumbnail = ({ item: photo }: { item: Media }) => (
-    <Pressable style={styles.thumbnailWrapper} onPress={() => setSelectedPhoto(photo)}>
-      <Image
-        source={{ uri: photo.url }}
-        style={styles.thumbnail}
-        contentFit="cover"
-        transition={200}
-      />
-    </Pressable>
+  const handleCloseModal = () => {
+    setSelectedPhotoIndex(null);
+    setPagerScrollEnabled(true);
+  };
+
+  const renderRow = ({ item: rowItems }: { item: Media[] }) => (
+    <View style={styles.row}>
+      {rowItems.map((photo) => {
+        const globalIndex = allMedia.findIndex((m) => m.id === photo.id);
+        return (
+          <Pressable
+            key={photo.id}
+            style={styles.thumbnailWrapper}
+            onPress={() => {
+              setSelectedPhotoIndex(globalIndex);
+            }}
+          >
+            <Image
+              source={{ uri: photo.url }}
+              style={styles.thumbnail}
+              contentFit="cover"
+              transition={200}
+            />
+          </Pressable>
+        );
+      })}
+      {rowItems.length < columns &&
+        Array.from({ length: columns - rowItems.length }).map((_, i) => (
+          <View
+            key={`empty-${i}`}
+            style={[styles.thumbnailWrapper, { backgroundColor: "transparent" }]}
+          />
+        ))}
+    </View>
+  );
+
+  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
   );
 
   if (mediaQuery.isLoading && allMedia.length === 0) {
     return <Loading />;
   }
 
+  const groupedSections = getGroupedSections(allMedia, t);
+
   return (
     <View style={styles.container}>
-      <FlatList
-        data={allMedia}
-        renderItem={renderThumbnail}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={columns}
-        columnWrapperStyle={styles.row}
+      <SectionList
+        sections={groupedSections}
+        renderItem={renderRow}
+        renderSectionHeader={renderSectionHeader}
+        keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={styles.listContent}
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
         refreshing={mediaQuery.isRefetching && page === 1}
         onRefresh={() => void handleRefresh()}
+        stickySectionHeadersEnabled={true}
         ListEmptyComponent={
           !mediaQuery.isLoading ? <EmptyState icon="images" title={t("gallery.empty")} /> : null
         }
@@ -165,19 +428,19 @@ export default function GalleryScreen() {
       />
 
       {/* Lightbox / Fullscreen Modal */}
-      {selectedPhoto && (
+      {selectedPhotoIndex !== null && (
         <Modal
           visible={true}
           transparent={true}
           animationType="fade"
-          onRequestClose={() => setSelectedPhoto(null)}
+          onRequestClose={handleCloseModal}
         >
           <View style={styles.modalBackground}>
             {/* Header / Close */}
             <View style={styles.modalHeader}>
               <Pressable
                 style={styles.closeButton}
-                onPress={() => setSelectedPhoto(null)}
+                onPress={handleCloseModal}
                 hitSlop={12}
               >
                 <Ionicons name="close" size={28} color="#ffffff" />
@@ -186,10 +449,29 @@ export default function GalleryScreen() {
 
             {/* Photo View */}
             <View style={styles.photoContainer}>
-              <Image
-                source={{ uri: selectedPhoto.url }}
-                style={styles.fullscreenPhoto}
-                contentFit="contain"
+              <FlatList
+                data={allMedia}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                scrollEnabled={pagerScrollEnabled}
+                keyExtractor={(item) => item.id.toString()}
+                initialScrollIndex={selectedPhotoIndex}
+                getItemLayout={(_, index) => ({
+                  length: SCREEN_WIDTH,
+                  offset: SCREEN_WIDTH * index,
+                  index,
+                })}
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                  setSelectedPhotoIndex(index);
+                }}
+                renderItem={({ item }) => (
+                  <ZoomableImage
+                    uri={item.url}
+                    onZoomStateChange={(isZoomed) => setPagerScrollEnabled(!isZoomed)}
+                  />
+                )}
               />
             </View>
 
@@ -197,7 +479,7 @@ export default function GalleryScreen() {
             <View style={styles.modalFooter}>
               <Pressable
                 style={[styles.actionButton, styles.saveButton]}
-                onPress={() => void saveToGallery(selectedPhoto)}
+                onPress={() => void saveToGallery(allMedia[selectedPhotoIndex])}
                 disabled={actionLoading !== null}
               >
                 {actionLoading === "save" ? (
@@ -212,7 +494,7 @@ export default function GalleryScreen() {
 
               <Pressable
                 style={[styles.actionButton, styles.shareButton]}
-                onPress={() => void shareToWhatsApp(selectedPhoto)}
+                onPress={() => void shareToWhatsApp(allMedia[selectedPhotoIndex])}
                 disabled={actionLoading !== null}
               >
                 {actionLoading === "share" ? (
@@ -242,6 +524,7 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
   },
   row: {
+    flexDirection: "row",
     gap: spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -259,9 +542,19 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: spacing.md,
   },
+  sectionHeader: {
+    backgroundColor: colors.bg,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontFamily: fonts.bold,
+    color: colors.text,
+  },
   modalBackground: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.92)",
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
     justifyContent: "space-between",
   },
   modalHeader: {
@@ -282,11 +575,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: spacing.sm,
-  },
-  fullscreenPhoto: {
-    width: "100%",
-    height: "100%",
   },
   modalFooter: {
     flexDirection: "row",

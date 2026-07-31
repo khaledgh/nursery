@@ -10,14 +10,12 @@ import (
 )
 
 // End-to-end shape check for the R2 path: a media row read back must expose a
-// signed API URL, never the bucket, and that URL must verify. Guards the
-// property that switching STORAGE_DRIVER to s3 cannot silently publish media.
-func TestS3MediaRowNeverLeaksBucketURL(t *testing.T) {
-	signer := storage.NewSigner("secret-that-is-long-enough-for-hmac", time.Hour)
-	// Built directly rather than via NewS3Storage: constructing a live client
-	// would make this test depend on AWS credential/region discovery.
-	store := storage.NewS3StorageForTest("little-talent-media",
-		"https://acct.r2.cloudflarestorage.com", "auto", "https://api.example.com", signer)
+// presigned, time-limited URL — direct reads from the bucket are the point of
+// this driver now, but an UNSIGNED bucket URL must never reach a client, since
+// that would let anyone with the link read a private child photo forever.
+func TestS3MediaRowGetsPresignedNotBareBucketURL(t *testing.T) {
+	store := storage.NewS3StorageWithPresignForTest("little-talent-media",
+		"https://acct.r2.cloudflarestorage.com", "auto", time.Hour)
 
 	old := model.MediaURLBuilder
 	defer func() { model.MediaURLBuilder = old }()
@@ -25,21 +23,43 @@ func TestS3MediaRowNeverLeaksBucketURL(t *testing.T) {
 
 	// The row as written at upload time, then read back through the hook.
 	m := &model.Media{
-		Disk: "s3",
-		Path: "2026/07/secret-child-photo.jpg",
-		URL:  "https://acct.r2.cloudflarestorage.com/little-talent-media/2026/07/secret-child-photo.jpg",
+		Disk:   "s3",
+		Path:   "2026/07/secret-child-photo.jpg",
+		Status: model.MediaReady,
+		URL:    "https://acct.r2.cloudflarestorage.com/little-talent-media/2026/07/secret-child-photo.jpg",
 	}
 	if err := m.AfterFind(nil); err != nil {
 		t.Fatal(err)
 	}
 
-	if strings.Contains(m.URL, "r2.cloudflarestorage.com") {
-		t.Fatalf("bucket URL served to client: %s", m.URL)
+	if !strings.Contains(m.URL, "r2.cloudflarestorage.com") {
+		t.Fatalf("expected a direct bucket URL, got %s", m.URL)
 	}
-	if !strings.HasPrefix(m.URL, "https://api.example.com/api/v1/media/stream/") {
-		t.Fatalf("expected signed stream URL, got %s", m.URL)
+	if !strings.Contains(m.URL, "X-Amz-Signature=") || !strings.Contains(m.URL, "X-Amz-Expires=") {
+		t.Fatalf("media URL served to client is not presigned: %s", m.URL)
 	}
-	if !strings.Contains(m.URL, "sig=") || !strings.Contains(m.URL, "exp=") {
-		t.Fatalf("media URL is unsigned: %s", m.URL)
+}
+
+// A pending row (presigned-upload reserved but never confirmed) must not get
+// a URL at all — the object may not exist yet, or worse, could be whatever a
+// third party raced to PUT to the reserved key before confirmation ran.
+func TestS3MediaRowPendingGetsNoURL(t *testing.T) {
+	store := storage.NewS3StorageWithPresignForTest("little-talent-media",
+		"https://acct.r2.cloudflarestorage.com", "auto", time.Hour)
+
+	old := model.MediaURLBuilder
+	defer func() { model.MediaURLBuilder = old }()
+	model.MediaURLBuilder = store.URL
+
+	m := &model.Media{
+		Disk:   "s3",
+		Path:   "2026/07/not-yet-uploaded.jpg",
+		Status: model.MediaPending,
+	}
+	if err := m.AfterFind(nil); err != nil {
+		t.Fatal(err)
+	}
+	if m.URL != "" {
+		t.Fatalf("pending row should not resolve a URL, got %s", m.URL)
 	}
 }

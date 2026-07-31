@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // LocalStorage writes under a root directory. Files are never served from the
@@ -96,3 +97,27 @@ func (s *LocalStorage) URL(key string) string {
 }
 
 func (s *LocalStorage) Driver() string { return "local" }
+
+// PresignPut has no meaning for local disk: there is no bucket to address
+// directly, so callers on this driver must keep going through POST /media.
+func (s *LocalStorage) PresignPut(ctx context.Context, key, mime string, size int64, ttl time.Duration) (string, error) {
+	return "", ErrPresignUnsupported
+}
+
+// PresignGet has no meaning for local disk; reads stay on the signed stream
+// endpoint via URL().
+func (s *LocalStorage) PresignGet(ctx context.Context, key string, ttl time.Duration) (string, error) {
+	return "", ErrPresignUnsupported
+}
+
+func (s *LocalStorage) Head(ctx context.Context, key string) (*ObjectInfo, error) {
+	full, err := s.safePath(key)
+	if err != nil {
+		return nil, err
+	}
+	info, err := os.Stat(full)
+	if err != nil {
+		return nil, err
+	}
+	return &ObjectInfo{Size: info.Size()}, nil
+}

@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   View,
+  ScrollView,
 } from "react-native";
 import { api } from "../../src/api/client";
 import { PrimaryButton } from "../../src/components/Buttons";
@@ -49,48 +50,58 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.root}>
-      <KeyboardAvoidingView style={styles.inner} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={styles.hero}>
-          <View style={styles.logoCircle}>
-            <Image source={require("../../assets/logo-mark.png")} style={styles.logo} contentFit="contain" />
+      <KeyboardAvoidingView 
+        style={styles.inner} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hero}>
+            <View style={styles.logoCircle}>
+              <Image source={require("../../assets/logo-mark.png")} style={styles.logo} contentFit="contain" />
+            </View>
+            <Text style={styles.title}>{t("auth.title")}</Text>
+            <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
           </View>
-          <Text style={styles.title}>{t("auth.title")}</Text>
-          <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
-        </View>
-        <View style={styles.form}>
-          <Text style={styles.label}>{t("auth.email")}</Text>
-          <View style={[styles.inputWrap, errors.fieldError("email") && styles.inputWrapError]}>
-            <Ionicons name="mail-outline" size={18} color={colors.textMuted} />
-            <TextInput
-              style={styles.input}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
+          <View style={styles.form}>
+            <Text style={styles.label}>{t("auth.email")}</Text>
+            <View style={[styles.inputWrap, errors.fieldError("email") && styles.inputWrapError]}>
+              <Ionicons name="mail-outline" size={18} color={colors.textMuted} />
+              <TextInput
+                style={styles.input}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+            <FieldError message={errors.fieldError("email")} />
+            <Text style={styles.label}>{t("auth.password")}</Text>
+            <View style={[styles.inputWrap, errors.fieldError("password") && styles.inputWrapError]}>
+              <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} />
+              <TextInput
+                style={styles.input}
+                secureTextEntry
+                autoComplete="password"
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
+            <FieldError message={errors.fieldError("password")} />
+            {errors.message ? <Text style={styles.error}>{errors.message}</Text> : null}
+            <PrimaryButton
+              label={t("auth.submit")}
+              onPress={() => void submit()}
+              loading={busy}
+              disabled={!email || !password}
             />
           </View>
-          <FieldError message={errors.fieldError("email")} />
-          <Text style={styles.label}>{t("auth.password")}</Text>
-          <View style={[styles.inputWrap, errors.fieldError("password") && styles.inputWrapError]}>
-            <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} />
-            <TextInput
-              style={styles.input}
-              secureTextEntry
-              autoComplete="password"
-              value={password}
-              onChangeText={setPassword}
-            />
-          </View>
-          <FieldError message={errors.fieldError("password")} />
-          {errors.message ? <Text style={styles.error}>{errors.message}</Text> : null}
-          <PrimaryButton
-            label={t("auth.submit")}
-            onPress={() => void submit()}
-            loading={busy}
-            disabled={!email || !password}
-          />
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
@@ -98,7 +109,12 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  inner: { flex: 1, justifyContent: "center" },
+  inner: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingVertical: spacing.xl,
+  },
   hero: { alignItems: "center", marginBottom: spacing.xl },
   logo: {
     width: 60,

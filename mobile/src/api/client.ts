@@ -1,7 +1,9 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import Constants from "expo-constants";
+import { File, UploadType } from "expo-file-system";
 import { useAuthStore, type AuthUser, type TokenPair } from "../store/auth";
 import { parseApiError } from "./apiError";
+import type { ItemResponse, Media } from "./types";
 
 // On a device "localhost" is the device itself, so in development derive the
 // API host from the Metro dev server (same machine as the API). An explicit
@@ -76,4 +78,41 @@ export type { ParsedApiError } from "./apiError";
  */
 export function errorMessage(err: unknown): string {
   return parseApiError(err).message;
+}
+
+interface PresignUploadResponse {
+  media_id: number;
+  upload_url: string;
+}
+
+/**
+ * Uploads a local file straight to R2, bypassing this API for the bytes:
+ * reserve a key (POST /media/presign-upload) -> PUT the file directly to the
+ * returned URL -> tell the API the upload landed (POST /media/:id/confirm).
+ * Returns the same Media shape the old single-request multipart upload did,
+ * so callers only need to swap the call site, not their state handling.
+ *
+ * Size is read from the file itself rather than trusted from the caller
+ * (e.g. expo-image-picker's fileSize is optional and platform-dependent) —
+ * the presigned PUT is only valid for the size declared when it was signed.
+ */
+export async function uploadMedia(uri: string, mime: string): Promise<Media> {
+  const file = new File(uri);
+  const size = file.size ?? 0;
+
+  const presign = await api.post<ItemResponse<PresignUploadResponse>>("/media/presign-upload", { mime, size });
+  const { media_id, upload_url } = presign.data.data;
+
+  const result = await file.upload(upload_url, {
+    httpMethod: "PUT",
+    uploadType: UploadType.BINARY_CONTENT, // raw bytes, no multipart framing
+    mimeType: mime,
+    headers: { "Content-Type": mime },
+  });
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`upload to storage failed with status ${result.status}`);
+  }
+
+  const confirmed = await api.post<ItemResponse<Media>>(`/media/${media_id}/confirm`);
+  return confirmed.data.data;
 }

@@ -7,16 +7,28 @@ import (
 	"gorm.io/gorm"
 )
 
+// MediaStatus tracks whether a row's bytes have actually landed in storage.
+// PresignUpload creates the row before the client's direct PUT to R2
+// completes, so a row can exist with no object behind it yet.
+const (
+	MediaPending = "pending"
+	MediaReady   = "ready"
+)
+
 type Media struct {
 	Base
-	Disk       string  `gorm:"type:enum('local','s3');not null" json:"-"`
-	Path       string  `gorm:"size:500;not null" json:"-"`
-	URL        string  `gorm:"size:500;not null" json:"url"`
-	Mime       string  `gorm:"size:100;not null" json:"mime"`
-	Size       int64   `gorm:"not null" json:"size"`
-	Width      int     `json:"width,omitempty"`
-	Height     int     `json:"height,omitempty"`
-	UploadedBy uint64  `gorm:"not null;index" json:"-"`
+	Disk       string `gorm:"type:enum('local','s3');not null" json:"-"`
+	Path       string `gorm:"size:500;not null" json:"-"`
+	URL        string `gorm:"size:500;not null" json:"url"`
+	Mime       string `gorm:"size:100;not null" json:"mime"`
+	Size       int64  `gorm:"not null" json:"size"`
+	Width      int    `json:"width,omitempty"`
+	Height     int    `json:"height,omitempty"`
+	UploadedBy uint64 `gorm:"not null;index" json:"-"`
+	// Status is "ready" for every row created by the synchronous upload path
+	// (local disk, or S3 via the legacy multipart endpoint) and "pending"
+	// until PresignUpload's confirm step verifies the object exists.
+	Status string `gorm:"size:20;not null;default:'ready'" json:"-"`
 }
 
 // MediaURLBuilder rebuilds a local media URL from its storage path. Set once at
@@ -34,7 +46,10 @@ var MediaURLBuilder func(path string) string
 // the other driver still resolves because the key, not the host, is what is
 // signed.
 func (m *Media) AfterFind(*gorm.DB) error {
-	if MediaURLBuilder != nil && m.Path != "" {
+	// A pending row's key was reserved at presign time but nothing has
+	// necessarily been PUT to it yet; signing a GET for it would either 404 or,
+	// worse, serve whatever a client races to upload there before confirming.
+	if MediaURLBuilder != nil && m.Path != "" && m.Status != MediaPending {
 		m.URL = MediaURLBuilder(m.Path)
 	}
 	return nil

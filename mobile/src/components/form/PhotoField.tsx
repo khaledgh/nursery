@@ -4,8 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { api } from "../../api/client";
-import type { ItemResponse, Media } from "../../api/types";
+import { uploadMedia } from "../../api/client";
 import { colors, fonts, radius, spacing } from "../../theme";
 
 interface PhotoFieldProps {
@@ -18,7 +17,7 @@ interface PhotoFieldProps {
 }
 
 /**
- * Picks images, uploads each to POST /media, and reports back the media ids
+ * Picks images, uploads each straight to R2, and reports back the media ids
  * the parent entity will reference. Local thumbnails appear immediately so the
  * teacher is never blocked watching an upload spinner.
  */
@@ -33,13 +32,8 @@ export function PhotoField({ label, mediaIds, onChange, max = 10, allowCamera = 
     setPreviews((p) => [...p, asset.uri]);
     setBusy(true);
     try {
-      const form = new FormData();
-      // @ts-expect-error React Native FormData file shape
-      form.append("file", { uri: asset.uri, name: "photo.jpg", type: asset.mimeType ?? "image/jpeg" });
-      const res = await api.post<ItemResponse<Media>>("/media", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      onChange([...mediaIds, res.data.data.id]);
+      const media = await uploadMedia(asset.uri, asset.mimeType ?? "image/jpeg");
+      onChange([...mediaIds, media.id]);
     } catch {
       setPreviews((p) => p.filter((uri) => uri !== asset.uri));
       Alert.alert("", t("teacher.common.failed"));
