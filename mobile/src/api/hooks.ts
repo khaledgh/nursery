@@ -22,6 +22,7 @@ import type {
   ItemResponse,
   ListResponse,
   MealLog,
+  Media,
   NotificationItem,
   Reminder,
   ScheduleItem,
@@ -67,6 +68,14 @@ export function useDiary(childId?: number, range?: RangeParams) {
     queryKey: ["diary", childId, range],
     enabled: !!childId,
     queryFn: () => list<DiaryEntry>(`/children/${childId}/diary`, { per_page: 50, ...range }),
+  });
+}
+
+export function useChildMedia(childId?: number, page = 1) {
+  return useQuery({
+    queryKey: ["childMedia", childId, page],
+    enabled: !!childId,
+    queryFn: () => list<Media>(`/children/${childId}/media`, { page, per_page: 24 }),
   });
 }
 
@@ -530,6 +539,25 @@ export function useCreateDiary() {
     onSuccess: (_res, input) => {
       invalidateChild(qc, input.childId);
       void qc.invalidateQueries({ queryKey: ["diary", input.childId] });
+    },
+  });
+}
+
+/**
+ * Health sub-resources share one generic CRUD shape on the backend
+ * (/children/:id/health/<segment>). One hook covers all of them.
+ *
+ * Note these endpoints bind straight to the model with no DTO validation, so
+ * they return no per-field errors — validate before calling.
+ */
+export function useCreateHealthRecord(segment: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ childId, ...body }: { childId: number } & Record<string, unknown>) =>
+      (await api.post<ItemResponse<Record<string, unknown>>>(`/children/${childId}/health/${segment}`, body)).data.data,
+    onSuccess: (_res, input) => {
+      void qc.invalidateQueries({ queryKey: ["health", input.childId] });
+      void qc.invalidateQueries({ queryKey: ["teacherRoster"] });
     },
   });
 }

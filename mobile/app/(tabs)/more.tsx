@@ -92,6 +92,7 @@ export default function MoreScreen() {
       <ActionCard icon="heart" accent="health" title={t("home.health")} onPress={() => router.push("/child/health")} />
       <ActionCard icon="trophy" accent="meals" title={t("home.milestones")} onPress={() => router.push("/child/milestones")} />
       <ActionCard icon="school" accent="diaper" title={t("home.classroom")} onPress={() => router.push("/classroom")} />
+      <ActionCard icon="images" accent="activity" title={t("home.gallery")} onPress={() => router.push("/child/gallery")} />
       <ActionCard icon="people" accent="activity" title={t("home.community")} onPress={() => router.push("/community")} />
       <ActionCard icon="card" accent="payments" title={t("home.payments")} onPress={() => router.push("/payments")} />
       <ActionCard icon="briefcase" accent="community" title={t("home.whatToBring")} onPress={() => router.push("/reminders")} />

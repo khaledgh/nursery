@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts, radius, spacing } from "../../theme";
 import { PrimaryButton } from "../Buttons";
 
@@ -49,24 +50,34 @@ export function FormSheet({
 }: FormSheetProps) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <Pressable style={styles.backdropFill} onPress={submitting ? undefined : onClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={styles.sheet}>
-            <View style={styles.header}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.title}>{title}</Text>
-                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-              </View>
-              <Pressable onPress={onClose} disabled={submitting} hitSlop={8}>
-                <Ionicons name="close" size={24} color={colors.textMuted} />
-              </Pressable>
+        <SafeAreaView edges={["bottom"]} style={styles.sheet}>
+          <View style={styles.header}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>{title}</Text>
+              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
+            <Pressable onPress={onClose} disabled={submitting} hitSlop={8}>
+              <Ionicons name="close" size={24} color={colors.textMuted} />
+            </Pressable>
+          </View>
 
-            <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-              {children}
-            </ScrollView>
+          {/* shrink lets the scroll area give up space to the header and the
+              button instead of pushing them off-screen. */}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.body}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </ScrollView>
 
+          <View style={styles.footer}>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <PrimaryButton
               label={submitLabel}
@@ -75,8 +86,8 @@ export function FormSheet({
               disabled={!canSubmit || submitting}
             />
           </View>
-        </KeyboardAvoidingView>
-      </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -88,13 +99,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
-    padding: spacing.lg,
-    gap: spacing.md,
-    maxHeight: "88%",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    // Cap the sheet, but let it shrink to its content when it is short.
+    maxHeight: "85%",
   },
-  header: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
+  header: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md, paddingBottom: spacing.md },
   title: { fontSize: 18, fontFamily: fonts.extrabold, color: colors.text },
   subtitle: { fontSize: 13, fontFamily: fonts.regular, color: colors.textMuted, marginTop: 2 },
-  body: { gap: spacing.md, paddingBottom: spacing.sm },
+  scroll: { flexGrow: 0, flexShrink: 1 },
+  body: { gap: spacing.md, paddingBottom: spacing.md },
+  footer: { gap: spacing.sm, paddingTop: spacing.sm, paddingBottom: spacing.md },
   error: { color: colors.danger, fontSize: 13, fontFamily: fonts.semibold, textAlign: "center" },
 });

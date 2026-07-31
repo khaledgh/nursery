@@ -63,7 +63,10 @@ module.exports = {
         "expo-splash-screen",
         {
           image: "./assets/splash-icon.png",
-          imageWidth: 578,
+          // The source is a square canvas with transparent margin around a wide
+          // logo. 300 keeps the wordmark legible without the artwork bleeding
+          // off the edges on narrow devices.
+          imageWidth: 300,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
         },
@@ -76,6 +79,14 @@ module.exports = {
           cameraPermission:
             "Allow $(PRODUCT_NAME) to use the camera so you can photograph a child's activity.",
         },
+      ],
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          photosPermission: "Allow $(PRODUCT_NAME) to save photos to your library.",
+          savePhotosPermission: "Allow $(PRODUCT_NAME) to save photos to your library."
+        }
       ],
     ],
     extra: {

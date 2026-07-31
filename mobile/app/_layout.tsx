@@ -74,12 +74,14 @@ export default function RootLayout() {
             parent-facing, read-only child/* routes. */}
         <Stack.Screen name="teacher/child/[id]" options={{ title: "" }} />
         <Stack.Screen name="teacher/child/[id]/diary" options={{ title: t("teacher.diaryEntry.title") }} />
+        <Stack.Screen name="teacher/child/[id]/health" options={{ title: t("teacher.health.title") }} />
         <Stack.Screen name="teacher/batch/[kind]" options={{ title: t("teacher.batch.mealTitle") }} />
         <Stack.Screen name="child/feed" options={{ title: t("feed.title") }} />
         <Stack.Screen name="child/sleep" options={{ title: t("sleep.title") }} />
         <Stack.Screen name="child/diaper" options={{ title: t("diaper.title") }} />
         <Stack.Screen name="child/health" options={{ title: t("health.title") }} />
         <Stack.Screen name="child/milestones" options={{ title: t("milestones.title") }} />
+        <Stack.Screen name="child/gallery" options={{ title: t("gallery.title") }} />
         <Stack.Screen name="child/report" options={{ title: t("report.title") }} />
         <Stack.Screen name="child/meals-schedule" options={{ title: t("menu.title") }} />
         <Stack.Screen name="events/index" options={{ title: t("events.title") }} />

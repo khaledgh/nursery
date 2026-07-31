@@ -171,3 +171,11 @@ func (s *ChildService) RemoveGuardian(ctx context.Context, childID, parentUserID
 		map[string]any{"child_id": childID, "parent_user_id": parentUserID}, ip)
 	return nil
 }
+
+func (s *ChildService) ListMedia(ctx context.Context, role model.Role, userID, childID uint64, q dto.PageQuery) ([]model.Media, int64, error) {
+	if err := s.Authorize(ctx, role, userID, childID); err != nil {
+		return nil, 0, err
+	}
+	return s.children.ListMedia(ctx, childID, q)
+}
+

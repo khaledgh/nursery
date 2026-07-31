@@ -46,6 +46,7 @@
     "community": "Gemenskap",
     "classroom": "Avdelning",
     "reports": "Rapporter",
+    "gallery": "Galleri",
     "unreadBanner": "Du har {{count}} olästa uppdateringar",
     "noChildren": "Inga barn kopplade till ditt konto ännu.",
     "now": "Nu"
@@ -451,6 +452,17 @@
     "title": "Milstolpar",
     "achievements": "Prestationer"
   },
+  "gallery": {
+    "title": "Galleri",
+    "empty": "Inga bilder eller videor loggade ännu",
+    "permissionDenied": "Åtkomst till fotobiblioteket nekades",
+    "saveSuccess": "Bilden sparades i dina bilder!",
+    "saveError": "Kunde inte spara bilden",
+    "shareError": "Kunde inte dela bilden",
+    "downloading": "Laddar ner...",
+    "saving": "Sparar i Bilder...",
+    "sharing": "Öppnar delningsmenyn..."
+  },
   "teacher": {
     "tabs": {
       "today": "Idag",
@@ -555,6 +567,17 @@
       "failed": "Kunde inte spara. Kontrollera anslutningen och försök igen.",
       "offline": "Du verkar vara offline.",
       "search": "Sök barn"
+    },
+    "health": {
+      "title": "Hälsa & incidenter",
+      "record": "Registrera",
+      "addVital": "Registrera temperatur",
+      "addIllness": "Logga sjukdom",
+      "addIncident": "Rapportera incident",
+      "illnessPlaceholder": "t.ex. Feber, hosta",
+      "incidentPlaceholder": "t.ex. Ramlade på gården",
+      "whatHappened": "Vad hände",
+      "titleRequired": "Lägg till en kort rubrik."
     }
   }
 }

@@ -99,3 +99,29 @@ func (r *ChildRepo) GuardianExists(ctx context.Context, childID, parentUserID ui
 		Count(&count).Error
 	return count > 0, err
 }
+
+func (r *ChildRepo) ListMedia(ctx context.Context, childID uint64, q dto.PageQuery) ([]model.Media, int64, error) {
+	var (
+		media []model.Media
+		total int64
+	)
+	tx := r.db.WithContext(ctx).Model(&model.Media{}).
+		Select("DISTINCT media.*").
+		Joins("LEFT JOIN diary_media dm ON dm.media_id = media.id").
+		Joins("LEFT JOIN diary_entries de ON de.id = dm.diary_entry_id").
+		Joins("LEFT JOIN meal_logs ml ON ml.image_id = media.id").
+		Joins("LEFT JOIN daily_reports dr ON dr.highlight_media_id = media.id").
+		Where("de.child_id = ? OR ml.child_id = ? OR dr.child_id = ?", childID, childID, childID)
+
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := tx.Order("media.id DESC").
+		Limit(q.PerPage).
+		Offset(q.Offset()).
+		Find(&media).Error
+
+	return media, total, err
+}
+

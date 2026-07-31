@@ -24,6 +24,7 @@ func NewChildHandler(children *service.ChildService) *ChildHandler {
 func (h *ChildHandler) Register(protected *echo.Group) {
 	protected.GET("/children", h.List)
 	protected.GET("/children/:id", h.Get)
+	protected.GET("/children/:id/media", h.ListMedia)
 
 	admin := protected.Group("/admin", mw.RequireRole(model.RoleAdmin))
 	admin.POST("/children", h.Create)
@@ -129,3 +130,21 @@ func (h *ChildHandler) RemoveGuardian(c echo.Context) error {
 	}
 	return response.NoContent(c)
 }
+
+func (h *ChildHandler) ListMedia(c echo.Context) error {
+	id, err := paramID(c)
+	if err != nil {
+		return err
+	}
+	var q dto.PageQuery
+	if err := c.Bind(&q); err != nil {
+		return apperr.BadRequest("invalid query parameters")
+	}
+	q.Normalize()
+	media, total, err := h.children.ListMedia(c.Request().Context(), mw.Role(c), mw.UserID(c), id, q)
+	if err != nil {
+		return err
+	}
+	return response.List(c, media, response.Meta{Page: q.Page, PerPage: q.PerPage, Total: total})
+}
+

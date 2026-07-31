@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
@@ -30,6 +31,7 @@ const FILTER_TYPES: Record<Filter, DiaryEntry["type"][] | null> = {
 
 export default function DiaryScreen() {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const { child } = useActiveChild();
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -126,7 +128,11 @@ export default function DiaryScreen() {
 
       {moments.length > 0 && (
         <>
-          <SectionHeader title={`💛 ${t("diary.moments")}`} />
+          <SectionHeader
+            title={`💛 ${t("diary.moments")}`}
+            actionLabel={t("common.viewAll")}
+            onAction={() => router.push("/child/gallery")}
+          />
           <PhotoStrip photos={moments} size={84} />
         </>
       )}

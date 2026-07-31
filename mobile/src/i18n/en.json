@@ -46,6 +46,7 @@
     "community": "Community",
     "classroom": "Classroom",
     "reports": "Reports",
+    "gallery": "Gallery",
     "unreadBanner": "You have {{count}} unread updates",
     "noChildren": "No children linked to your account yet.",
     "now": "Now"
@@ -451,6 +452,17 @@
     "title": "Milestones",
     "achievements": "Achievements"
   },
+  "gallery": {
+    "title": "Gallery",
+    "empty": "No photos or videos logged yet",
+    "permissionDenied": "Permission to access photo library was denied",
+    "saveSuccess": "Image saved to your photos!",
+    "saveError": "Could not save image",
+    "shareError": "Could not share image",
+    "downloading": "Downloading...",
+    "saving": "Saving to Photos...",
+    "sharing": "Opening Share Sheet..."
+  },
   "teacher": {
     "tabs": {
       "today": "Today",
@@ -555,6 +567,17 @@
       "failed": "Could not save. Check your connection and try again.",
       "offline": "You appear to be offline.",
       "search": "Search children"
+    },
+    "health": {
+      "title": "Health & incidents",
+      "record": "Record",
+      "addVital": "Record temperature",
+      "addIllness": "Log illness",
+      "addIncident": "Report incident",
+      "illnessPlaceholder": "e.g. Fever, cough",
+      "incidentPlaceholder": "e.g. Fell in the playground",
+      "whatHappened": "What happened",
+      "titleRequired": "Please add a short title."
     }
   }
 }

@@ -2,12 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   useDashboard,
   useHealthProfile,
   useLogDiaper,
   useLogMeal,
+  useLogSleep,
   useUpsertHydration,
 } from "../../../src/api/hooks";
 import { ChildAvatar } from "../../../src/components/ChildAvatar";
@@ -26,13 +27,17 @@ import {
   MEAL_TYPE,
   STOOL,
   WETNESS,
+  accents,
   colors,
   fonts,
   radius,
   spacing,
 } from "../../../src/theme";
 
-type Sheet = "meal" | "diaper" | "water" | null;
+type Sheet = "meal" | "nap" | "diaper" | "water" | null;
+
+/** Common nap lengths, so the usual case is one tap rather than a time picker. */
+const NAP_PRESETS = [15, 30, 45, 60, 90, 120];
 
 export default function TeacherChildHub() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,6 +49,7 @@ export default function TeacherChildHub() {
   const dashboard = useDashboard(childId);
   const health = useHealthProfile(childId);
   const logMeal = useLogMeal();
+  const logSleep = useLogSleep();
   const logDiaper = useLogDiaper();
   const upsertHydration = useUpsertHydration();
   const errors = useFieldErrors();
@@ -56,6 +62,7 @@ export default function TeacherChildHub() {
   const [stool, setStool] = useState("none");
   const [comfort, setComfort] = useState("happy");
   const [cups, setCups] = useState(0);
+  const [napMin, setNapMin] = useState(60);
 
   const child = dashboard.data?.child;
   const name = child ? `${child.first_name} ${child.last_name}`.trim() : "";
@@ -88,6 +95,18 @@ export default function TeacherChildHub() {
     errors.reset();
     logDiaper.mutate(
       { childId, wetness, stool, comfort, note, occurred_at: toLocalRFC3339(new Date()) },
+      { onSuccess: closeSheet, onError: (e) => errors.capture(e) },
+    );
+  };
+
+  const submitNap = () => {
+    errors.reset();
+    // Teachers report "she slept about an hour", so the duration is the input
+    // and the timestamps are derived backwards from now.
+    const end = new Date();
+    const start = new Date(end.getTime() - napMin * 60_000);
+    logSleep.mutate(
+      { childId, start_at: toLocalRFC3339(start), end_at: toLocalRFC3339(end), note },
       { onSuccess: closeSheet, onError: (e) => errors.capture(e) },
     );
   };
@@ -143,6 +162,7 @@ export default function TeacherChildHub() {
             accent="sleep"
             value={minutesLabel(napMinutes)}
             label={t("teacher.child.nap")}
+            onPress={() => setSheet("nap")}
           />
           <StatTile
             icon="shirt"
@@ -173,7 +193,7 @@ export default function TeacherChildHub() {
           icon="heart"
           accent="health"
           title={t("teacher.child.healthIncidents")}
-          onPress={() => router.push("/child/health")}
+          onPress={() => router.push(`/teacher/child/${childId}/health`)}
         />
         <ActionCard
           icon="trophy"
@@ -211,6 +231,50 @@ export default function TeacherChildHub() {
           onChange={setMealStatus}
           variant="emoji"
           error={errors.fieldError("status")}
+        />
+        <TextField
+          label={t("teacher.care.note")}
+          value={note}
+          onChangeText={setNote}
+          placeholder={t("teacher.care.notePlaceholder")}
+          multiline
+          maxLength={500}
+          error={errors.fieldError("note")}
+        />
+      </FormSheet>
+
+      <FormSheet
+        visible={sheet === "nap"}
+        onClose={closeSheet}
+        title={t("teacher.batch.napTitle")}
+        subtitle={name}
+        submitLabel={t("teacher.common.save")}
+        onSubmit={submitNap}
+        submitting={logSleep.isPending}
+        error={errors.message}
+      >
+        <View style={styles.presets}>
+          {NAP_PRESETS.map((m) => (
+            <Pressable
+              key={m}
+              onPress={() => setNapMin(m)}
+              style={[styles.preset, napMin === m && styles.presetActive]}
+            >
+              <Text style={[styles.presetLabel, napMin === m && styles.presetLabelActive]}>
+                {minutesLabel(m)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Stepper
+          label={t("teacher.care.duration")}
+          value={napMin}
+          onChange={setNapMin}
+          min={5}
+          max={300}
+          step={5}
+          suffix="min"
+          accent="sleep"
         />
         <TextField
           label={t("teacher.care.note")}
@@ -301,4 +365,17 @@ const styles = StyleSheet.create({
   },
   allergyText: { flex: 1, fontSize: 13, fontFamily: fonts.bold, color: "#b91c1c" },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  presets: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  preset: {
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.md,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  presetActive: { borderColor: accents.sleep.main, backgroundColor: accents.sleep.tint },
+  presetLabel: { fontSize: 13, fontFamily: fonts.bold, color: colors.text },
+  presetLabelActive: { color: accents.sleep.dark },
 });

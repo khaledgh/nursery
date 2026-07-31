@@ -1,16 +1,16 @@
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLogDiaper, useLogMeal, useTeacherRoster } from "../../../src/api/hooks";
+import { useLogDiaper, useLogMeal, useLogSleep, useTeacherRoster } from "../../../src/api/hooks";
 import type { Child } from "../../../src/api/types";
 import { PrimaryButton } from "../../../src/components/Buttons";
 import { ChildAvatar } from "../../../src/components/ChildAvatar";
 import { EnumPicker } from "../../../src/components/form/EnumPicker";
 import { EmptyState } from "../../../src/components/EmptyState";
 import { toLocalRFC3339 } from "../../../src/lib/stats";
-import { colors, fonts, MEAL_STATUS, MEAL_TYPE, radius, shadows, spacing, WETNESS } from "../../../src/theme";
+import { accents, colors, fonts, MEAL_STATUS, MEAL_TYPE, radius, shadows, spacing, WETNESS } from "../../../src/theme";
 
 /** Breakfast before 10:00, lunch before 14:00, otherwise a snack. */
 function defaultMealType(now = new Date()): string {
@@ -23,6 +23,9 @@ function defaultMealType(now = new Date()): string {
 
 type Kind = "meal" | "nap" | "diaper";
 
+/** Common nap lengths in minutes. */
+const NAP_PRESETS = [30, 45, 60, 90, 120];
+
 export default function BatchLog() {
   const { kind } = useLocalSearchParams<{ kind: Kind }>();
   const { t } = useTranslation();
@@ -31,6 +34,7 @@ export default function BatchLog() {
 
   const roster = useTeacherRoster();
   const logMeal = useLogMeal();
+  const logSleep = useLogSleep();
   const logDiaper = useLogDiaper();
 
   const [mealType, setMealType] = useState(defaultMealType);
@@ -40,7 +44,12 @@ export default function BatchLog() {
   const [failed, setFailed] = useState<number[]>([]);
   const [result, setResult] = useState<string | null>(null);
 
-  const titleKey = kind === "diaper" ? "teacher.batch.diaperTitle" : "teacher.batch.mealTitle";
+  const titleKey =
+    kind === "diaper"
+      ? "teacher.batch.diaperTitle"
+      : kind === "nap"
+        ? "teacher.batch.napTitle"
+        : "teacher.batch.mealTitle";
   useLayoutEffect(() => {
     navigation.setOptions({ title: t(titleKey) });
   }, [navigation, t, titleKey]);
@@ -69,7 +78,15 @@ export default function BatchLog() {
     for (const [idRaw, value] of entries) {
       const childId = Number(idRaw);
       try {
-        if (kind === "diaper") {
+        if (kind === "nap") {
+          const end = new Date();
+          const start = new Date(end.getTime() - Number(value) * 60_000);
+          await logSleep.mutateAsync({
+            childId,
+            start_at: toLocalRFC3339(start),
+            end_at: toLocalRFC3339(end),
+          });
+        } else if (kind === "diaper") {
           await logDiaper.mutateAsync({
             childId,
             wetness: value,
@@ -108,14 +125,32 @@ export default function BatchLog() {
           {item.first_name}
         </Text>
         <View style={styles.picker}>
-          <EnumPicker
-            options={kind === "diaper" ? Object.keys(WETNESS) : Object.keys(MEAL_STATUS)}
-            visuals={kind === "diaper" ? WETNESS : MEAL_STATUS}
-            i18nPrefix={kind === "diaper" ? "enums.wetness" : "enums.mealStatus"}
-            value={picks[item.id]}
-            onChange={(v) => setPick(item.id, v)}
-            variant="emoji"
-          />
+          {kind === "nap" ? (
+            // Nap is a duration, not an enum: preset chips keep it one tap.
+            <View style={styles.napRow}>
+              {NAP_PRESETS.map((m) => {
+                const active = picks[item.id] === String(m);
+                return (
+                  <Pressable
+                    key={m}
+                    onPress={() => setPick(item.id, String(m))}
+                    style={[styles.napChip, active && styles.napChipActive]}
+                  >
+                    <Text style={[styles.napLabel, active && styles.napLabelActive]}>{m}m</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <EnumPicker
+              options={kind === "diaper" ? Object.keys(WETNESS) : Object.keys(MEAL_STATUS)}
+              visuals={kind === "diaper" ? WETNESS : MEAL_STATUS}
+              i18nPrefix={kind === "diaper" ? "enums.wetness" : "enums.mealStatus"}
+              value={picks[item.id]}
+              onChange={(v) => setPick(item.id, v)}
+              variant="emoji"
+            />
+          )}
         </View>
       </View>
     ),
@@ -181,6 +216,19 @@ const styles = StyleSheet.create({
   rowFailed: { borderColor: colors.danger },
   name: { width: 76, fontSize: 13, fontFamily: fonts.bold, color: colors.text },
   picker: { flex: 1 },
+  napRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  napChip: {
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.sm + 2,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  napChipActive: { borderColor: accents.sleep.main, backgroundColor: accents.sleep.tint },
+  napLabel: { fontSize: 12, fontFamily: fonts.bold, color: colors.text },
+  napLabelActive: { color: accents.sleep.dark },
   footer: {
     position: "absolute",
     left: 0,
