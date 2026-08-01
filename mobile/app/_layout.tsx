@@ -92,6 +92,9 @@ export default function RootLayout() {
         <Stack.Screen name="classroom" options={{ title: t("classroom.title") }} />
         <Stack.Screen name="community" options={{ title: t("community.title") }} />
         <Stack.Screen name="reminders" options={{ title: t("reminders.title") }} />
+        <Stack.Screen name="chat/index" options={{ title: "Messages" }} />
+        <Stack.Screen name="chat/[id]" options={{ title: "Chat Room" }} />
+        <Stack.Screen name="notification-settings" options={{ title: "Notification Settings" }} />
       </Stack>
     </QueryClientProvider>
   );

@@ -27,6 +27,9 @@ import type {
   Reminder,
   ScheduleItem,
   SleepLog,
+  ChatMessage,
+  Conversation,
+  UserNotificationSetting,
   WeeklyMenu,
   WeeklyPlan,
 } from "./types";
@@ -607,6 +610,101 @@ export function useCreateHealthRecord(segment: string) {
     onSuccess: (_res, input) => {
       void qc.invalidateQueries({ queryKey: ["health", input.childId] });
       void qc.invalidateQueries({ queryKey: ["teacherRoster"] });
+    },
+  });
+}
+
+// ---- Chat hooks ----
+
+export function useConversations() {
+  return useQuery({
+    queryKey: ["conversations"],
+    queryFn: async () => (await api.get<{ data: Conversation[] }>("/chat/conversations")).data.data,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useGetOrCreateConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { recipient_user_id?: number; type?: "parent_teacher" | "parent_admin"; child_id?: number }) =>
+      (await api.post<{ data: Conversation }>("/chat/conversations", body)).data.data,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}
+
+export function useMessages(conversationId: number) {
+  return useQuery({
+    queryKey: ["messages", conversationId],
+    queryFn: async () => (await api.get<{ data: ChatMessage[] }>(`/chat/conversations/${conversationId}/messages`)).data.data,
+    enabled: conversationId > 0,
+    refetchInterval: 4_000,
+  });
+}
+
+export function useSendMessage(conversationId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { body: string; media_id?: number }) =>
+      (await api.post<{ data: ChatMessage }>(`/chat/conversations/${conversationId}/messages`, body)).data.data,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["messages", conversationId] });
+      void qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}
+
+// ---- Notification Settings hooks ----
+
+export function useNotificationSettings() {
+  return useQuery({
+    queryKey: ["notificationSettings"],
+    queryFn: async () => (await api.get<{ data: UserNotificationSetting }>("/notification-settings")).data.data,
+  });
+}
+
+export function useUpdateNotificationSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Partial<UserNotificationSetting>) =>
+      (await api.put<{ data: UserNotificationSetting }>("/notification-settings", body)).data.data,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["notificationSettings"] });
+    },
+  });
+}
+
+// ---- Platform Settings hooks ----
+
+export function usePlatformSettings() {
+  return useQuery({
+    queryKey: ["platformSettings"],
+    queryFn: async () => (await api.get<{ data: Record<string, unknown> }>("/settings")).data.data,
+  });
+}
+
+export function useUpdatePlatformSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: Record<string, unknown>) =>
+      (await api.put("/admin/settings", updates)).data,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["platformSettings"] });
+    },
+  });
+}
+
+// ---- Admin Multi-Month Payment ----
+
+export function usePayMultiMonths() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { child_id: number; months_count: number; start_period: string; amount_minor?: number }) =>
+      (await api.post<{ data: Invoice[] }>("/admin/invoices/pay-multi-months", body)).data.data,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["invoices"] });
     },
   });
 }

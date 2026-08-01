@@ -171,6 +171,13 @@ func main() {
 	paymentHandler.Register(protected)
 	paymentHandler.RegisterWebhook(public) // gateway callback: no JWT, rate-limited, verifies via gateway
 
+	chatSvc := service.NewChatService(db, notifier, log)
+	chatHandler := handler.NewChatHandler(chatSvc)
+	chatHandler.RegisterRoutes(protected)
+
+	notifSettingHandler := handler.NewNotificationSettingsHandler(notifier)
+	notifSettingHandler.RegisterRoutes(protected)
+
 	platformHandler := handler.NewPlatformHandler(translationSvc, settingsSvc, localeAdminSvc, localeSvc)
 	platformHandler.RegisterPublic(api)
 	platformHandler.Register(protected)

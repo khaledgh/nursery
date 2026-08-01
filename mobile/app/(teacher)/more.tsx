@@ -54,6 +54,30 @@ export default function TeacherMore() {
       </Card>
 
       <ActionCard
+        icon="chatbubbles"
+        accent="primary"
+        title="Messages & Chat"
+        onPress={() => router.push("/chat")}
+      />
+      <ActionCard
+        icon="people"
+        accent="activity"
+        title={t("home.community")}
+        onPress={() => router.push("/community")}
+      />
+      <ActionCard
+        icon="card"
+        accent="payments"
+        title={t("home.payments")}
+        onPress={() => router.push("/payments")}
+      />
+      <ActionCard
+        icon="options"
+        accent="activity"
+        title="Notification Preferences"
+        onPress={() => router.push("/notification-settings")}
+      />
+      <ActionCard
         icon="notifications"
         accent="primary"
         title={t("notifications.title")}

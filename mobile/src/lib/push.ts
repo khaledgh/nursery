@@ -42,6 +42,24 @@ export function initPush() {
   if (__DEV__) OneSignal.Debug.setLogLevel(LogLevel.Verbose);
   OneSignal.initialize(appId);
 
+  // Foreground notification display (WhatsApp style heads-up alert)
+  OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event) => {
+    event.getNotification().display();
+  });
+
+  // Deep linking on notification tap
+  OneSignal.Notifications.addEventListener("click", (event) => {
+    const data = event.notification.additionalData as { url?: string; type?: string; conversation_id?: number } | undefined;
+    if (data?.url) {
+      // Dynamic import router to avoid early circular dependencies
+      const { router } = require("expo-router");
+      router.push(data.url);
+    } else if (data?.type === "chat" && data?.conversation_id) {
+      const { router } = require("expo-router");
+      router.push(`/chat/${data.conversation_id}`);
+    }
+  });
+
   // Fires whenever the subscription id changes — including the first time it is
   // issued, which is usually after this function has already returned.
   OneSignal.User.pushSubscription.addEventListener("change", (event) => {

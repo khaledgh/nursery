@@ -39,6 +39,7 @@ func NewRunner(db *gorm.DB, payments *service.PaymentService, tokens *repository
 
 func (r *Runner) Start() {
 	r.add("0 6 * * *", "mark-overdue-invoices", r.markOverdueInvoices)
+	r.add("0 0 1 * *", "generate-monthly-invoices", r.generateMonthlyInvoices)
 	r.add("30 3 * * *", "cleanup-expired-tokens", r.cleanupTokens)
 	r.add("0 17 * * *", "event-reminders", r.eventReminders)
 	r.add("0 7 * * *", "what-to-bring-today", r.bringReminders)
@@ -65,6 +66,10 @@ func (r *Runner) add(spec, name string, fn func(context.Context) error) {
 
 func (r *Runner) markOverdueInvoices(ctx context.Context) error {
 	return r.payments.MarkOverdueInvoices(ctx)
+}
+
+func (r *Runner) generateMonthlyInvoices(ctx context.Context) error {
+	return r.payments.GenerateMonthlyInvoices(ctx)
 }
 
 func (r *Runner) cleanupTokens(ctx context.Context) error {

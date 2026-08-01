@@ -32,6 +32,8 @@ func (h *PlatformHandler) RegisterPublic(api *echo.Group) {
 }
 
 func (h *PlatformHandler) Register(protected *echo.Group) {
+	protected.GET("/settings", h.GetSettings)
+
 	admin := protected.Group("/admin", mw.RequireRole(model.RoleAdmin))
 	admin.PUT("/locales", h.UpsertLocale)
 	admin.DELETE("/locales/:code", h.DeleteLocale)

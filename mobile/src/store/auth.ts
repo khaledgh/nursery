@@ -46,7 +46,7 @@ const secureStorage: StateStorage = {
  * never disagree about it.
  */
 export const homeRouteForRole = (role: Role | undefined): "/(teacher)" | "/(tabs)" =>
-  role === "teacher" ? "/(teacher)" : "/(tabs)";
+  role === "teacher" || role === "admin" ? "/(teacher)" : "/(tabs)";
 
 export const useAuthStore = create<AuthState>()(
   persist(

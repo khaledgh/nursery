@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -107,6 +108,42 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 	if !s.onesignal.Enabled() {
 		return
 	}
+
+	// Filter userIDs based on user_notification_settings preferences
+	var pushUserIDs []uint64
+	for _, uid := range userIDs {
+		var setting model.UserNotificationSetting
+		err := s.db.WithContext(ctx).Where("user_id = ?", uid).First(&setting).Error
+		if err == nil {
+			if !setting.PushEnabled {
+				continue
+			}
+			switch category {
+			case model.CategoryMessages:
+				if !setting.MessagesEnabled {
+					continue
+				}
+			case model.CategoryUpdates:
+				if !setting.AnnouncementsEnabled {
+					continue
+				}
+			case model.CategoryReminders:
+				if !setting.RemindersEnabled {
+					continue
+				}
+			case model.CategoryEvents:
+				if !setting.EventsEnabled {
+					continue
+				}
+			}
+		}
+		pushUserIDs = append(pushUserIDs, uid)
+	}
+
+	if len(pushUserIDs) == 0 {
+		return
+	}
+
 	// Grouped by locale so OneSignal delivers in the recipient's language rather
 	// than labelling every push as English.
 	var devices []struct {
@@ -115,7 +152,7 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 	}
 	if err := s.db.WithContext(ctx).Model(&model.DeviceToken{}).
 		Select("one_signal_player_id", "locale").
-		Where("user_id IN ?", userIDs).
+		Where("user_id IN ?", pushUserIDs).
 		Scan(&devices).Error; err != nil {
 		s.log.Error().Err(err).Msg("device token lookup failed")
 		return
@@ -134,3 +171,32 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 		s.log.Error().Err(err).Msg("onesignal push failed")
 	}
 }
+
+func (s *NotificationService) GetUserSettings(ctx context.Context, userID uint64) (*model.UserNotificationSetting, error) {
+	var setting model.UserNotificationSetting
+	err := s.db.WithContext(ctx).Where("user_id = ?", userID).First(&setting).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			setting = model.UserNotificationSetting{
+				UserID:               userID,
+				PushEnabled:          true,
+				MessagesEnabled:      true,
+				AnnouncementsEnabled: true,
+				RemindersEnabled:     true,
+				EventsEnabled:        true,
+			}
+			_ = s.db.WithContext(ctx).Create(&setting).Error
+			return &setting, nil
+		}
+		return nil, err
+	}
+	return &setting, nil
+}
+
+func (s *NotificationService) UpdateUserSettings(ctx context.Context, setting *model.UserNotificationSetting) error {
+	return s.db.WithContext(ctx).
+		Where("user_id = ?", setting.UserID).
+		Assign(setting).
+		FirstOrCreate(setting).Error
+}
+

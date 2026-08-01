@@ -481,3 +481,39 @@ export interface Invoice {
   items?: InvoiceItem[];
   payments?: InvoicePayment[];
 }
+
+export interface Conversation {
+  id: number;
+  type: "parent_teacher" | "parent_admin";
+  parent_user_id: number;
+  parent_user?: { id: number; name: string; avatar?: Media | null };
+  recipient_user_id: number;
+  recipient_user?: { id: number; name: string; avatar?: Media | null };
+  child_id?: number | null;
+  child?: { id: number; first_name: string; last_name: string };
+  last_message_at?: string | null;
+  last_message_preview?: string;
+  unread_count?: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversation_id: number;
+  sender_user_id: number;
+  sender_user?: { id: number; name: string; avatar?: Media | null };
+  body: string;
+  media_id?: number | null;
+  media?: Media | null;
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface UserNotificationSetting {
+  id: number;
+  user_id: number;
+  push_enabled: boolean;
+  messages_enabled: boolean;
+  announcements_enabled: boolean;
+  reminders_enabled: boolean;
+  events_enabled: boolean;
+}

@@ -277,6 +277,165 @@ func generateInvoiceNo() (string, error) {
 	return fmt.Sprintf("INV-%s-%06d", time.Now().Format("20060102"), n.Int64()), nil
 }
 
+type MultiMonthPaymentReq struct {
+	ChildID     uint64 `json:"child_id"`
+	MonthsCount int    `json:"months_count"`
+	StartPeriod string `json:"start_period"` // "2026-08"
+	AmountMinor int64  `json:"amount_minor"` // optional custom per-month amount
+}
+
+func (s *PaymentService) GenerateMonthlyInvoices(ctx context.Context) error {
+	now := time.Now()
+	period := now.Format("2006-01")
+	dueDate := time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 0, now.Location()).Format("2006-01-02")
+
+	var children []model.Child
+	if err := s.db.WithContext(ctx).Preload("Guardians").Where("status = 'active'").Find(&children).Error; err != nil {
+		return err
+	}
+
+	for _, child := range children {
+		var existingCount int64
+		_ = s.db.WithContext(ctx).Model(&model.Invoice{}).
+			Where("child_id = ? AND period = ?", child.ID, period).
+			Count(&existingCount).Error
+		if existingCount > 0 {
+			continue
+		}
+
+		payerID := uint64(0)
+		for _, g := range child.Guardians {
+			if g.IsPrimary {
+				payerID = g.ParentUserID
+				break
+			}
+		}
+		if payerID == 0 && len(child.Guardians) > 0 {
+			payerID = child.Guardians[0].ParentUserID
+		}
+		if payerID == 0 {
+			continue
+		}
+
+		invNo, err := generateInvoiceNo()
+		if err != nil {
+			continue
+		}
+
+		monthlyFee := int64(500000) // 5000.00 SEK default tuition
+		inv := &model.Invoice{
+			ChildID:     child.ID,
+			PayerUserID: payerID,
+			InvoiceNo:   invNo,
+			Currency:    "SEK",
+			TotalMinor:  monthlyFee,
+			DueDate:     dueDate,
+			Status:      model.InvoiceDue,
+			Period:      period,
+			Items: []model.InvoiceItem{
+				{Label: "Monthly Childcare Fee (" + period + ")", AmountMinor: monthlyFee},
+			},
+		}
+		if err := s.db.WithContext(ctx).Create(inv).Error; err == nil {
+			s.notifier.NotifyUser(ctx, payerID, "reminders", "New monthly invoice",
+				fmt.Sprintf("Invoice %s for %s is now due (%s)", inv.InvoiceNo, period, dueDate),
+				map[string]any{"screen": "payments", "invoice_id": inv.ID})
+		}
+	}
+
+	return nil
+}
+
+func (s *PaymentService) ProcessMultiMonthPayment(ctx context.Context, req MultiMonthPaymentReq, actorID uint64, ip string) ([]model.Invoice, error) {
+	if req.ChildID == 0 || req.MonthsCount <= 0 {
+		return nil, apperr.BadRequest("child_id and positive months_count required")
+	}
+
+	start, err := time.Parse("2006-01", req.StartPeriod)
+	if err != nil {
+		start = time.Now()
+	}
+
+	child, err := s.children.ByID(ctx, req.ChildID)
+	if err != nil {
+		return nil, apperr.NotFound("child not found")
+	}
+
+	payerID := uint64(0)
+	for _, g := range child.Guardians {
+		if g.IsPrimary {
+			payerID = g.ParentUserID
+			break
+		}
+	}
+	if payerID == 0 && len(child.Guardians) > 0 {
+		payerID = child.Guardians[0].ParentUserID
+	}
+
+	amountPerMonth := req.AmountMinor
+	if amountPerMonth <= 0 {
+		amountPerMonth = 500000
+	}
+
+	now := time.Now()
+	var paidInvoices []model.Invoice
+
+	for i := 0; i < req.MonthsCount; i++ {
+		currDate := start.AddDate(0, i, 0)
+		period := currDate.Format("2006-01")
+		dueDate := time.Date(currDate.Year(), currDate.Month()+1, 0, 23, 59, 59, 0, currDate.Location()).Format("2006-01-02")
+
+		var inv model.Invoice
+		err := s.db.WithContext(ctx).Where("child_id = ? AND period = ?", req.ChildID, period).First(&inv).Error
+
+		if err != nil {
+			invNo, _ := generateInvoiceNo()
+			inv = model.Invoice{
+				ChildID:     req.ChildID,
+				PayerUserID: payerID,
+				InvoiceNo:   invNo,
+				Currency:    "SEK",
+				TotalMinor:  amountPerMonth,
+				DueDate:     dueDate,
+				Status:      model.InvoicePaid,
+				Period:      period,
+				Items: []model.InvoiceItem{
+					{Label: "Monthly Childcare Fee (" + period + ")", AmountMinor: amountPerMonth},
+				},
+			}
+			if err := s.db.WithContext(ctx).Create(&inv).Error; err != nil {
+				continue
+			}
+		} else {
+			inv.Status = model.InvoicePaid
+			s.db.WithContext(ctx).Save(&inv)
+		}
+
+		pmt := &model.Payment{
+			InvoiceID:   inv.ID,
+			Provider:    "manual_admin",
+			ProviderRef: fmt.Sprintf("ADM-%s-%d-%d", period, req.ChildID, now.UnixNano()),
+			AmountMinor: inv.TotalMinor,
+			Status:      model.PaymentPaid,
+			PaidAt:      &now,
+			InitiatedBy: actorID,
+		}
+		_ = s.db.WithContext(ctx).Create(pmt).Error
+
+		paidInvoices = append(paidInvoices, inv)
+	}
+
+	if payerID > 0 && len(paidInvoices) > 0 {
+		s.audit.Record(ctx, actorID, "multi_month_payment", "invoice", paidInvoices[0].ID,
+			map[string]any{"child_id": req.ChildID, "count": req.MonthsCount, "start": req.StartPeriod}, ip)
+		s.notifier.NotifyUser(ctx, payerID, "updates", "Payments recorded ✅",
+			fmt.Sprintf("%d month(s) paid by admin starting %s", req.MonthsCount, req.StartPeriod),
+			map[string]any{"screen": "payments"})
+	}
+
+	return paidInvoices, nil
+}
+
 // swishCallback is the subset of the Swish callback payload we read.
 type swishCallback struct {
 	ID string `json:"id"`

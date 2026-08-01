@@ -21,11 +21,50 @@ const STATUS_ACCENT: Record<Invoice["status"], AccentName> = {
   cancelled: "neutral",
 };
 
+import { Modal, TextInput, Pressable } from "react-native";
+import { usePayMultiMonths } from "../../src/api/hooks";
+import { useAuthStore } from "../../src/store/auth";
+
 export default function PaymentsScreen() {
   const { t, i18n } = useTranslation();
   const invoices = useInvoices();
   const pay = usePayInvoice();
+  const payMulti = usePayMultiMonths();
+  const user = useAuthStore((s) => s.user);
+
   const [payingId, setPayingId] = useState<number | null>(null);
+  const [showMultiModal, setShowMultiModal] = useState(false);
+  const [childIdText, setChildIdText] = useState("");
+  const [monthsCountText, setMonthsCountText] = useState("3");
+  const [startPeriodText, setStartPeriodText] = useState("2026-08");
+
+  const isAdmin = user?.role === "admin";
+
+  const handleProcessMultiPayment = () => {
+    const childId = Number(childIdText);
+    const monthsCount = Number(monthsCountText);
+    if (!childId || !monthsCount) {
+      Alert.alert(t("common.error"), "Child ID and months count are required.");
+      return;
+    }
+    payMulti.mutate(
+      {
+        child_id: childId,
+        months_count: monthsCount,
+        start_period: startPeriodText.trim() || "2026-08",
+      },
+      {
+        onSuccess: () => {
+          setShowMultiModal(false);
+          Alert.alert("Success", `Recorded payment for ${monthsCount} month(s)!`);
+          void invoices.refetch();
+        },
+        onError: (err) => {
+          Alert.alert(t("common.error"), errorMessage(err));
+        },
+      }
+    );
+  };
 
   const all = invoices.data ?? [];
   const open = all.filter((inv) => inv.status === "due" || inv.status === "overdue");
@@ -50,6 +89,18 @@ export default function PaymentsScreen() {
 
   return (
     <Screen refreshing={invoices.isRefetching} onRefresh={() => void invoices.refetch()}>
+      {isAdmin && (
+        <Card style={styles.adminCard}>
+          <Text style={styles.adminTitle}>Admin Payment Management</Text>
+          <Text style={styles.adminSub}>Record payments for multiple months at once for a client</Text>
+          <PrimaryButton
+            label="Record Multi-Month Payment"
+            icon="add-circle-outline"
+            onPress={() => setShowMultiModal(true)}
+          />
+        </Card>
+      )}
+
       <TipBanner
         icon="shield-checkmark"
         accent="primary"
@@ -155,11 +206,77 @@ export default function PaymentsScreen() {
           <Text style={styles.helpSub}>{t("payments.needHelpSub")}</Text>
         </View>
       </Card>
+
+      {/* Admin Multi-Month Payment Modal */}
+      <Modal visible={showMultiModal} transparent animationType="fade" onRequestClose={() => setShowMultiModal(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Multi-Month Payment Entry</Text>
+            <Text style={styles.modalSub}>Mark multiple months as paid for a student</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Child ID (e.g. 1)"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="number-pad"
+              value={childIdText}
+              onChangeText={setChildIdText}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Number of Months (e.g. 3)"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="number-pad"
+              value={monthsCountText}
+              onChangeText={setMonthsCountText}
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Start Period (e.g. 2026-08)"
+              placeholderTextColor={colors.textMuted}
+              value={startPeriodText}
+              onChangeText={setStartPeriodText}
+            />
+            <View style={styles.modalActions}>
+              <Pressable onPress={() => setShowMultiModal(false)} style={styles.modalCancel}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <View style={{ flex: 1 }}>
+                <PrimaryButton
+                  label="Submit Payment"
+                  onPress={handleProcessMultiPayment}
+                  loading={payMulti.isPending}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  adminCard: { gap: spacing.sm, backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" },
+  adminTitle: { fontSize: 16, fontFamily: fonts.extrabold, color: colors.text },
+  adminSub: { fontSize: 12, fontFamily: fonts.semibold, color: colors.textMuted },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: spacing.lg },
+  modalCard: { backgroundColor: colors.card, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md },
+  modalTitle: { fontSize: 18, fontFamily: fonts.extrabold, color: colors.text },
+  modalSub: { fontSize: 13, fontFamily: fonts.semibold, color: colors.textMuted },
+  modalInput: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    fontFamily: fonts.semibold,
+    fontSize: 14,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalActions: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.xs },
+  modalCancel: { paddingVertical: 12, paddingHorizontal: spacing.md },
+  modalCancelText: { fontFamily: fonts.bold, color: colors.textMuted },
   dueCard: { gap: spacing.md },
   dueHeader: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   dueLabel: { fontSize: 14, fontFamily: fonts.extrabold, color: colors.text },

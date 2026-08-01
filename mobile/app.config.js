@@ -6,13 +6,14 @@ module.exports = {
     name: "Little Talent Childcare",
     slug: "little-talent-childcare",
     scheme: "littletalentchildcare",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.littletalentchildcare",
+      buildNumber: "2",
       infoPlist: {
         // Lets a push wake the app to fetch before the notification is shown.
         UIBackgroundModes: ["remote-notification"],
@@ -24,6 +25,7 @@ module.exports = {
     },
     android: {
       package: "com.littletalentchildcare",
+      versionCode: 2,
       adaptiveIcon: {
         // White to match the logo artwork, which is drawn for a white ground.
         backgroundColor: "#ffffff",

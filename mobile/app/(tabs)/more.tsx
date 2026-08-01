@@ -84,6 +84,8 @@ export default function MoreScreen() {
       </Card>
 
       {/* Links */}
+      <ActionCard icon="chatbubbles" accent="primary" title="Messages & Chat" onPress={() => router.push("/chat")} />
+      <ActionCard icon="options" accent="activity" title="Notification Preferences" onPress={() => router.push("/notification-settings")} />
       <ActionCard icon="heart" accent="health" title={t("home.health")} onPress={() => router.push("/child/health")} />
       <ActionCard icon="trophy" accent="meals" title={t("home.milestones")} onPress={() => router.push("/child/milestones")} />
       <ActionCard icon="school" accent="diaper" title={t("home.classroom")} onPress={() => router.push("/classroom")} />

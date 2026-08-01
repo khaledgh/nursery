@@ -88,6 +88,25 @@ export function InvoicesPage() {
     },
   ];
 
+  const [multiCreating, setMultiCreating] = useState(false);
+  const [multiChildId, setMultiChildId] = useState("");
+  const [multiMonths, setMultiMonths] = useState("3");
+  const [multiStart, setMultiStart] = useState("2026-08");
+
+  const payMulti = useMutation({
+    mutationFn: async () =>
+      api.post("/admin/invoices/pay-multi-months", {
+        child_id: Number(multiChildId),
+        months_count: Number(multiMonths),
+        start_period: multiStart,
+      }),
+    onSuccess: () => {
+      setMultiCreating(false);
+      void list.refetch();
+    },
+    onError: (err) => setError(errorMessage(err)),
+  });
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{t("nav.invoices")}</h1>
@@ -108,6 +127,9 @@ export function InvoicesPage() {
                 </option>
               ))}
             </select>
+            <button className="btn-secondary" onClick={() => setMultiCreating(true)}>
+              Pay Multi-Months
+            </button>
             <button className="btn-primary" onClick={() => setCreating(true)}>
               <Plus size={16} /> {t("common.create")}
             </button>
@@ -188,6 +210,57 @@ export function InvoicesPage() {
             </button>
             <button className="btn-primary" disabled={!childId || !dueDate || create.isPending} onClick={() => create.mutate()}>
               {create.isPending ? t("common.saving") : t("common.save")}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={multiCreating} title="Record Multi-Month Payment" onClose={() => setMultiCreating(false)}>
+        <div className="space-y-4">
+          <div>
+            <label className="label">Child</label>
+            <select className="input" value={multiChildId} onChange={(e) => setMultiChildId(e.target.value)}>
+              <option value="">— Select Child —</option>
+              {(children.data ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.first_name} {c.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Number of Months</label>
+              <input
+                className="input"
+                type="number"
+                min="1"
+                max="24"
+                value={multiMonths}
+                onChange={(e) => setMultiMonths(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label">Start Period</label>
+              <input
+                className="input"
+                placeholder="2026-08"
+                value={multiStart}
+                onChange={(e) => setMultiStart(e.target.value)}
+              />
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex justify-end gap-3 pt-2">
+            <button className="btn-secondary" onClick={() => setMultiCreating(false)}>
+              {t("common.cancel")}
+            </button>
+            <button
+              className="btn-primary"
+              disabled={!multiChildId || !multiMonths || payMulti.isPending}
+              onClick={() => payMulti.mutate()}
+            >
+              {payMulti.isPending ? t("common.saving") : "Submit Payment"}
             </button>
           </div>
         </div>

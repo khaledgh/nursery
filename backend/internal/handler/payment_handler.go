@@ -31,6 +31,7 @@ func (h *PaymentHandler) Register(protected *echo.Group) {
 	admin := protected.Group("/admin", mw.RequireRole(model.RoleAdmin))
 	admin.POST("/invoices", h.Create)
 	admin.POST("/invoices/:id/cancel", h.Cancel)
+	admin.POST("/invoices/pay-multi-months", h.PayMultiMonths)
 }
 
 func (h *PaymentHandler) RegisterWebhook(public *echo.Group) {
@@ -87,6 +88,18 @@ func (h *PaymentHandler) Cancel(c echo.Context) error {
 		return err
 	}
 	return response.OK(c, inv)
+}
+
+func (h *PaymentHandler) PayMultiMonths(c echo.Context) error {
+	var req service.MultiMonthPaymentReq
+	if err := c.Bind(&req); err != nil {
+		return apperr.BadRequest("invalid request body")
+	}
+	invs, err := h.payments.ProcessMultiMonthPayment(c.Request().Context(), req, mw.UserID(c), c.RealIP())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, map[string]any{"data": invs})
 }
 
 func (h *PaymentHandler) Pay(c echo.Context) error {

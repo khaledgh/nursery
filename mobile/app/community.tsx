@@ -173,56 +173,104 @@ function PostCard({ post }: { post: CommunityPost }) {
 
 export default function CommunityScreen() {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const posts = useCommunityPosts();
   const createPost = useCreatePost();
+  const platformSettings = usePlatformSettings();
+  const updateSettings = useUpdatePlatformSettings();
 
   const [composer, setComposer] = useState<ComposerKind>(null);
   const [body, setBody] = useState("");
   const [meetupTitle, setMeetupTitle] = useState("");
   const [meetupLocation, setMeetupLocation] = useState("");
   const [meetupWhen, setMeetupWhen] = useState("");
-  const [composeError, setComposeError] = useState("");
+  const [composeError, setComposeError] = useState<string | null>(null);
+
+  const isCommunityOpen = platformSettings.data?.feature_community !== false;
+  const isAdmin = user?.role === "admin";
+
+  const handleToggleCommunity = (val: boolean) => {
+    updateSettings.mutate({ feature_community: val });
+  };
 
   const submitPost = () => {
-    setComposeError("");
-    const payload: Parameters<typeof createPost.mutate>[0] = { type: composer ?? "moment", body: body.trim() };
-    if (composer === "activity") {
-      const when = new Date(meetupWhen.replace(" ", "T"));
-      if (!meetupTitle.trim() || Number.isNaN(when.getTime())) {
-        setComposeError(t("common.error"));
-        return;
-      }
-      payload.meetup = { title: meetupTitle.trim(), location: meetupLocation.trim(), starts_at: when.toISOString() };
-    }
-    createPost.mutate(payload, {
-      onSuccess: () => {
-        setComposer(null);
-        setBody("");
-        setMeetupTitle("");
-        setMeetupLocation("");
-        setMeetupWhen("");
+    if (!body.trim()) return;
+    setComposeError(null);
+    createPost.mutate(
+      {
+        type: composer === "activity" ? "activity" : "moment",
+        body: body.trim(),
+        meetup:
+          composer === "activity" && meetupTitle.trim()
+            ? {
+                title: meetupTitle.trim(),
+                location: meetupLocation.trim() || undefined,
+                starts_at: meetupWhen.trim() || new Date(Date.now() + 86400000).toISOString(),
+              }
+            : undefined,
       },
-      onError: (err) => setComposeError(errorMessage(err)),
-    });
+      {
+        onSuccess: () => {
+          setComposer(null);
+          setBody("");
+          setMeetupTitle("");
+          setMeetupLocation("");
+          setMeetupWhen("");
+        },
+        onError: (err) => setComposeError(errorMessage(err)),
+      }
+    );
   };
 
   return (
     <Screen refreshing={posts.isRefetching} onRefresh={() => void posts.refetch()}>
       <Text style={styles.subtitle}>{t("community.subtitle")}</Text>
 
+      {/* Admin Toggle Bar */}
+      {isAdmin && (
+        <Card style={styles.adminToggleCard}>
+          <View style={styles.adminToggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.adminToggleTitle}>Community Control</Text>
+              <Text style={styles.adminToggleSub}>
+                {isCommunityOpen ? "Community is OPEN for posts" : "Community is CLOSED for non-admins"}
+              </Text>
+            </View>
+            <Switch
+              value={isCommunityOpen}
+              onValueChange={handleToggleCommunity}
+              trackColor={{ false: colors.border, true: colors.primary }}
+            />
+          </View>
+        </Card>
+      )}
+
+      {/* Closed Banner for Non-Admins */}
+      {!isCommunityOpen && !isAdmin && (
+        <Card style={styles.closedBanner}>
+          <IconCircle name="lock-closed" accent="danger" size={40} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.closedTitle}>Community Feed Closed</Text>
+            <Text style={styles.closedSub}>Posting and commenting are currently disabled by administration.</Text>
+          </View>
+        </Card>
+      )}
+
       {/* Action cards */}
-      <View style={styles.actions}>
-        <Pressable style={[styles.actionCard, { backgroundColor: accents.primary.tint }]} onPress={() => setComposer("moment")}>
-          <IconCircle name="image" accent="primary" size={40} />
-          <Text style={styles.actionTitle}>{t("community.shareMoment")}</Text>
-          <Text style={styles.actionSub}>{t("community.shareMomentSub")}</Text>
-        </Pressable>
-        <Pressable style={[styles.actionCard, { backgroundColor: accents.activity.tint }]} onPress={() => setComposer("activity")}>
-          <IconCircle name="calendar" accent="activity" size={40} />
-          <Text style={styles.actionTitle}>{t("community.planActivity")}</Text>
-          <Text style={styles.actionSub}>{t("community.planActivitySub")}</Text>
-        </Pressable>
-      </View>
+      {(isCommunityOpen || isAdmin) && (
+        <View style={styles.actions}>
+          <Pressable style={[styles.actionCard, { backgroundColor: accents.primary.tint }]} onPress={() => setComposer("moment")}>
+            <IconCircle name="image" accent="primary" size={40} />
+            <Text style={styles.actionTitle}>{t("community.shareMoment")}</Text>
+            <Text style={styles.actionSub}>{t("community.shareMomentSub")}</Text>
+          </Pressable>
+          <Pressable style={[styles.actionCard, { backgroundColor: accents.activity.tint }]} onPress={() => setComposer("activity")}>
+            <IconCircle name="calendar" accent="activity" size={40} />
+            <Text style={styles.actionTitle}>{t("community.planActivity")}</Text>
+            <Text style={styles.actionSub}>{t("community.planActivitySub")}</Text>
+          </Pressable>
+        </View>
+      )}
 
       <Text style={styles.recentTitle}>{t("community.recentPosts")}</Text>
 
@@ -296,6 +344,13 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
+  adminToggleCard: { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" },
+  adminToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  adminToggleTitle: { fontSize: 15, fontFamily: fonts.extrabold, color: colors.text },
+  adminToggleSub: { fontSize: 12, fontFamily: fonts.semibold, color: colors.textMuted, marginTop: 2 },
+  closedBanner: { flexDirection: "row", alignItems: "center", gap: spacing.md, backgroundColor: "#fef2f2", borderColor: "#fecaca" },
+  closedTitle: { fontSize: 15, fontFamily: fonts.extrabold, color: colors.danger },
+  closedSub: { fontSize: 12, fontFamily: fonts.semibold, color: colors.textMuted, marginTop: 2 },
   subtitle: { fontSize: 13, fontFamily: fonts.semibold, color: colors.textMuted, marginTop: -spacing.sm },
   actions: { flexDirection: "row", gap: spacing.sm },
   actionCard: { flex: 1, borderRadius: radius.lg, padding: spacing.md, gap: 5 },
