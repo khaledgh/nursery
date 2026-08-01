@@ -89,6 +89,7 @@ export interface Child {
   classroom?: Classroom | null;
   guardians?: Guardian[];
   avatar?: Media | null;
+  created_at: string;
 }
 
 export interface ClassroomTeacher {
