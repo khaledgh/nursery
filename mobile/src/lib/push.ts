@@ -59,11 +59,6 @@ export function initPush() {
   if (__DEV__) OneSignal.Debug.setLogLevel(LogLevel.Verbose);
   OneSignal.initialize(appId);
 
-  // Foreground notification display (WhatsApp style heads-up alert)
-  OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
-    event.getNotification().display();
-  });
-
   // Deep linking on notification tap
   OneSignal.Notifications.addEventListener("click", (event: any) => {
     const data = event.notification.additionalData as { url?: string; type?: string; conversation_id?: number; screen?: string } | undefined;
