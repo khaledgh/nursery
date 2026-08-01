@@ -86,6 +86,15 @@ module.exports = {
           savePhotosPermission: "Allow $(PRODUCT_NAME) to save photos to your library."
         }
       ],
+      [
+        "expo-build-properties",
+        {
+          android: {
+            enableProguardInReleaseBuilds: true,
+            enableShrinkResourcesInReleaseBuilds: true,
+          },
+        },
+      ],
     ],
     extra: {
       apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "",

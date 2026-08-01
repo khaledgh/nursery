@@ -33,11 +33,12 @@ type CreateSleepLogRequest struct {
 }
 
 type CreateDiaperLogRequest struct {
-	Time    string `json:"time" validate:"required,datetime=2006-01-02T15:04:05Z07:00"`
-	Wetness string `json:"wetness" validate:"required,oneof=dry wet heavy"`
-	Stool   string `json:"stool" validate:"omitempty,oneof=none hard normal soft loose diarrhea"`
-	Comfort string `json:"comfort" validate:"omitempty,oneof=happy fussy"`
-	Note    string `json:"note" validate:"omitempty,max=500"`
+	Time       string `json:"time" validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	OccurredAt string `json:"occurred_at" validate:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	Wetness    string `json:"wetness" validate:"required,oneof=dry wet heavy"`
+	Stool      string `json:"stool" validate:"omitempty,oneof=none hard normal soft loose diarrhea"`
+	Comfort    string `json:"comfort" validate:"omitempty,oneof=happy fussy"`
+	Note       string `json:"note" validate:"omitempty,max=500"`
 }
 
 type UpsertHydrationRequest struct {

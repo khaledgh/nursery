@@ -133,6 +133,7 @@ type PageQuery struct {
 	PerPage int    `query:"per_page"`
 	Search  string `query:"search"`
 	Sort    string `query:"sort"`
+	Status  string `query:"status"`
 }
 
 func (p *PageQuery) Normalize() {

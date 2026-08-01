@@ -175,9 +175,19 @@ func (s *CareService) CreateDiaper(ctx context.Context, role model.Role, userID,
 	if err := s.childSvc.Authorize(ctx, role, userID, childID); err != nil {
 		return nil, err
 	}
-	t, err := time.Parse(time.RFC3339, req.Time)
-	if err != nil {
-		return nil, apperr.BadRequest("invalid time")
+	timeStr := req.Time
+	if timeStr == "" {
+		timeStr = req.OccurredAt
+	}
+	var t time.Time
+	var err error
+	if timeStr != "" {
+		t, err = time.Parse(time.RFC3339, timeStr)
+		if err != nil {
+			return nil, apperr.BadRequest("invalid time format")
+		}
+	} else {
+		t = time.Now()
 	}
 	stool, comfort := req.Stool, req.Comfort
 	if stool == "" {

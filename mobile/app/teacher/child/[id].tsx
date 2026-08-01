@@ -9,6 +9,8 @@ import {
   useLogDiaper,
   useLogMeal,
   useLogSleep,
+  useMilestoneCategories,
+  useAssessMilestone,
   useUpsertHydration,
 } from "../../../src/api/hooks";
 import { ChildAvatar } from "../../../src/components/ChildAvatar";
@@ -34,7 +36,7 @@ import {
   spacing,
 } from "../../../src/theme";
 
-type Sheet = "meal" | "nap" | "diaper" | "water" | null;
+type Sheet = "meal" | "nap" | "diaper" | "water" | "milestone" | null;
 
 /** Common nap lengths, so the usual case is one tap rather than a time picker. */
 const NAP_PRESETS = [15, 30, 45, 60, 90, 120];
@@ -52,6 +54,8 @@ export default function TeacherChildHub() {
   const logSleep = useLogSleep();
   const logDiaper = useLogDiaper();
   const upsertHydration = useUpsertHydration();
+  const categoriesQuery = useMilestoneCategories();
+  const assessMilestone = useAssessMilestone();
   const errors = useFieldErrors();
 
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -63,6 +67,10 @@ export default function TeacherChildHub() {
   const [comfort, setComfort] = useState("happy");
   const [cups, setCups] = useState(0);
   const [napMin, setNapMin] = useState(60);
+  const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
+  const [progressPct, setProgressPct] = useState(50);
+  const [milestoneStatus, setMilestoneStatus] = useState<"in_progress" | "achieved">("in_progress");
+  const [milestoneNote, setMilestoneNote] = useState("");
 
   const child = dashboard.data?.child;
   const name = child ? `${child.first_name} ${child.last_name}`.trim() : "";
@@ -93,8 +101,9 @@ export default function TeacherChildHub() {
 
   const submitDiaper = () => {
     errors.reset();
+    const nowIso = toLocalRFC3339(new Date());
     logDiaper.mutate(
-      { childId, wetness, stool, comfort, note, occurred_at: toLocalRFC3339(new Date()) },
+      { childId, wetness, stool, comfort, note, time: nowIso, occurred_at: nowIso },
       { onSuccess: closeSheet, onError: (e) => errors.capture(e) },
     );
   };
@@ -113,8 +122,24 @@ export default function TeacherChildHub() {
 
   const submitWater = () => {
     errors.reset();
+    const todayStr = new Date().toISOString().split("T")[0];
     upsertHydration.mutate(
-      { childId, cups },
+      { childId, cups, date: todayStr },
+      { onSuccess: closeSheet, onError: (e) => errors.capture(e) },
+    );
+  };
+
+  const submitMilestone = () => {
+    errors.reset();
+    if (!selectedCatId) return;
+    assessMilestone.mutate(
+      {
+        childId,
+        category_id: selectedCatId,
+        progress_pct: progressPct,
+        status: milestoneStatus,
+        description: milestoneNote,
+      },
       { onSuccess: closeSheet, onError: (e) => errors.capture(e) },
     );
   };
@@ -198,6 +223,17 @@ export default function TeacherChildHub() {
         <ActionCard
           icon="trophy"
           accent="meals"
+          title={t("teacher.child.assessMilestone", "Assess Child Milestone")}
+          onPress={() => {
+            if (categoriesQuery.data && categoriesQuery.data.length > 0) {
+              setSelectedCatId(categoriesQuery.data[0].id);
+            }
+            setSheet("milestone");
+          }}
+        />
+        <ActionCard
+          icon="ribbon"
+          accent="primary"
           title={t("teacher.child.milestonesLink")}
           onPress={() => router.push("/child/milestones")}
         />
@@ -343,6 +379,57 @@ export default function TeacherChildHub() {
           min={0}
           max={30}
           accent="hydration"
+        />
+      </FormSheet>
+
+      <FormSheet
+        visible={sheet === "milestone"}
+        onClose={closeSheet}
+        title={t("teacher.child.assessMilestone", "Assess Child Milestone")}
+        subtitle={name}
+        submitLabel={t("teacher.common.save")}
+        onSubmit={submitMilestone}
+        submitting={assessMilestone.isPending}
+        error={errors.message}
+      >
+        {categoriesQuery.data && categoriesQuery.data.length > 0 ? (
+          <EnumPicker
+            label={t("milestones.category", "Category")}
+            options={categoriesQuery.data.map((c) => String(c.id))}
+            visuals={Object.fromEntries(categoriesQuery.data.map((c) => [String(c.id), { label: c.name, emoji: "🎯" }]))}
+            i18nPrefix=""
+            value={selectedCatId ? String(selectedCatId) : String(categoriesQuery.data[0].id)}
+            onChange={(v) => setSelectedCatId(Number(v))}
+          />
+        ) : null}
+        <Stepper
+          label={t("milestones.progress", "Progress (%)")}
+          value={progressPct}
+          onChange={setProgressPct}
+          min={0}
+          max={100}
+          step={10}
+          suffix="%"
+          accent="primary"
+        />
+        <EnumPicker
+          label={t("milestones.status", "Status")}
+          options={["in_progress", "achieved"]}
+          visuals={{
+            in_progress: { label: t("milestones.inProgress", "In Progress"), emoji: "⏳" },
+            achieved: { label: t("milestones.achieved", "Achieved"), emoji: "⭐" },
+          }}
+          i18nPrefix=""
+          value={milestoneStatus}
+          onChange={(v) => setMilestoneStatus(v as any)}
+        />
+        <TextField
+          label={t("teacher.care.note")}
+          value={milestoneNote}
+          onChangeText={setMilestoneNote}
+          placeholder={t("teacher.care.notePlaceholder")}
+          multiline
+          maxLength={500}
         />
       </FormSheet>
     </>

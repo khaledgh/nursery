@@ -60,6 +60,18 @@ func (r *ChildRepo) List(ctx context.Context, q dto.PageQuery, role model.Role, 
 		like := "%" + q.Search + "%"
 		tx = tx.Where("first_name LIKE ? OR last_name LIKE ?", like, like)
 	}
+	if q.Status != "" && q.Status != "all" {
+		switch q.Status {
+		case "in", "checked_in":
+			tx = tx.Where("present_status = ?", model.PresentIn)
+		case "out", "checked_out", "not_checked_in":
+			tx = tx.Where("present_status = ?", model.PresentOut)
+		case "absent":
+			tx = tx.Where("present_status = ?", model.PresentAbs)
+		default:
+			tx = tx.Where("present_status = ?", q.Status)
+		}
+	}
 	if err := tx.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}

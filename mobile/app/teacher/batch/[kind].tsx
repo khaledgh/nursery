@@ -87,11 +87,13 @@ export default function BatchLog() {
             end_at: toLocalRFC3339(end),
           });
         } else if (kind === "diaper") {
+          const nowIso = toLocalRFC3339(new Date());
           await logDiaper.mutateAsync({
             childId,
             wetness: value,
             stool: "none",
-            occurred_at: toLocalRFC3339(new Date()),
+            time: nowIso,
+            occurred_at: nowIso,
           });
         } else {
           await logMeal.mutateAsync({

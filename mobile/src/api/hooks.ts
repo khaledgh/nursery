@@ -180,11 +180,58 @@ export function useMilestones(childId?: number) {
   });
 }
 
+export function useMilestoneCategories() {
+  return useQuery({
+    queryKey: ["milestoneCategories"],
+    queryFn: () => item<import("./types").MilestoneCategory[]>("/milestone-categories"),
+  });
+}
+
+export function useAssessMilestone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      childId: number;
+      category_id: number;
+      progress_pct: number;
+      status?: "not_started" | "in_progress" | "achieved";
+      description?: string;
+    }) => {
+      const { childId, ...body } = input;
+      return (await api.put<ItemResponse<ChildMilestone>>(`/children/${childId}/milestones`, body)).data.data;
+    },
+    onSuccess: (_res, input) => {
+      void qc.invalidateQueries({ queryKey: ["milestones", input.childId] });
+      void qc.invalidateQueries({ queryKey: ["dashboard", input.childId] });
+    },
+  });
+}
+
 export function useAchievements(childId?: number) {
   return useQuery({
     queryKey: ["achievements", childId],
     enabled: !!childId,
     queryFn: () => item<ChildAchievement[]>(`/children/${childId}/achievements`),
+  });
+}
+
+export function useAwardAchievement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      childId: number;
+      achievement_template_id: number;
+      awarded_date?: string;
+      note?: string;
+    }) => {
+      const { childId, ...body } = input;
+      const awarded_date = body.awarded_date ?? new Date().toISOString().split("T")[0];
+      return (await api.post<ItemResponse<ChildAchievement>>(`/children/${childId}/achievements`, { ...body, awarded_date })).data.data;
+    },
+    onSuccess: (_res, input) => {
+      void qc.invalidateQueries({ queryKey: ["achievements", input.childId] });
+      void qc.invalidateQueries({ queryKey: ["dashboard", input.childId] });
+    },
   });
 }
 
@@ -435,10 +482,10 @@ export function usePayInvoice() {
  * needed; `present_status` and `checked_in_at` come back on each row, which is
  * what the roster renders.
  */
-export function useTeacherRoster() {
+export function useTeacherRoster(status?: string) {
   return useQuery({
-    queryKey: ["teacherRoster"],
-    queryFn: () => list<Child>("/children", { per_page: 100, sort: "first_name" }),
+    queryKey: ["teacherRoster", status],
+    queryFn: () => list<Child>("/children", { per_page: 100, sort: "first_name", status: status && status !== "all" ? status : undefined }),
   });
 }
 
@@ -495,9 +542,10 @@ export function useLogSleep() {
 export interface DiaperInput {
   childId: number;
   wetness: string;
-  stool: string;
+  stool?: string;
   comfort?: string;
   note?: string;
+  time?: string;
   occurred_at?: string;
 }
 
@@ -513,9 +561,10 @@ export function useLogDiaper() {
 export function useUpsertHydration() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { childId: number; cups: number }) =>
-      (await api.put<ItemResponse<HydrationLog>>(`/children/${input.childId}/hydration`, { cups: input.cups })).data
-        .data,
+    mutationFn: async (input: { childId: number; cups: number; date?: string }) => {
+      const date = input.date ?? new Date().toISOString().split("T")[0];
+      return (await api.put<ItemResponse<HydrationLog>>(`/children/${input.childId}/hydration`, { cups: input.cups, date })).data.data;
+    },
     onSuccess: (_res, input) => invalidateChild(qc, input.childId),
   });
 }

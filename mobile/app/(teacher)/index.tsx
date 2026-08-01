@@ -26,37 +26,28 @@ export default function TeacherRoster() {
   const insets = useSafeAreaInsets();
   const teacherName = useAuthStore((s) => s.user?.name ?? "");
 
-  const roster = useTeacherRoster();
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const roster = useTeacherRoster(filter);
+  const allRoster = useTeacherRoster("all");
   const checkInOut = useCheckInOut();
 
-  const [filter, setFilter] = useState<FilterKey>("all");
   const [selection, setSelection] = useState<Set<number>>(new Set());
   const [pendingId, setPendingId] = useState<number | null>(null);
   const selectionMode = selection.size > 0;
 
   const children = useMemo(() => roster.data ?? [], [roster.data]);
+  const allChildren = useMemo(() => allRoster.data ?? [], [allRoster.data]);
 
   const counts = useMemo(
     () => ({
-      in: children.filter((c) => c.present_status === "checked_in").length,
-      out: children.filter((c) => c.present_status === "checked_out").length,
-      absent: children.filter((c) => c.present_status === "absent").length,
+      in: allChildren.filter((c) => c.present_status === "checked_in").length,
+      out: allChildren.filter((c) => c.present_status === "checked_out").length,
+      absent: allChildren.filter((c) => c.present_status === "absent").length,
     }),
-    [children],
+    [allChildren],
   );
 
-  const visible = useMemo(() => {
-    switch (filter) {
-      case "in":
-        return children.filter((c) => c.present_status === "checked_in");
-      case "out":
-        return children.filter((c) => c.present_status === "checked_out");
-      case "absent":
-        return children.filter((c) => c.present_status === "absent");
-      default:
-        return children;
-    }
-  }, [children, filter]);
+  const visible = children;
 
   const toggleAttendance = useCallback(
     (child: Child) => {

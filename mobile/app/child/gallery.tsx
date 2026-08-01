@@ -20,6 +20,7 @@ import {
   PanResponder,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { captureRef } from "react-native-view-shot";
 
 import { useChildMedia } from "../../src/api/hooks";
 import type { Media } from "../../src/api/types";
@@ -36,9 +37,10 @@ const itemSize = (SCREEN_WIDTH - spacing.md * 2 - spacing.sm * (columns - 1)) / 
 interface ZoomableImageProps {
   uri: string;
   onZoomStateChange: (isZoomed: boolean) => void;
+  viewRef?: React.RefObject<View | null>;
 }
 
-function ZoomableImage({ uri, onZoomStateChange }: ZoomableImageProps) {
+function ZoomableImage({ uri, onZoomStateChange, viewRef }: ZoomableImageProps) {
   const scale = useRef(new Animated.Value(1)).current;
   const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
 
@@ -175,7 +177,7 @@ function ZoomableImage({ uri, onZoomStateChange }: ZoomableImageProps) {
   ).current;
 
   return (
-    <View style={zoomStyles.container} {...panResponder.panHandlers}>
+    <View ref={viewRef} style={zoomStyles.container} collapsable={false} {...panResponder.panHandlers}>
       <Pressable onPress={handlePress} style={zoomStyles.pressable}>
         <Animated.Image
           source={{ uri }}
@@ -192,6 +194,15 @@ function ZoomableImage({ uri, onZoomStateChange }: ZoomableImageProps) {
           resizeMode="contain"
         />
       </Pressable>
+
+      {/* Watermark overlay in bottom corner */}
+      <View style={zoomStyles.watermarkBadge} pointerEvents="none">
+        <Image
+          source={require("../../assets/notification-icon-large.png")}
+          style={zoomStyles.watermarkIcon}
+          contentFit="contain"
+        />
+      </View>
     </View>
   );
 }
@@ -203,6 +214,7 @@ const zoomStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
+    backgroundColor: "#000000",
   },
   pressable: {
     width: "100%",
@@ -213,6 +225,21 @@ const zoomStyles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
+  },
+  watermarkBadge: {
+    position: "absolute",
+    bottom: 110,
+    right: 20,
+    zIndex: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    padding: 6,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  watermarkIcon: {
+    width: 36,
+    height: 36,
   },
 });
 
@@ -280,18 +307,24 @@ export default function GalleryScreen() {
 
   useEffect(() => {
     if (mediaQuery.data) {
-      setAllMedia((prev) => {
-        const existingIds = new Set(prev.map((m) => m.id));
-        const newItems = mediaQuery.data.filter((m) => !existingIds.has(m.id));
-        return [...prev, ...newItems];
-      });
+      if (page === 1) {
+        setAllMedia(mediaQuery.data);
+      } else {
+        setAllMedia((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newItems = mediaQuery.data.filter((m) => !existingIds.has(m.id));
+          return [...prev, ...newItems];
+        });
+      }
     }
-  }, [mediaQuery.data]);
+  }, [mediaQuery.data, page]);
 
   const handleRefresh = async () => {
-    setPage(1);
-    setAllMedia([]);
-    await mediaQuery.refetch();
+    if (page === 1) {
+      await mediaQuery.refetch();
+    } else {
+      setPage(1);
+    }
   };
 
   const loadMore = () => {
@@ -299,6 +332,8 @@ export default function GalleryScreen() {
       setPage((p) => p + 1);
     }
   };
+
+  const activeViewRef = useRef<View>(null);
 
   const saveToGallery = async (photo: Media) => {
     if (!photo || !photo.url) return;
@@ -311,13 +346,24 @@ export default function GalleryScreen() {
         return;
       }
 
-      const ext = photo.mime.split("/")[1] || "jpg";
-      const filename = `child_photo_${photo.id}.${ext}`;
-      const localUri = `${FileSystem.documentDirectory}${filename}`;
+      let targetUri: string | null = null;
+      if (activeViewRef.current) {
+        try {
+          targetUri = await captureRef(activeViewRef, { format: "png", quality: 0.95 });
+        } catch (e) {
+          console.warn("captureRef failed, falling back to download", e);
+        }
+      }
 
-      const { uri } = await FileSystem.downloadAsync(photo.url, localUri);
+      if (!targetUri) {
+        const ext = photo.mime.split("/")[1] || "jpg";
+        const filename = `child_photo_${photo.id}.${ext}`;
+        const localUri = `${FileSystem.documentDirectory}${filename}`;
+        const downloaded = await FileSystem.downloadAsync(photo.url, localUri);
+        targetUri = downloaded.uri;
+      }
 
-      await MediaLibrary.saveToLibraryAsync(uri);
+      await MediaLibrary.saveToLibraryAsync(targetUri);
       Alert.alert(t("gallery.title"), t("gallery.saveSuccess"));
     } catch (err) {
       console.error(err);
@@ -338,14 +384,25 @@ export default function GalleryScreen() {
         return;
       }
 
-      const ext = photo.mime.split("/")[1] || "jpg";
-      const filename = `share_photo_${photo.id}.${ext}`;
-      const localUri = `${FileSystem.cacheDirectory}${filename}`;
+      let targetUri: string | null = null;
+      if (activeViewRef.current) {
+        try {
+          targetUri = await captureRef(activeViewRef, { format: "png", quality: 0.95 });
+        } catch (e) {
+          console.warn("captureRef failed, falling back to download", e);
+        }
+      }
 
-      const { uri } = await FileSystem.downloadAsync(photo.url, localUri);
+      if (!targetUri) {
+        const ext = photo.mime.split("/")[1] || "jpg";
+        const filename = `share_photo_${photo.id}.${ext}`;
+        const localUri = `${FileSystem.cacheDirectory}${filename}`;
+        const downloaded = await FileSystem.downloadAsync(photo.url, localUri);
+        targetUri = downloaded.uri;
+      }
 
-      await Sharing.shareAsync(uri, {
-        mimeType: photo.mime || "image/jpeg",
+      await Sharing.shareAsync(targetUri, {
+        mimeType: "image/png",
         dialogTitle: t("gallery.title"),
       });
     } catch (err) {
@@ -466,10 +523,11 @@ export default function GalleryScreen() {
                   const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
                   setSelectedPhotoIndex(index);
                 }}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                   <ZoomableImage
                     uri={item.url}
                     onZoomStateChange={(isZoomed) => setPagerScrollEnabled(!isZoomed)}
+                    viewRef={index === selectedPhotoIndex ? activeViewRef : undefined}
                   />
                 )}
               />
