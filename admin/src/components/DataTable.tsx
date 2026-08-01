@@ -44,9 +44,9 @@ export function DataTable<T>({ columns, rows, meta, loading, search, onSearch, o
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-start">
+            <tr className="border-b border-slate-150 text-start">
               {columns.map((c, i) => (
-                <th key={i} className={`px-4 py-3 text-start font-medium text-slate-600 ${c.className ?? ""}`}>
+                <th key={i} className={`table-header text-start ${c.className ?? ""}`}>
                   {c.header}
                 </th>
               ))}
@@ -55,21 +55,21 @@ export function DataTable<T>({ columns, rows, meta, loading, search, onSearch, o
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-400">
                   {t("common.loading")}
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-400">
                   {t("common.noData")}
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={rowKey(row)} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <tr key={rowKey(row)} className="table-row">
                   {columns.map((c, i) => (
-                    <td key={i} className={`px-4 py-3 ${c.className ?? ""}`}>
+                    <td key={i} className={`table-cell ${c.className ?? ""}`}>
                       {c.render(row)}
                     </td>
                   ))}

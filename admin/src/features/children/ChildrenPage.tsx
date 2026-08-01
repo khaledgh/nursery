@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { HeartPulse, Pencil, Plus, Trash2, UserPlus, X } from "lucide-react";
+import { HeartPulse, Pencil, Plus, Trash2, UserPlus, X, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,7 @@ import { usePagedList } from "../../hooks/usePagedList";
 import { api } from "../../lib/api";
 import { applyServerErrors } from "../../lib/formErrors";
 import { HealthPanel } from "./HealthPanel";
+import { QuickHubModal } from "./QuickHubModal";
 import type { Child, Classroom, ItemResponse, ListResponse, User } from "../../types/api";
 
 const childSchema = z.object({
@@ -62,6 +63,7 @@ export function ChildrenPage() {
   const [deleting, setDeleting] = useState<Child | null>(null);
   const [guardiansFor, setGuardiansFor] = useState<Child | null>(null);
   const [healthFor, setHealthFor] = useState<Child | null>(null);
+  const [hubFor, setHubFor] = useState<Child | null>(null);
   const [error, setError] = useState("");
 
   const form = useForm<ChildForm>({ resolver: zodResolver(childSchema) });
@@ -174,9 +176,12 @@ export function ChildrenPage() {
     },
     {
       header: t("common.actions"),
-      className: "w-36",
+      className: "w-44",
       render: (c) => (
         <div className="flex gap-1">
+          <button className="btn-secondary !p-1.5 text-brand-650" title="Care & Milestones Hub" onClick={() => setHubFor(c)}>
+            <ClipboardList size={14} />
+          </button>
           <button className="btn-secondary !p-1.5" title="Guardians" onClick={() => setGuardiansFor(c)}>
             <UserPlus size={14} />
           </button>
@@ -331,6 +336,12 @@ export function ChildrenPage() {
       >
         {healthFor && <HealthPanel childId={healthFor.id} />}
       </Modal>
+
+      <QuickHubModal
+        child={hubFor}
+        open={hubFor !== null}
+        onClose={() => setHubFor(null)}
+      />
 
       <ConfirmDialog
         open={deleting !== null}
