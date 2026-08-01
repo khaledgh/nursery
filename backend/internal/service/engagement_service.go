@@ -668,8 +668,11 @@ func (s *EngagementService) CreateReminder(ctx context.Context, req *dto.CreateR
 	s.audit.Record(ctx, actorID, "create", "reminder", r.ID, map[string]any{"scope": r.Scope}, ip)
 	// Reminders are otherwise only sent by the 07:00 cron on their date, so one
 	// created for today after 07:00 would never reach anyone. Future-dated ones
-	// still wait for the cron, which is what makes them a reminder.
-	if r.Date == time.Now().Format("2006-01-02") {
+	// still wait for the cron. We check today and tomorrow in UTC to account for
+	// timezone differences where the user's local day has already advanced.
+	todayStr := time.Now().Format("2006-01-02")
+	tomorrowStr := time.Now().Add(24 * time.Hour).Format("2006-01-02")
+	if r.Date == todayStr || r.Date == tomorrowStr {
 		s.NotifyReminder(ctx, r)
 		now := time.Now()
 		if err := s.db.WithContext(ctx).Model(r).Update("notified_at", now).Error; err == nil {
