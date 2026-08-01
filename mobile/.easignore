@@ -1,0 +1,19 @@
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Android build outputs and caches
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/local.properties
+*.apk
+*.aab
+
+# iOS build outputs and caches
+ios/build/
+ios/Pods/
+ios/DerivedData/
+*.xcarchive

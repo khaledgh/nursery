@@ -4,17 +4,15 @@
 module.exports = {
   expo: {
     name: "Little Talent Childcare",
-    // slug/scheme/bundle identifiers stay on the original values: changing them
-    // would break the EAS project link and the existing store listings.
-    slug: "sunny-stars",
-    scheme: "sunnystars",
+    slug: "little-talent-childcare",
+    scheme: "littletalentchildcare",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "app.sunnystars.mobile",
+      bundleIdentifier: "com.littletalentchildcare",
       infoPlist: {
         // Lets a push wake the app to fetch before the notification is shown.
         UIBackgroundModes: ["remote-notification"],
@@ -25,7 +23,7 @@ module.exports = {
       },
     },
     android: {
-      package: "app.sunnystars.mobile",
+      package: "com.littletalentchildcare",
       adaptiveIcon: {
         // White to match the logo artwork, which is drawn for a white ground.
         backgroundColor: "#ffffff",
@@ -92,6 +90,9 @@ module.exports = {
     extra: {
       apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "",
       oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID ?? "",
+      eas: {
+        projectId: "823db919-bdf6-4630-a788-d2506f124fbc"
+      }
     },
   },
 };
