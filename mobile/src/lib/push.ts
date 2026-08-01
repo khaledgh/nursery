@@ -49,14 +49,16 @@ export function initPush() {
 
   // Deep linking on notification tap
   OneSignal.Notifications.addEventListener("click", (event: any) => {
-    const data = event.notification.additionalData as { url?: string; type?: string; conversation_id?: number } | undefined;
+    const data = event.notification.additionalData as { url?: string; type?: string; conversation_id?: number; screen?: string } | undefined;
+    const { router } = require("expo-router");
     if (data?.url) {
-      // Dynamic import router to avoid early circular dependencies
-      const { router } = require("expo-router");
       router.push(data.url);
     } else if (data?.type === "chat" && data?.conversation_id) {
-      const { router } = require("expo-router");
       router.push(`/chat/${data.conversation_id}`);
+    } else if (data?.screen) {
+      router.push(`/${data.screen}`);
+    } else {
+      router.push("/notifications");
     }
   });
 

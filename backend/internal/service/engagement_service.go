@@ -682,7 +682,7 @@ func (s *EngagementService) CreateReminder(ctx context.Context, req *dto.CreateR
 // NotifyReminder fans a reminder out to its scope. Shared with the cron so the
 // two paths cannot drift apart.
 func (s *EngagementService) NotifyReminder(ctx context.Context, r *model.Reminder) {
-	data := map[string]any{"screen": "reminders", "reminder_id": r.ID}
+	data := map[string]any{"screen": "reminders", "reminder_id": r.ID, "url": "/reminders"}
 	switch r.Scope {
 	case "global":
 		s.notifier.NotifyRole(ctx, string(model.RoleParent), model.CategoryReminders,
