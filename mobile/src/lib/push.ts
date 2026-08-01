@@ -6,6 +6,23 @@ import { useAuthStore } from "../store/auth";
 
 const appId = (Constants.expoConfig?.extra?.oneSignalAppId as string | undefined) ?? "";
 
+/** Safely perform router navigation deferred until Expo Router layout has mounted */
+function safeNavigate(targetUrl: string) {
+  setTimeout(() => {
+    try {
+      const { router } = require("expo-router");
+      router.push(targetUrl);
+    } catch {
+      setTimeout(() => {
+        try {
+          const { router } = require("expo-router");
+          router.push(targetUrl);
+        } catch {}
+      }, 500);
+    }
+  }, 300);
+}
+
 /** The id OneSignal last reported for this device, so we only POST on change. */
 let registeredId: string | null = null;
 
@@ -50,16 +67,15 @@ export function initPush() {
   // Deep linking on notification tap
   OneSignal.Notifications.addEventListener("click", (event: any) => {
     const data = event.notification.additionalData as { url?: string; type?: string; conversation_id?: number; screen?: string } | undefined;
-    const { router } = require("expo-router");
+    let target = "/notifications";
     if (data?.url) {
-      router.push(data.url);
+      target = data.url;
     } else if (data?.type === "chat" && data?.conversation_id) {
-      router.push(`/chat/${data.conversation_id}`);
+      target = `/chat/${data.conversation_id}`;
     } else if (data?.screen) {
-      router.push(`/${data.screen}`);
-    } else {
-      router.push("/notifications");
+      target = `/${data.screen}`;
     }
+    safeNavigate(target);
   });
 
   // Fires whenever the subscription id changes — including the first time it is

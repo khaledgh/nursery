@@ -35,16 +35,17 @@ func NewOneSignalClient(appID, apiKey string) *OneSignalClient {
 func (c *OneSignalClient) Enabled() bool { return c.appID != "" && c.apiKey != "" }
 
 type pushPayload struct {
-	AppID             string            `json:"app_id"`
-	IncludePlayerIDs  []string          `json:"include_player_ids"`
-	Headings          map[string]string `json:"headings"`
-	Contents          map[string]string `json:"contents"`
-	Data              map[string]any    `json:"data,omitempty"`
-	Priority          int               `json:"priority"`
-	AndroidSound      string            `json:"android_sound,omitempty"`
-	IOSSound          string            `json:"ios_sound,omitempty"`
-	AndroidVisibility int               `json:"android_visibility"`
-	ContentAvailable  bool              `json:"content_available"`
+	AppID              string            `json:"app_id"`
+	IncludePlayerIDs   []string          `json:"include_player_ids"`
+	Headings           map[string]string `json:"headings"`
+	Contents           map[string]string `json:"contents"`
+	Data               map[string]any    `json:"data,omitempty"`
+	Priority           int               `json:"priority"`
+	AndroidSound       string            `json:"android_sound,omitempty"`
+	IOSSound           string            `json:"ios_sound,omitempty"`
+	AndroidVisibility  int               `json:"android_visibility"`
+	ContentAvailable   bool              `json:"content_available"`
+	AndroidChannelID   string            `json:"android_channel_id,omitempty"`
 }
 
 // SendToPlayers pushes title/body to specific OneSignal player ids.
@@ -93,6 +94,11 @@ func (c *OneSignalClient) SendLocalized(ctx context.Context, byLocale map[string
 		const batch = 2000
 		for start := 0; start < len(ids); start += batch {
 			end := min(start+batch, len(ids))
+			// Determine channel: chat messages get their own channel, everything else uses nursery_high.
+			channelID := "nursery_high"
+			if dataType, _ := data["type"].(string); dataType == "chat" {
+				channelID = "nursery_messages"
+			}
 			payload := pushPayload{
 				AppID:             c.appID,
 				IncludePlayerIDs:  ids[start:end],
@@ -104,6 +110,7 @@ func (c *OneSignalClient) SendLocalized(ctx context.Context, byLocale map[string
 				IOSSound:          "default",
 				AndroidVisibility: 1,
 				ContentAvailable:  true,
+				AndroidChannelID:  channelID,
 			}
 			if err := c.post(ctx, payload); err != nil {
 				return err
