@@ -8,6 +8,7 @@ import { z } from "zod";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
+import { ClassroomPicker, ChildPicker } from "../../components/Pickers";
 import { api } from "../../lib/api";
 import { applyServerErrors } from "../../lib/formErrors";
 import type { ItemResponse, Reminder } from "../../types/api";
@@ -119,8 +120,18 @@ export function RemindersPage() {
               </select>
             </FormField>
             {scope !== "global" && (
-              <FormField label={`${scope} ID`}>
-                <input className="input" type="number" {...form.register("scope_id")} />
+              <FormField label={scope === "classroom" ? "Classroom" : "Child"}>
+                {scope === "classroom" ? (
+                  <ClassroomPicker
+                    value={form.watch("scope_id") || ""}
+                    onChange={(id) => form.setValue("scope_id", id)}
+                  />
+                ) : (
+                  <ChildPicker
+                    value={form.watch("scope_id") || ""}
+                    onChange={(id) => form.setValue("scope_id", id)}
+                  />
+                )}
               </FormField>
             )}
           </div>
