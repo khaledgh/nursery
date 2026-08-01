@@ -35,11 +35,16 @@ func NewOneSignalClient(appID, apiKey string) *OneSignalClient {
 func (c *OneSignalClient) Enabled() bool { return c.appID != "" && c.apiKey != "" }
 
 type pushPayload struct {
-	AppID            string            `json:"app_id"`
-	IncludePlayerIDs []string          `json:"include_player_ids"`
-	Headings         map[string]string `json:"headings"`
-	Contents         map[string]string `json:"contents"`
-	Data             map[string]any    `json:"data,omitempty"`
+	AppID             string            `json:"app_id"`
+	IncludePlayerIDs  []string          `json:"include_player_ids"`
+	Headings          map[string]string `json:"headings"`
+	Contents          map[string]string `json:"contents"`
+	Data              map[string]any    `json:"data,omitempty"`
+	Priority          int               `json:"priority"`
+	AndroidSound      string            `json:"android_sound,omitempty"`
+	IOSSound          string            `json:"ios_sound,omitempty"`
+	AndroidVisibility int               `json:"android_visibility"`
+	ContentAvailable  bool              `json:"content_available"`
 }
 
 // SendToPlayers pushes title/body to specific OneSignal player ids.
@@ -89,11 +94,16 @@ func (c *OneSignalClient) SendLocalized(ctx context.Context, byLocale map[string
 		for start := 0; start < len(ids); start += batch {
 			end := min(start+batch, len(ids))
 			payload := pushPayload{
-				AppID:            c.appID,
-				IncludePlayerIDs: ids[start:end],
-				Headings:         headings,
-				Contents:         contents,
-				Data:             data,
+				AppID:             c.appID,
+				IncludePlayerIDs:  ids[start:end],
+				Headings:          headings,
+				Contents:          contents,
+				Data:              data,
+				Priority:          10,
+				AndroidSound:      "notification",
+				IOSSound:          "default",
+				AndroidVisibility: 1,
+				ContentAvailable:  true,
 			}
 			if err := c.post(ctx, payload); err != nil {
 				return err

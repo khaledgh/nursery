@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useConversations, useGetOrCreateConversation } from "../../src/api/hooks";
 import type { Conversation } from "../../src/api/types";
-import { PrimaryButton, SecondaryButton } from "../../src/components/Buttons";
+import { GhostButton, PrimaryButton } from "../../src/components/Buttons";
 import { IconCircle } from "../../src/components/IconCircle";
 import { PillBadge } from "../../src/components/PillBadge";
 import { SectionHeader } from "../../src/components/SectionHeader";
@@ -15,7 +15,7 @@ import { useAuthStore } from "../../src/store/auth";
 import { colors, fonts, radius, spacing } from "../../src/theme";
 
 export default function ConversationsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const convsQuery = useConversations();
@@ -71,15 +71,15 @@ export default function ConversationsScreen() {
           <View style={styles.buttonRow}>
             <View style={{ flex: 1 }}>
               <PrimaryButton
-                label="Chat with Teacher"
+                label="Teacher"
                 icon="chatbubbles-outline"
                 loading={startConv.isPending}
                 onPress={handleStartTeacherChat}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <SecondaryButton
-                label="Chat with Admin"
+              <GhostButton
+                label="Admin"
                 icon="shield-checkmark-outline"
                 loading={startConv.isPending}
                 onPress={handleStartAdminChat}
@@ -111,7 +111,7 @@ export default function ConversationsScreen() {
                   <View style={styles.nameRow}>
                     <Text style={styles.name}>{name}</Text>
                     {c.unread_count && c.unread_count > 0 ? (
-                      <PillBadge label={`${c.unread_count} new`} accent="danger" />
+                      <PillBadge label={`${c.unread_count} new`} accent="health" />
                     ) : null}
                   </View>
                   <Text style={styles.preview} numberOfLines={1}>
@@ -119,7 +119,7 @@ export default function ConversationsScreen() {
                   </Text>
                   {c.last_message_at ? (
                     <Text style={styles.time}>
-                      {formatDate(c.last_message_at)} · {formatTime(c.last_message_at)}
+                      {formatDate(c.last_message_at, i18n.language)} · {formatTime(c.last_message_at, i18n.language)}
                     </Text>
                   ) : null}
                 </View>

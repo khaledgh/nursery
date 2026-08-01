@@ -22,7 +22,7 @@ import { colors, fonts, radius, spacing } from "../../src/theme";
 export default function ChatRoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const conversationId = Number(id);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
   const [text, setText] = useState("");
@@ -66,7 +66,7 @@ export default function ChatRoomScreen() {
             {item.body}
           </Text>
           <Text style={[styles.timeText, isMine ? styles.myTime : styles.theirTime]}>
-            {formatTime(item.created_at)}
+            {formatTime(item.created_at, i18n.language)}
           </Text>
         </View>
       </View>
@@ -74,9 +74,9 @@ export default function ChatRoomScreen() {
   };
 
   return (
-    <Screen style={{ paddingHorizontal: 0 }}>
+    <Screen>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={{ flex: 1, marginHorizontal: -spacing.md, marginBottom: -spacing.md }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={80}
       >

@@ -72,7 +72,7 @@ export default function NotificationSettingsScreen() {
         </View>
       </Card>
 
-      <Card style={[styles.card, !pushEnabled && styles.disabledCard]}>
+      <Card style={[styles.card, !pushEnabled ? styles.disabledCard : {}]}>
         <Text style={styles.sectionHeader}>Notification Categories</Text>
 
         <View style={styles.row}>

@@ -43,12 +43,12 @@ export function initPush() {
   OneSignal.initialize(appId);
 
   // Foreground notification display (WhatsApp style heads-up alert)
-  OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event) => {
+  OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
     event.getNotification().display();
   });
 
   // Deep linking on notification tap
-  OneSignal.Notifications.addEventListener("click", (event) => {
+  OneSignal.Notifications.addEventListener("click", (event: any) => {
     const data = event.notification.additionalData as { url?: string; type?: string; conversation_id?: number } | undefined;
     if (data?.url) {
       // Dynamic import router to avoid early circular dependencies
@@ -76,8 +76,8 @@ export function initPush() {
 function onAuthenticated(userId: number) {
   // External id lets the backend target a person across their devices.
   OneSignal.login(String(userId));
-  // false = show the OS prompt now rather than deferring to a rationale screen.
-  void OneSignal.Notifications.requestPermission(false);
+  // Request full OS push notification permissions (alert banner, sound, badge).
+  void OneSignal.Notifications.requestPermission(true);
   // The change listener covers ids issued later; this catches one already
   // assigned before login (a returning user on a known device).
   void OneSignal.User.pushSubscription.getIdAsync().then(syncSubscription);

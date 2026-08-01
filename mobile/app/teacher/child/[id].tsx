@@ -396,7 +396,7 @@ export default function TeacherChildHub() {
           <EnumPicker
             label={t("milestones.category", "Category")}
             options={categoriesQuery.data.map((c) => String(c.id))}
-            visuals={Object.fromEntries(categoriesQuery.data.map((c) => [String(c.id), { label: c.name, emoji: "🎯" }]))}
+            visuals={Object.fromEntries(categoriesQuery.data.map((c) => [String(c.id), { icon: "trophy", accent: "primary", emoji: "🎯" }])) as any}
             i18nPrefix=""
             value={selectedCatId ? String(selectedCatId) : String(categoriesQuery.data[0].id)}
             onChange={(v) => setSelectedCatId(Number(v))}
@@ -416,9 +416,9 @@ export default function TeacherChildHub() {
           label={t("milestones.status", "Status")}
           options={["in_progress", "achieved"]}
           visuals={{
-            in_progress: { label: t("milestones.inProgress", "In Progress"), emoji: "⏳" },
-            achieved: { label: t("milestones.achieved", "Achieved"), emoji: "⭐" },
-          }}
+            in_progress: { icon: "time", accent: "meals", emoji: "⏳" },
+            achieved: { icon: "star", accent: "activity", emoji: "⭐" },
+          } as any}
           i18nPrefix=""
           value={milestoneStatus}
           onChange={(v) => setMilestoneStatus(v as any)}

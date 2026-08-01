@@ -2,14 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { errorMessage } from "../src/api/client";
 import {
   useComment,
   useCommunityPosts,
   useCreatePost,
   useMeetupRsvp,
+  usePlatformSettings,
   useToggleLike,
+  useUpdatePlatformSettings,
 } from "../src/api/hooks";
 import type { CommunityPost } from "../src/api/types";
 import { ChildAvatar } from "../src/components/ChildAvatar";
@@ -204,7 +206,7 @@ export default function CommunityScreen() {
           composer === "activity" && meetupTitle.trim()
             ? {
                 title: meetupTitle.trim(),
-                location: meetupLocation.trim() || undefined,
+                location: meetupLocation.trim(),
                 starts_at: meetupWhen.trim() || new Date(Date.now() + 86400000).toISOString(),
               }
             : undefined,
@@ -248,7 +250,7 @@ export default function CommunityScreen() {
       {/* Closed Banner for Non-Admins */}
       {!isCommunityOpen && !isAdmin && (
         <Card style={styles.closedBanner}>
-          <IconCircle name="lock-closed" accent="danger" size={40} />
+          <IconCircle name="lock-closed" accent="health" size={40} />
           <View style={{ flex: 1 }}>
             <Text style={styles.closedTitle}>Community Feed Closed</Text>
             <Text style={styles.closedSub}>Posting and commenting are currently disabled by administration.</Text>
