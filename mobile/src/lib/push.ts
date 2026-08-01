@@ -33,18 +33,23 @@ let registeredId: string | null = null;
  * in; onAuthenticated() replays it once a token exists.
  */
 async function syncSubscription(id: string | null | undefined) {
+  console.log("[Push] syncSubscription called with ID:", id, "current registeredId:", registeredId);
   if (!id || id === registeredId) return;
-  if (!useAuthStore.getState().accessToken) return;
+  if (!useAuthStore.getState().accessToken) {
+    console.log("[Push] syncSubscription skipped: No access token available yet");
+    return;
+  }
   try {
+    console.log("[Push] Sending device registration to backend...");
     await api.post("/devices", {
       onesignal_player_id: id,
       platform: Platform.OS === "ios" ? "ios" : "android",
       locale: useAuthStore.getState().locale,
     });
+    console.log("[Push] Device registered successfully!");
     registeredId = id;
-  } catch {
-    // A failed registration only costs this device its pushes; leaving
-    // registeredId unset means the next auth change retries.
+  } catch (err) {
+    console.error("[Push] Failed to register device with backend:", err);
   }
 }
 
@@ -82,6 +87,21 @@ export function initPush() {
   watchAuth();
 }
 
+async function pollForSubscriptionId(attempts = 0) {
+  if (!useAuthStore.getState().accessToken) return;
+  const id = await OneSignal.User.pushSubscription.getIdAsync();
+  console.log(`[Push] pollForSubscriptionId attempt ${attempts}: ID is`, id);
+  if (id) {
+    void syncSubscription(id);
+  } else if (attempts < 20) {
+    setTimeout(() => {
+      void pollForSubscriptionId(attempts + 1);
+    }, 1000);
+  } else {
+    console.warn("[Push] Giving up polling for OneSignal subscription ID after 20 attempts.");
+  }
+}
+
 /**
  * Once the user is logged in: ask for permission, tie the device to the
  * account, and register the subscription that init may have raced past.
@@ -91,9 +111,8 @@ function onAuthenticated(userId: number) {
   OneSignal.login(String(userId));
   // Request full OS push notification permissions (alert banner, sound, badge).
   void OneSignal.Notifications.requestPermission(true);
-  // The change listener covers ids issued later; this catches one already
-  // assigned before login (a returning user on a known device).
-  void OneSignal.User.pushSubscription.getIdAsync().then(syncSubscription);
+  // Periodically check for the subscription ID until OneSignal initialises
+  void pollForSubscriptionId();
 }
 
 /** On logout, so the next account on this device is not pushed to. */

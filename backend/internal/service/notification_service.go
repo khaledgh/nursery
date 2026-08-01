@@ -88,7 +88,13 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 		s.log.Error().Err(err).Msg("notification recipient lookup failed")
 		return
 	}
+	s.log.Info().
+		Str("category", category).
+		Interface("user_ids", userIDs).
+		Msg("Resolved notification recipients")
+
 	if len(userIDs) == 0 {
+		s.log.Info().Msg("No recipients found for notification, skipping delivery")
 		return
 	}
 
@@ -106,6 +112,7 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 	}
 
 	if !s.onesignal.Enabled() {
+		s.log.Info().Msg("OneSignal client is disabled (missing credentials), skipping push delivery")
 		return
 	}
 
@@ -115,32 +122,57 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 		var setting model.UserNotificationSetting
 		err := s.db.WithContext(ctx).Where("user_id = ?", uid).First(&setting).Error
 		if err == nil {
+			s.log.Info().
+				Uint64("user_id", uid).
+				Str("category", category).
+				Bool("push_enabled", setting.PushEnabled).
+				Bool("messages_enabled", setting.MessagesEnabled).
+				Bool("announcements_enabled", setting.AnnouncementsEnabled).
+				Bool("reminders_enabled", setting.RemindersEnabled).
+				Bool("events_enabled", setting.EventsEnabled).
+				Msg("Checking user notification preference in DB")
 			if !setting.PushEnabled {
+				s.log.Info().Uint64("user_id", uid).Msg("Skipping push: PushEnabled is false")
 				continue
 			}
 			switch category {
 			case model.CategoryMessages:
 				if !setting.MessagesEnabled {
+					s.log.Info().Uint64("user_id", uid).Msg("Skipping push: MessagesEnabled is false")
 					continue
 				}
 			case model.CategoryUpdates:
 				if !setting.AnnouncementsEnabled {
+					s.log.Info().Uint64("user_id", uid).Msg("Skipping push: AnnouncementsEnabled is false")
 					continue
 				}
 			case model.CategoryReminders:
 				if !setting.RemindersEnabled {
+					s.log.Info().Uint64("user_id", uid).Msg("Skipping push: RemindersEnabled is false")
 					continue
 				}
 			case model.CategoryEvents:
 				if !setting.EventsEnabled {
+					s.log.Info().Uint64("user_id", uid).Msg("Skipping push: EventsEnabled is false")
 					continue
 				}
 			}
+		} else {
+			s.log.Info().
+				Uint64("user_id", uid).
+				Str("category", category).
+				Err(err).
+				Msg("No user preference setting row found (defaulting to enabled)")
 		}
 		pushUserIDs = append(pushUserIDs, uid)
 	}
 
+	s.log.Info().
+		Interface("push_user_ids", pushUserIDs).
+		Msg("Filtered user IDs for push delivery")
+
 	if len(pushUserIDs) == 0 {
+		s.log.Info().Msg("All recipient user IDs were filtered out, skipping push delivery")
 		return
 	}
 
@@ -157,11 +189,16 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 		s.log.Error().Err(err).Msg("device token lookup failed")
 		return
 	}
+	s.log.Info().
+		Interface("devices_found", devices).
+		Msg("Device tokens found in DB for push")
+
 	byLocale := make(map[string][]string, 2)
 	for _, d := range devices {
 		byLocale[d.Locale] = append(byLocale[d.Locale], d.OneSignalPlayerID)
 	}
 	if len(byLocale) == 0 {
+		s.log.Info().Msg("No OneSignal player IDs found in DB for recipients, skipping push delivery")
 		return
 	}
 	// Bodies are not translated yet, so every locale gets the same text; the
@@ -169,6 +206,8 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 	texts := map[string]notification.Text{"en": {Title: title, Body: body}}
 	if err := s.onesignal.SendLocalized(ctx, byLocale, texts, data); err != nil {
 		s.log.Error().Err(err).Msg("onesignal push failed")
+	} else {
+		s.log.Info().Msg("OneSignal push delivery request completed successfully!")
 	}
 }
 
