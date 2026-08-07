@@ -10,6 +10,8 @@
     "title": "Little Talent Childcare",
     "subtitle": "سجّل الدخول لمتابعة يوم طفلك",
     "email": "البريد الإلكتروني",
+    "loginId": "معرّف الدخول",
+    "loginIdHint": "المعرّف الذي منحتك إياه الحضانة",
     "password": "كلمة المرور",
     "submit": "تسجيل الدخول"
   },

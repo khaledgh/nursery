@@ -5,7 +5,7 @@ import "time"
 // ClassroomScheduleItem is one recurring slot in a classroom's weekly routine
 // ("Circle Time 09:00"). Weekday follows Go's time.Weekday (0=Sunday).
 type ClassroomScheduleItem struct {
-	Base
+	TenantBase
 	ClassroomID uint64 `gorm:"not null;index:idx_schedule_room_day" json:"classroom_id"`
 	Weekday     int    `gorm:"not null;index:idx_schedule_room_day" json:"weekday"`
 	StartsAt    string `gorm:"size:8;not null" json:"starts_at"` // "09:00"
@@ -27,7 +27,7 @@ const (
 // WeeklyPlan is a classroom's curated learning plan for one Monday-start week:
 // learning areas, per-day activities and the values/skills being nurtured.
 type WeeklyPlan struct {
-	Base
+	TenantBase
 	ClassroomID uint64           `gorm:"not null;uniqueIndex:ux_plan_room_week" json:"classroom_id"`
 	WeekStart   time.Time        `gorm:"type:date;not null;uniqueIndex:ux_plan_room_week" json:"week_start"`
 	Note        string           `gorm:"size:1000" json:"note"`

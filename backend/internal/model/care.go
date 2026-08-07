@@ -18,7 +18,7 @@ const (
 )
 
 type DiaryEntry struct {
-	Base
+	TenantBase
 	ChildID        uint64       `gorm:"not null;index:idx_diary_child_time" json:"child_id"`
 	Type           DiaryType    `gorm:"type:enum('meal','sleep','activity','diaper','note','photo');not null" json:"type"`
 	Title          string       `gorm:"size:191;not null" json:"title"`
@@ -39,7 +39,7 @@ type DiaryMedia struct {
 }
 
 type MealLog struct {
-	Base
+	TenantBase
 	ChildID  uint64    `gorm:"not null;index:idx_meal_child_time" json:"child_id"`
 	MealType string    `gorm:"type:enum('breakfast','lunch','snack','dinner');not null" json:"meal_type"`
 	Status   string    `gorm:"type:enum('ate_well','ate_half','ate_little','didnt_eat');not null" json:"status"`
@@ -50,7 +50,7 @@ type MealLog struct {
 }
 
 type HydrationLog struct {
-	Base
+	TenantBase
 	ChildID uint64    `gorm:"not null;uniqueIndex:ux_hydration_child_date" json:"child_id"`
 	Date    time.Time `gorm:"type:date;not null;uniqueIndex:ux_hydration_child_date" json:"date"`
 	Cups    int       `gorm:"not null;default:0" json:"cups"`
@@ -58,7 +58,7 @@ type HydrationLog struct {
 }
 
 type WeeklyMenu struct {
-	Base
+	TenantBase
 	ClassroomID uint64         `gorm:"not null;uniqueIndex:ux_menu_room_date_type" json:"classroom_id"`
 	Date        time.Time      `gorm:"type:date;not null;uniqueIndex:ux_menu_room_date_type" json:"date"`
 	MealType    string         `gorm:"type:enum('breakfast','lunch','snack','dinner');not null;uniqueIndex:ux_menu_room_date_type" json:"meal_type"`
@@ -78,7 +78,7 @@ type MenuRating struct {
 }
 
 type SleepLog struct {
-	Base
+	TenantBase
 	ChildID        uint64    `gorm:"not null;index:idx_sleep_child_start" json:"child_id"`
 	StartAt        time.Time `gorm:"not null;index:idx_sleep_child_start" json:"start_at"`
 	EndAt          time.Time `gorm:"not null" json:"end_at"`
@@ -92,7 +92,7 @@ type SleepLog struct {
 }
 
 type DiaperLog struct {
-	Base
+	TenantBase
 	ChildID uint64    `gorm:"not null;index:idx_diaper_child_time" json:"child_id"`
 	Time    time.Time `gorm:"not null;index:idx_diaper_child_time" json:"time"`
 	Wetness string    `gorm:"type:enum('dry','wet','heavy');not null" json:"wetness"`

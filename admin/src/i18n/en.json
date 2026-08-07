@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Little Talent Childcare" },
+  "app": {
+    "name": "Little Talent Childcare"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "users": "Users",
@@ -19,7 +21,12 @@
     "locales": "Languages",
     "settings": "Settings",
     "audit": "Audit Logs",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "messages": "Messages",
+    "billing": "Subscription",
+    "nurseries": "Nurseries",
+    "plans_admin": "Plans & billing",
+    "analytics": "Analytics"
   },
   "auth": {
     "title": "Sign in to Little Talent Childcare",

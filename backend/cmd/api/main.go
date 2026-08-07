@@ -33,6 +33,7 @@ import (
 	"github.com/sunnystars/backend/internal/repository"
 	"github.com/sunnystars/backend/internal/service"
 	"github.com/sunnystars/backend/internal/storage"
+	"github.com/sunnystars/backend/internal/ws"
 )
 
 func main() {
@@ -51,6 +52,16 @@ func main() {
 	db, err := openDB(cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection failed")
+	}
+
+	// Scope every query on a tenant-owned table to the nursery on the request
+	// context. Enforced here rather than in repositories because most services
+	// hold *gorm.DB directly and issue ad-hoc queries; a repo-level predicate
+	// would be easy to forget and the failure mode is a silent data leak.
+	// Outside production a missing scope panics, so the bug surfaces in tests
+	// instead of leaking at runtime.
+	if err := database.RegisterTenancy(db, !cfg.IsProduction()); err != nil {
+		log.Fatal().Err(err).Msg("tenancy setup failed")
 	}
 
 	signer := mediaSigner(cfg)
@@ -86,7 +97,8 @@ func main() {
 	notifier := service.NewNotificationService(db, onesignal, log)
 	authSvc := service.NewAuthService(userRepo, tokenRepo, jwts, cfg.Auth.RefreshTTL, log)
 	userSvc := service.NewUserService(userRepo, tokenRepo, auditSvc)
-	childSvc := service.NewChildService(childRepo, userRepo, auditSvc)
+	subscriptionSvc := service.NewSubscriptionService(db)
+	childSvc := service.NewChildService(childRepo, userRepo, auditSvc, subscriptionSvc)
 	classroomSvc := service.NewClassroomService(classroomRepo, userRepo, localeSvc, auditSvc)
 	attendanceSvc := service.NewAttendanceService(attendanceRepo, childRepo, childSvc, auditSvc, notifier)
 	mediaSvc := service.NewMediaService(db, store)
@@ -142,7 +154,9 @@ func main() {
 		},
 	})
 	public := api.Group("", authLimiter)
-	protected := api.Group("", mw.JWT(jwts))
+	// Tenant must follow JWT: it reads the nursery from the verified claims and
+	// puts it on the request context for the GORM tenancy callbacks.
+	protected := api.Group("", mw.JWT(jwts), mw.Tenant())
 	// Signed media URLs are unauthenticated but must not share the auth
 	// brute-force limiter: one gallery view is dozens of image requests.
 	media := api.Group("")
@@ -156,7 +170,7 @@ func main() {
 		return response.OK(c, locales)
 	})
 
-	handler.NewAuthHandler(authSvc, localeSvc).Register(public, protected)
+	handler.NewAuthHandler(authSvc, localeSvc).Register(public, protected, mw.NewLoginLimiter().Middleware())
 	handler.NewUserHandler(userSvc).Register(protected)
 	handler.NewChildHandler(childSvc).Register(protected)
 	handler.NewClassroomHandler(classroomSvc).Register(protected)
@@ -171,12 +185,27 @@ func main() {
 	paymentHandler.Register(protected)
 	paymentHandler.RegisterWebhook(public) // gateway callback: no JWT, rate-limited, verifies via gateway
 
-	chatSvc := service.NewChatService(db, notifier, log)
+	// Realtime chat. Polling stays in place on both clients as a fallback, so a
+	// dropped socket degrades to the previous behaviour instead of going stale.
+	hub := ws.NewHub(log)
+	tickets := ws.NewTicketStore()
+	handler.NewWSHandler(hub, tickets, cfg.App.CORSOrigins).Register(protected, public)
+
+	chatSvc := service.NewChatService(db, notifier, hub, log)
 	chatHandler := handler.NewChatHandler(chatSvc)
 	chatHandler.RegisterRoutes(protected)
 
 	notifSettingHandler := handler.NewNotificationSettingsHandler(notifier)
 	notifSettingHandler.RegisterRoutes(protected)
+
+	familySvc := service.NewFamilyService(db, subscriptionSvc, auditSvc)
+	handler.NewFamilyHandler(familySvc).Register(protected)
+
+	superAdminSvc := service.NewSuperAdminService(db, subscriptionSvc, jwts, auditSvc)
+	handler.NewSuperAdminHandler(superAdminSvc, subscriptionSvc).Register(protected)
+	// /me/context is one call the admin SPA makes on load: who am I, which
+	// nursery, which modules, and how many seats are left.
+	handler.NewContextHandler(subscriptionSvc, userSvc, service.NewSearchService(db, subscriptionSvc), db).Register(protected)
 
 	platformHandler := handler.NewPlatformHandler(translationSvc, settingsSvc, localeAdminSvc, localeSvc)
 	platformHandler.RegisterPublic(api)

@@ -15,6 +15,7 @@ import { applyServerErrors } from "../../lib/formErrors";
 import { HealthPanel } from "./HealthPanel";
 import { QuickHubModal } from "./QuickHubModal";
 import type { Child, Classroom, ItemResponse, ListResponse, User } from "../../types/api";
+import { Link } from "react-router-dom";
 
 const childSchema = z.object({
   first_name: z.string().min(1).max(100),
@@ -151,9 +152,9 @@ export function ChildrenPage() {
     {
       header: t("common.name"),
       render: (c) => (
-        <span className="font-medium">
+        <Link to={`/children/${c.id}`} className="font-bold text-brand-700 hover:underline">
           {c.first_name} {c.last_name}
-        </span>
+        </Link>
       ),
     },
     { header: "DOB", render: (c) => c.dob.slice(0, 10) },

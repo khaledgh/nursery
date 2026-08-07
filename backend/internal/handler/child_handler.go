@@ -28,8 +28,12 @@ func (h *ChildHandler) Register(protected *echo.Group) {
 
 	admin := protected.Group("/admin", mw.RequireRole(model.RoleAdmin))
 	admin.POST("/children", h.Create)
+	// Static path first: /children/deleted must not be captured by /children/:id.
+	admin.GET("/children/deleted", h.ListDeleted)
 	admin.PUT("/children/:id", h.Update)
 	admin.DELETE("/children/:id", h.Delete)
+	admin.POST("/children/:id/restore", h.Restore)
+	admin.DELETE("/children/:id/purge", h.Purge)
 	admin.POST("/children/:id/guardians", h.AddGuardian)
 	admin.DELETE("/children/:id/guardians/:parentId", h.RemoveGuardian)
 }
@@ -89,12 +93,52 @@ func (h *ChildHandler) Update(c echo.Context) error {
 	return response.OK(c, child)
 }
 
+// Delete soft-deletes a child. ?force=true acknowledges the unpaid-invoice
+// warning the first call returns.
 func (h *ChildHandler) Delete(c echo.Context) error {
 	id, err := paramID(c)
 	if err != nil {
 		return err
 	}
-	if err := h.children.Delete(c.Request().Context(), id, mw.UserID(c), c.RealIP()); err != nil {
+	force := c.QueryParam("force") == "true"
+	if err := h.children.Delete(c.Request().Context(), id, mw.AuditActor(c), c.RealIP(), force); err != nil {
+		return err
+	}
+	return response.NoContent(c)
+}
+
+// ListDeleted backs the "recently removed" screen, where an admin can restore
+// a child or free the seat permanently.
+func (h *ChildHandler) ListDeleted(c echo.Context) error {
+	var q dto.PageQuery
+	if err := c.Bind(&q); err != nil {
+		return apperr.BadRequest("invalid query parameters")
+	}
+	q.Normalize()
+	children, total, err := h.children.ListDeleted(c.Request().Context(), q)
+	if err != nil {
+		return err
+	}
+	return response.List(c, children, response.Meta{Page: q.Page, PerPage: q.PerPage, Total: total})
+}
+
+func (h *ChildHandler) Restore(c echo.Context) error {
+	id, err := paramID(c)
+	if err != nil {
+		return err
+	}
+	if err := h.children.Restore(c.Request().Context(), id, mw.AuditActor(c), c.RealIP()); err != nil {
+		return err
+	}
+	return response.NoContent(c)
+}
+
+func (h *ChildHandler) Purge(c echo.Context) error {
+	id, err := paramID(c)
+	if err != nil {
+		return err
+	}
+	if err := h.children.Purge(c.Request().Context(), id, mw.AuditActor(c), c.RealIP()); err != nil {
 		return err
 	}
 	return response.NoContent(c)
@@ -147,4 +191,3 @@ func (h *ChildHandler) ListMedia(c echo.Context) error {
 	}
 	return response.List(c, media, response.Meta{Page: q.Page, PerPage: q.PerPage, Total: total})
 }
-

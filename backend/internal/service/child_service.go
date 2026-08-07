@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
+	"strconv"
 	"time"
 
+	"gorm.io/gorm"
+
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -14,10 +19,11 @@ type ChildService struct {
 	children *repository.ChildRepo
 	users    *repository.UserRepo
 	audit    *AuditService
+	seats    *SubscriptionService
 }
 
-func NewChildService(children *repository.ChildRepo, users *repository.UserRepo, audit *AuditService) *ChildService {
-	return &ChildService{children: children, users: users, audit: audit}
+func NewChildService(children *repository.ChildRepo, users *repository.UserRepo, audit *AuditService, seats *SubscriptionService) *ChildService {
+	return &ChildService{children: children, users: users, audit: audit, seats: seats}
 }
 
 // Authorize returns Forbidden unless the caller may access this child.
@@ -54,6 +60,11 @@ func (s *ChildService) Create(ctx context.Context, req *dto.CreateChildRequest, 
 	if err != nil {
 		return nil, apperr.BadRequest("invalid date of birth")
 	}
+	nurseryID, ok := database.TenantFrom(ctx)
+	if !ok {
+		return nil, apperr.Internal(errors.New("child create without a nursery scope"))
+	}
+
 	ch := &model.Child{
 		FirstName:     req.FirstName,
 		LastName:      req.LastName,
@@ -65,9 +76,15 @@ func (s *ChildService) Create(ctx context.Context, req *dto.CreateChildRequest, 
 		Status:        "active",
 		PresentStatus: model.PresentOut,
 	}
-	if err := s.children.Create(ctx, ch); err != nil {
-		return nil, apperr.Internal(err)
+
+	// Seat check and insert share one transaction with the subscription row
+	// locked, so two concurrent creates can't both pass the cap.
+	if err := s.seats.WithSeatCheck(ctx, nurseryID, func(tx *gorm.DB) error {
+		return tx.WithContext(ctx).Create(ch).Error
+	}); err != nil {
+		return nil, apperr.From(err)
 	}
+
 	s.audit.Record(ctx, actorID, "create", "child", ch.ID, map[string]any{"name": ch.FirstName + " " + ch.LastName}, ip)
 	return ch, nil
 }
@@ -112,14 +129,83 @@ func (s *ChildService) Update(ctx context.Context, childID uint64, req *dto.Upda
 	return ch, nil
 }
 
-func (s *ChildService) Delete(ctx context.Context, childID, actorID uint64, ip string) error {
+// Delete soft-deletes a child, freeing their seat. The row is recoverable via
+// Restore, so this is safe to offer directly in the UI.
+//
+// force skips the unpaid-invoice guard; the UI sets it only after the admin
+// has confirmed the outstanding balance shown in the 409.
+func (s *ChildService) Delete(ctx context.Context, childID, actorID uint64, ip string, force bool) error {
 	if _, err := s.children.ByID(ctx, childID); err != nil {
 		return apperr.NotFound("child not found")
+	}
+	if !force {
+		n, total, err := s.children.CountUnpaidInvoices(ctx, childID)
+		if err != nil {
+			return apperr.Internal(err)
+		}
+		if n > 0 {
+			// Removing the child frees a seat and hides the debt from the
+			// default view, so make the admin acknowledge it first.
+			return &apperr.Error{
+				Code:    apperr.CodeConflict,
+				Message: "this child has unpaid invoices; confirm to remove anyway",
+				Fields: map[string]string{
+					"unpaid_invoices":   strconv.FormatInt(n, 10),
+					"outstanding_minor": strconv.FormatInt(total, 10),
+				},
+			}
+		}
 	}
 	if err := s.children.Delete(ctx, childID); err != nil {
 		return apperr.Internal(err)
 	}
 	s.audit.Record(ctx, actorID, "delete", "child", childID, nil, ip)
+	return nil
+}
+
+// ListDeleted powers the "recently removed" screen an admin restores from.
+func (s *ChildService) ListDeleted(ctx context.Context, q dto.PageQuery) ([]model.Child, int64, error) {
+	nurseryID, ok := database.TenantFrom(ctx)
+	if !ok {
+		return nil, 0, apperr.Internal(errors.New("list deleted without a nursery scope"))
+	}
+	return s.children.ListDeleted(ctx, q, nurseryID)
+}
+
+// Restore brings a soft-deleted child back, re-checking the seat cap first —
+// otherwise delete-then-restore would be a way straight around it.
+func (s *ChildService) Restore(ctx context.Context, childID, actorID uint64, ip string) error {
+	nurseryID, ok := database.TenantFrom(ctx)
+	if !ok {
+		return apperr.Internal(errors.New("restore without a nursery scope"))
+	}
+	if _, err := s.children.DeletedByID(ctx, childID, nurseryID); err != nil {
+		return apperr.NotFound("no removed child with that id")
+	}
+	if err := s.seats.WithSeatCheck(ctx, nurseryID, func(tx *gorm.DB) error {
+		return s.children.Restore(ctx, tx, childID)
+	}); err != nil {
+		return apperr.From(err)
+	}
+	s.audit.Record(ctx, actorID, "restore", "child", childID, nil, ip)
+	return nil
+}
+
+// Purge hard-deletes a child. Irreversible, and audited accordingly.
+func (s *ChildService) Purge(ctx context.Context, childID, actorID uint64, ip string) error {
+	nurseryID, ok := database.TenantFrom(ctx)
+	if !ok {
+		return apperr.Internal(errors.New("purge without a nursery scope"))
+	}
+	ch, err := s.children.DeletedByID(ctx, childID, nurseryID)
+	if err != nil {
+		return apperr.NotFound("no removed child with that id")
+	}
+	if err := s.children.Purge(ctx, childID); err != nil {
+		return apperr.Internal(err)
+	}
+	s.audit.Record(ctx, actorID, "purge", "child", childID,
+		map[string]any{"name": ch.FirstName + " " + ch.LastName}, ip)
 	return nil
 }
 
@@ -178,4 +264,3 @@ func (s *ChildService) ListMedia(ctx context.Context, role model.Role, userID, c
 	}
 	return s.children.ListMedia(ctx, childID, q)
 }
-

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Baby, CalendarDays, CreditCard, Users, CheckSquare, Square, Plus, Trash2, ArrowRight } from "lucide-react";
+import { Baby, CalendarDays, CreditCard, Users, CheckSquare, Square, Plus, Trash2, ArrowRight, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -17,6 +17,7 @@ import {
   Legend,
 } from "recharts";
 import { StatCard } from "../../components/StatCard";
+import { SeatMeter } from "../../components/SeatMeter";
 import { api } from "../../lib/api";
 import type { AuditLog, Child, ListResponse, Reminder, ItemResponse } from "../../types/api";
 
@@ -109,28 +110,26 @@ export function DashboardPage() {
     (c) => c.created_at && c.created_at.slice(0, 7) === currentMonthStr
   ).length;
 
-  // Calculate enrollment trend dynamically
+  // Enrollment trend, derived from each child's created_at.
+  //
+  // This deliberately charts enrolment only. A historical attendance series
+  // used to be plotted alongside it, but the past months were synthesised
+  // (`88 + activeKids % 8`) rather than measured — a fabricated line on a
+  // dashboard is worse than an absent one, because it gets acted on. Restore
+  // it once the API exposes real per-month attendance.
   const dynamicTrendData = (() => {
     const trendData = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthLabel = d.toLocaleString("en-US", { month: "short" });
       const yearMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      
+
       const activeKids = kidsList.filter((c) => {
         if (!c.created_at) return true;
         return c.created_at.slice(0, 7) <= yearMonthStr;
       }).length;
 
-      const attendancePct = i === 0 
-        ? (activeKids > 0 ? Math.round((checkedIn / activeKids) * 100) : 92)
-        : (activeKids > 0 ? 88 + (activeKids % 8) : 90);
-
-      trendData.push({
-        name: monthLabel,
-        "Active Children": activeKids,
-        "Attendance %": attendancePct,
-      });
+      trendData.push({ name: monthLabel, "Active Children": activeKids });
     }
     return trendData;
   })();
@@ -158,7 +157,13 @@ export function DashboardPage() {
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{t("nav.dashboard")}</h1>
           <p className="text-sm font-semibold text-slate-400 mt-1">Here is a quick overview of your nursery today.</p>
         </div>
+        <Link to="/families/new" className="btn btn-primary shrink-0">
+          <UserPlus size={16} /> Enrol a family
+        </Link>
       </div>
+
+      {/* Seat usage: shows the plan's ceiling before a create fails against it. */}
+      <SeatMeter />
 
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

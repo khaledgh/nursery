@@ -656,6 +656,16 @@ export function useSendMessage(conversationId: number) {
   });
 }
 
+// Clears the unread badge. The endpoint has always existed server-side but was
+// never called, so badges stayed lit after a thread was read.
+export function useMarkConversationRead(conversationId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => api.put(`/chat/conversations/${conversationId}/read`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
 // ---- Notification Settings hooks ----
 
 export function useNotificationSettings() {

@@ -12,6 +12,7 @@ import { usePagedList } from "../../hooks/usePagedList";
 import { api } from "../../lib/api";
 import { applyServerErrors } from "../../lib/formErrors";
 import type { Announcement } from "../../types/api";
+import { CATEGORY_TINT } from "../../lib/tints";
 
 interface AnnouncementRow {
   announcement: Announcement;
@@ -27,13 +28,6 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-const CATEGORY_TINT: Record<string, string> = {
-  updates: "bg-sky-100 text-sky-700",
-  reminders: "bg-amber-100 text-amber-700",
-  events: "bg-purple-100 text-purple-700",
-  health: "bg-rose-100 text-rose-700",
-  general: "bg-slate-100 text-slate-600",
-};
 
 export function AnnouncementsPage() {
   const { t } = useTranslation();

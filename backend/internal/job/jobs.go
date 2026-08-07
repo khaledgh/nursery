@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/repository"
 	"github.com/sunnystars/backend/internal/service"
@@ -51,7 +52,10 @@ func (r *Runner) Stop() { r.cron.Stop() }
 
 func (r *Runner) add(spec, name string, fn func(context.Context) error) {
 	_, err := r.cron.AddFunc(spec, func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		// Cron work legitimately spans every nursery (overdue invoices, token
+		// cleanup, daily reminders), so it opts out of tenant scoping
+		// explicitly rather than tripping the fail-closed guard.
+		ctx, cancel := context.WithTimeout(database.WithCrossTenant(context.Background()), 5*time.Minute)
 		defer cancel()
 		if err := fn(ctx); err != nil {
 			r.log.Error().Err(err).Str("job", name).Msg("cron job failed")

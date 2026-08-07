@@ -6,6 +6,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -14,8 +15,9 @@ import (
 	"github.com/sunnystars/backend/internal/repository"
 )
 
-// dummyHash is compared when the email doesn't exist so login takes the same
-// time for unknown and known users (prevents user enumeration via timing).
+// dummyHash is compared when the identifier doesn't exist so login takes the
+// same time for unknown and known users (prevents enumeration via timing).
+// This matters more for login ids than emails: they are short and sequential.
 const dummyHash = "$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW"
 
 const resetTokenTTL = 30 * time.Minute
@@ -33,17 +35,41 @@ func NewAuthService(users *repository.UserRepo, tokens *repository.TokenRepo, jw
 }
 
 func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest, deviceInfo string) (*dto.LoginResponse, error) {
-	user, err := s.users.ByEmail(ctx, req.Email)
-	if err != nil {
-		hash.VerifyPassword(dummyHash, req.Password) // burn the same time
-		return nil, apperr.Unauthorized("invalid email or password")
+	identifier, isLoginID, ok := req.Identifier()
+	if !ok {
+		return nil, apperr.Validation(map[string]string{
+			"email": "provide either an email or a login id, not both",
+		})
 	}
+
+	var (
+		user *model.User
+		err  error
+	)
+	if isLoginID {
+		user, err = s.users.ByLoginID(ctx, identifier)
+	} else {
+		user, err = s.users.ByEmail(ctx, identifier)
+	}
+	if err != nil {
+		// Burn the same time on an unknown identifier as on a real one.
+		// Login IDs are short and sequential, so a timing difference here
+		// would make the whole id space enumerable.
+		hash.VerifyPassword(dummyHash, req.Password)
+		return nil, apperr.Unauthorized("invalid credentials")
+	}
+	// One generic message for every failure below: never reveal which half of
+	// the credential was wrong, nor that the account exists but is disabled.
 	if !hash.VerifyPassword(user.PasswordHash, req.Password) {
-		return nil, apperr.Unauthorized("invalid email or password")
+		return nil, apperr.Unauthorized("invalid credentials")
 	}
 	if user.Status != model.UserActive {
 		return nil, apperr.Forbidden("account is disabled")
 	}
+
+	// The credential has now been verified, so pin the rest of this request to
+	// the nursery it belongs to rather than leaving it cross-tenant.
+	ctx = database.WithTenant(ctx, user.NurseryID)
 
 	pair, err := s.issueTokens(ctx, user, deviceInfo)
 	if err != nil {
@@ -74,10 +100,13 @@ func (s *AuthService) Refresh(ctx context.Context, rawToken, deviceInfo string) 
 		return nil, apperr.Unauthorized("refresh token expired")
 	}
 
-	user, err := s.users.ByID(ctx, stored.UserID)
+	// The refresh token itself is the credential and carries no nursery, so the
+	// user lookup must span tenants; everything after is pinned to their own.
+	user, err := s.users.ByID(database.WithCrossTenant(ctx), stored.UserID)
 	if err != nil || user.Status != model.UserActive {
 		return nil, apperr.Unauthorized("invalid refresh token")
 	}
+	ctx = database.WithTenant(ctx, user.NurseryID)
 
 	rawNext, err := hash.RandomToken()
 	if err != nil {
@@ -93,7 +122,7 @@ func (s *AuthService) Refresh(ctx context.Context, rawToken, deviceInfo string) 
 		return nil, apperr.Unauthorized("invalid refresh token")
 	}
 
-	access, accessExp, err := s.jwts.Issue(user.ID, string(user.Role))
+	access, accessExp, err := s.jwts.Issue(user.ID, string(user.Role), user.NurseryID)
 	if err != nil {
 		return nil, apperr.Internal(err)
 	}
@@ -154,10 +183,14 @@ func (s *AuthService) ResetPassword(ctx context.Context, rawToken, newPassword s
 	if err != nil || reset.UsedAt != nil || time.Now().After(reset.ExpiresAt) {
 		return apperr.BadRequest("invalid or expired reset token")
 	}
-	user, err := s.users.ByID(ctx, reset.UserID)
+	// The reset token is the credential and carries no nursery, so resolve the
+	// user across tenants, then pin the write to their own.
+	user, err := s.users.ByID(database.WithCrossTenant(ctx), reset.UserID)
 	if err != nil {
 		return apperr.BadRequest("invalid or expired reset token")
 	}
+	ctx = database.WithTenant(ctx, user.NurseryID)
+
 	newHash, err := hash.Password(newPassword)
 	if err != nil {
 		return apperr.Internal(err)
@@ -189,7 +222,7 @@ func (s *AuthService) UpdateLocale(ctx context.Context, userID uint64, locale st
 }
 
 func (s *AuthService) issueTokens(ctx context.Context, user *model.User, deviceInfo string) (*dto.TokenPair, error) {
-	access, accessExp, err := s.jwts.Issue(user.ID, string(user.Role))
+	access, accessExp, err := s.jwts.Issue(user.ID, string(user.Role), user.NurseryID)
 	if err != nil {
 		return nil, err
 	}
@@ -213,5 +246,8 @@ func (s *AuthService) issueTokens(ctx context.Context, user *model.User, deviceI
 }
 
 func toAuthUser(u *model.User) dto.AuthUser {
-	return dto.AuthUser{ID: u.ID, Name: u.Name, Email: u.Email, Role: string(u.Role), Locale: u.Locale}
+	return dto.AuthUser{
+		ID: u.ID, Name: u.Name, Email: u.Email, LoginID: u.LoginID,
+		Role: string(u.Role), Locale: u.Locale, NurseryID: u.NurseryID,
+	}
 }

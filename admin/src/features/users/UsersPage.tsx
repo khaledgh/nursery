@@ -13,6 +13,7 @@ import { usePagedList } from "../../hooks/usePagedList";
 import { api } from "../../lib/api";
 import { applyServerErrors } from "../../lib/formErrors";
 import type { User } from "../../types/api";
+import { ROLE_TINT } from "../../lib/tints";
 
 const schema = z.object({
   name: z.string().min(2).max(191),
@@ -24,11 +25,6 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-const ROLE_TINT: Record<string, string> = {
-  admin: "bg-purple-100 text-purple-700",
-  teacher: "bg-sky-100 text-sky-700",
-  parent: "bg-emerald-100 text-emerald-700",
-};
 
 export function UsersPage() {
   const { t } = useTranslation();
@@ -46,7 +42,11 @@ export function UsersPage() {
     setEditing("new");
   };
   const openEdit = (u: User) => {
-    form.reset({ name: u.name, email: u.email, phone: u.phone ?? "", role: u.role, password: "", status: u.status });
+    // A superadmin belongs to no nursery and is never editable here, so fall
+    // back rather than widening the form's role enum — the API rejects
+    // superadmin on this endpoint too.
+    const role = u.role === "superadmin" ? "admin" : u.role;
+    form.reset({ name: u.name, email: u.email, phone: u.phone ?? "", role, password: "", status: u.status });
     setError("");
     setEditing(u);
   };

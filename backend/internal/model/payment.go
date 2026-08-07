@@ -16,12 +16,12 @@ const (
 )
 
 type Invoice struct {
-	Base
-	ChildID     uint64        `gorm:"not null;index" json:"child_id"`
-	Child       *Child        `gorm:"foreignKey:ChildID" json:"child,omitempty"`
-	PayerUserID uint64        `gorm:"not null;index" json:"payer_user_id"`
-	InvoiceNo   string        `gorm:"size:30;not null;uniqueIndex" json:"invoice_no"`
-	Currency    string        `gorm:"size:3;not null;default:'SEK'" json:"currency"`
+	TenantBase
+	ChildID     uint64 `gorm:"not null;index" json:"child_id"`
+	Child       *Child `gorm:"foreignKey:ChildID" json:"child,omitempty"`
+	PayerUserID uint64 `gorm:"not null;index" json:"payer_user_id"`
+	InvoiceNo   string `gorm:"size:30;not null;uniqueIndex" json:"invoice_no"`
+	Currency    string `gorm:"size:3;not null;default:'SEK'" json:"currency"`
 	// Amounts are stored in minor units (öre/cents) — never floats.
 	TotalMinor int64         `gorm:"not null" json:"total_minor"`
 	DueDate    string        `gorm:"type:date;not null" json:"due_date"`
@@ -48,7 +48,7 @@ const (
 )
 
 type Payment struct {
-	Base
+	TenantBase
 	InvoiceID      uint64         `gorm:"not null;index" json:"invoice_id"`
 	Provider       string         `gorm:"size:20;not null" json:"provider"` // swish | mock
 	ProviderRef    string         `gorm:"size:100;not null;uniqueIndex" json:"provider_ref"`

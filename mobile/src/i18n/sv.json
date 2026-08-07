@@ -10,6 +10,8 @@
     "title": "Little Talent Childcare",
     "subtitle": "Logga in för att följa ditt barns dag",
     "email": "E-post",
+    "loginId": "Inloggnings-ID",
+    "loginIdHint": "ID:t du fick av din förskola",
     "password": "Lösenord",
     "submit": "Logga in"
   },

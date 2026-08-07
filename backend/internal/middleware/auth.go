@@ -42,8 +42,36 @@ func RequireRole(roles ...model.Role) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			claims := Claims(c)
-			if claims == nil || !allowed[model.Role(claims.Role)] {
+			if claims == nil {
 				return response.Err(c, 403, "forbidden", "insufficient permissions", nil)
+			}
+			// Superadmin outranks every nursery role, so it passes any gate
+			// without each of the existing RequireRole call sites having to
+			// list it. Tenant scoping still applies while impersonating.
+			if model.Role(claims.Role) == model.RoleSuperAdmin {
+				return next(c)
+			}
+			if !allowed[model.Role(claims.Role)] {
+				return response.Err(c, 403, "forbidden", "insufficient permissions", nil)
+			}
+			return next(c)
+		}
+	}
+}
+
+// RequireSuperAdmin gates the platform console. Unlike RequireRole this admits
+// nobody else — a nursery admin must never reach cross-tenant routes.
+func RequireSuperAdmin() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			claims := Claims(c)
+			if claims == nil || model.Role(claims.Role) != model.RoleSuperAdmin {
+				return response.Err(c, 403, "forbidden", "insufficient permissions", nil)
+			}
+			// An impersonation token is scoped to one nursery; it must not be
+			// replayed against the console it was minted from.
+			if claims.IsImpersonating() {
+				return response.Err(c, 403, "forbidden", "impersonation tokens cannot access the console", nil)
 			}
 			return next(c)
 		}

@@ -6,26 +6,8 @@ import { ChildPicker } from "../../components/Pickers";
 import { ImageUpload } from "../../components/ImageUpload";
 import { toISODate } from "../../components/WeekPicker";
 import type { DailyReport, ListResponse, Media, ReportMood, ReportRating } from "../../types/api";
+import { DIMENSIONS, MOODS, MOOD_OPTIONS, RATING_OPTIONS } from "../reports/reportConstants";
 
-const DIMENSIONS: { key: ReportRating["dimension"]; label: string }[] = [
-  { key: "social", label: "Engagement with classmates" },
-  { key: "participation", label: "Participation in activities" },
-  { key: "listening", label: "Listening to the teacher" },
-  { key: "focus", label: "Focus & concentration" },
-  { key: "hygiene", label: "Hygiene / self-care" },
-  { key: "eating", label: "Meal / eating habits" },
-];
-
-const RATING_OPTIONS: ReportRating["rating"][] = ["thriving", "doing_well", "improving", "needs_support"];
-
-const MOODS: { key: ReportMood["key"]; label: string }[] = [
-  { key: "social", label: "Social" },
-  { key: "creative", label: "Creative" },
-  { key: "happy", label: "Happy" },
-  { key: "calm", label: "Calm" },
-];
-
-const MOOD_OPTIONS: ReportMood["rating"][] = ["great", "good", "okay"];
 
 /** Teacher's end-of-day report editor (drives the parent app's Report screen). */
 export function ReportsPage() {

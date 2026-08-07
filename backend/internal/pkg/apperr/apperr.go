@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 )
 
 type Code string
@@ -21,6 +22,12 @@ const (
 	CodeValidation   Code = "validation_failed"
 	CodeRateLimited  Code = "rate_limited"
 	CodeInternal     Code = "internal_error"
+	// CodeSeatLimit is distinct from a plain conflict so the client can render
+	// an upgrade prompt with the real numbers instead of a generic banner.
+	CodeSeatLimit Code = "seat_limit_reached"
+	// CodeSubscriptionInactive gates writes when billing has lapsed. Reads stay
+	// open, so this never blocks access to existing records.
+	CodeSubscriptionInactive Code = "subscription_inactive"
 )
 
 type Error struct {
@@ -49,8 +56,10 @@ func (e *Error) HTTPStatus() int {
 		return http.StatusForbidden
 	case CodeNotFound:
 		return http.StatusNotFound
-	case CodeConflict:
+	case CodeConflict, CodeSeatLimit:
 		return http.StatusConflict
+	case CodeSubscriptionInactive:
+		return http.StatusPaymentRequired
 	case CodeRateLimited:
 		return http.StatusTooManyRequests
 	default:
@@ -98,6 +107,29 @@ func ConflictField(field, msg string) *Error {
 		Message: field + " " + msg,
 		Fields:  map[string]string{field: msg},
 	}
+}
+
+// SeatLimit reports that the nursery has used every place its plan allows.
+// The counts travel in Fields so the UI can offer a concrete next step —
+// remove someone, or upgrade — rather than a bare refusal.
+func SeatLimit(kind string, used, max int) *Error {
+	return &Error{
+		Code: CodeSeatLimit,
+		Message: fmt.Sprintf(
+			"%d of %d %s places used. Remove one or upgrade the plan to add more.",
+			used, max, kind),
+		Fields: map[string]string{
+			"used": strconv.Itoa(used),
+			"max":  strconv.Itoa(max),
+			"kind": kind,
+		},
+	}
+}
+
+// SubscriptionInactive blocks writes for a lapsed subscription. Reads are
+// deliberately unaffected.
+func SubscriptionInactive(msg string) *Error {
+	return New(CodeSubscriptionInactive, msg)
 }
 
 // Internal wraps an unexpected error with a generic client-safe message.

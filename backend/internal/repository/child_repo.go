@@ -34,6 +34,66 @@ func (r *ChildRepo) Delete(ctx context.Context, id uint64) error {
 	return r.db.WithContext(ctx).Delete(&model.Child{}, id).Error
 }
 
+// ListDeleted returns soft-deleted children so an admin can restore one.
+// Unscoped() lifts the deleted_at filter but leaves tenancy scoping intact.
+func (r *ChildRepo) ListDeleted(ctx context.Context, q dto.PageQuery, nurseryID uint64) ([]model.Child, int64, error) {
+	var (
+		children []model.Child
+		total    int64
+	)
+	tx := r.db.WithContext(ctx).Unscoped().Model(&model.Child{}).
+		Where("nursery_id = ? AND deleted_at IS NOT NULL", nurseryID)
+	if q.Search != "" {
+		like := "%" + q.Search + "%"
+		tx = tx.Where("first_name LIKE ? OR last_name LIKE ?", like, like)
+	}
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	err := tx.Order("deleted_at DESC").
+		Offset((q.Page - 1) * q.PerPage).Limit(q.PerPage).Find(&children).Error
+	return children, total, err
+}
+
+// DeletedByID loads one soft-deleted child, for the restore path.
+func (r *ChildRepo) DeletedByID(ctx context.Context, id, nurseryID uint64) (*model.Child, error) {
+	var ch model.Child
+	err := r.db.WithContext(ctx).Unscoped().
+		Where("id = ? AND nursery_id = ? AND deleted_at IS NOT NULL", id, nurseryID).
+		First(&ch).Error
+	return &ch, err
+}
+
+// Restore clears deleted_at. Callers must re-check the seat cap first, or
+// delete-then-restore becomes a way around it.
+func (r *ChildRepo) Restore(ctx context.Context, tx *gorm.DB, id uint64) error {
+	if tx == nil {
+		tx = r.db
+	}
+	return tx.WithContext(ctx).Unscoped().Model(&model.Child{}).
+		Where("id = ?", id).Update("deleted_at", nil).Error
+}
+
+// Purge hard-deletes a child and is irreversible.
+func (r *ChildRepo) Purge(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Unscoped().Delete(&model.Child{}, id).Error
+}
+
+// CountUnpaidInvoices reports outstanding debt for a child. Removing a child
+// frees a seat, so an unpaid balance must be surfaced before that happens
+// rather than quietly disappearing from the default view.
+func (r *ChildRepo) CountUnpaidInvoices(ctx context.Context, childID uint64) (int64, int64, error) {
+	var row struct {
+		N     int64
+		Total int64
+	}
+	err := r.db.WithContext(ctx).Model(&model.Invoice{}).
+		Select("COUNT(*) AS n, COALESCE(SUM(total_minor), 0) AS total").
+		Where("child_id = ? AND status IN ?", childID, []model.InvoiceStatus{model.InvoiceDue, model.InvoiceOverdue}).
+		Scan(&row).Error
+	return row.N, row.Total, err
+}
+
 // scopeForRole limits a children query to what the caller may see:
 // parents → children they are guardians of; teachers → children in their
 // classrooms; admins → everything.
@@ -136,4 +196,3 @@ func (r *ChildRepo) ListMedia(ctx context.Context, childID uint64, q dto.PageQue
 
 	return media, total, err
 }
-

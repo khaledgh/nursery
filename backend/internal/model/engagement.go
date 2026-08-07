@@ -7,7 +7,7 @@ import (
 )
 
 type Event struct {
-	Base
+	TenantBase
 	Title        string      `gorm:"size:191;not null" json:"title"`
 	Description  string      `gorm:"size:2000" json:"description"`
 	Location     string      `gorm:"size:255" json:"location"`
@@ -50,7 +50,7 @@ type EventFeedback struct {
 }
 
 type Announcement struct {
-	Base
+	TenantBase
 	Title       string                   `gorm:"size:191;not null" json:"title"`
 	Body        string                   `gorm:"size:5000;not null" json:"body"`
 	Category    string                   `gorm:"type:enum('updates','reminders','events','health','general');not null;default:'general'" json:"category"`
@@ -78,7 +78,7 @@ type AnnouncementRead struct {
 }
 
 type CommunityPost struct {
-	Base
+	TenantBase
 	AuthorUserID uint64               `gorm:"not null;index" json:"author_user_id"`
 	Author       *User                `gorm:"foreignKey:AuthorUserID" json:"author,omitempty"`
 	Type         string               `gorm:"type:enum('moment','activity');not null;default:'moment'" json:"type"`
@@ -113,7 +113,7 @@ type CommunityLike struct {
 }
 
 type Meetup struct {
-	Base
+	TenantBase
 	PostID   uint64       `gorm:"not null;uniqueIndex" json:"post_id"`
 	Title    string       `gorm:"size:191;not null" json:"title"`
 	Location string       `gorm:"size:255" json:"location"`
@@ -131,7 +131,7 @@ type MeetupRSVP struct {
 }
 
 type Reminder struct {
-	Base
+	TenantBase
 	Scope        string         `gorm:"type:enum('global','classroom','child');not null;default:'global'" json:"scope"`
 	ScopeID      *uint64        `json:"scope_id"` // classroom_id or child_id depending on scope
 	Title        string         `gorm:"size:191;not null" json:"title"`

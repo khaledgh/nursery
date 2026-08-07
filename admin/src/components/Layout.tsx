@@ -18,8 +18,11 @@ import {
   UtensilsCrossed,
   Baby,
   BookOpen,
-  Search,
   Menu,
+  Wallet,
+  Building2,
+  Layers,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -27,26 +30,90 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../store/auth";
 import { applyLocale } from "../i18n";
 import { api } from "../lib/api";
+import { useMeContext } from "../hooks/useMeContext";
+import { BillingBanner } from "./SeatMeter";
+import { GlobalSearch } from "./GlobalSearch";
+import type { Capability } from "../types/api";
 
-const NAV = [
-  { to: "/", icon: Home, key: "nav.dashboard", end: true },
-  { to: "/users", icon: Users, key: "nav.users" },
-  { to: "/children", icon: Baby, key: "nav.children" },
-  { to: "/classrooms", icon: School, key: "nav.classrooms" },
-  { to: "/attendance", icon: CalendarCheck, key: "nav.attendance" },
-  { to: "/care", icon: HeartPulse, key: "nav.care" },
-  { to: "/reports", icon: FileText, key: "nav.reports" },
-  { to: "/milestones", icon: Trophy, key: "nav.milestones" },
-  { to: "/menus", icon: UtensilsCrossed, key: "nav.menus" },
-  { to: "/weekly-plans", icon: BookOpen, key: "nav.plans" },
-  { to: "/announcements", icon: Bell, key: "nav.announcements" },
-  { to: "/events", icon: CalendarDays, key: "nav.events" },
-  { to: "/community", icon: MessagesSquare, key: "nav.community" },
-  { to: "/reminders", icon: ClipboardList, key: "nav.reminders" },
-  { to: "/invoices", icon: CreditCard, key: "nav.invoices" },
-  { to: "/locales", icon: Languages, key: "nav.locales" },
-  { to: "/settings", icon: Settings, key: "nav.settings" },
-  { to: "/audit", icon: ScrollText, key: "nav.audit" },
+interface NavItem {
+  to: string;
+  icon: typeof Home;
+  key: string;
+  end?: boolean;
+  /** Hidden when the nursery's plan excludes this module. */
+  capability?: Capability;
+  /** Restricts the item to particular roles. */
+  roles?: string[];
+}
+
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+// Grouped so an 18-item flat list stops reading as one undifferentiated wall.
+const NAV: NavSection[] = [
+  {
+    label: "Overview",
+    items: [{ to: "/", icon: Home, key: "nav.dashboard", end: true }],
+  },
+  {
+    label: "Daily ops",
+    items: [
+      { to: "/attendance", icon: CalendarCheck, key: "nav.attendance" },
+      { to: "/care", icon: HeartPulse, key: "nav.care" },
+      { to: "/reports", icon: FileText, key: "nav.reports", capability: "reports" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { to: "/users", icon: Users, key: "nav.users" },
+      { to: "/children", icon: Baby, key: "nav.children" },
+      { to: "/classrooms", icon: School, key: "nav.classrooms" },
+    ],
+  },
+  {
+    label: "Learning",
+    items: [
+      { to: "/milestones", icon: Trophy, key: "nav.milestones" },
+      { to: "/weekly-plans", icon: BookOpen, key: "nav.plans" },
+      { to: "/menus", icon: UtensilsCrossed, key: "nav.menus" },
+    ],
+  },
+  {
+    label: "Engage",
+    items: [
+      { to: "/messages", icon: MessagesSquare, key: "nav.messages", capability: "chat" },
+      { to: "/announcements", icon: Bell, key: "nav.announcements" },
+      { to: "/events", icon: CalendarDays, key: "nav.events", capability: "events" },
+      { to: "/community", icon: Users, key: "nav.community", capability: "community" },
+      { to: "/reminders", icon: ClipboardList, key: "nav.reminders" },
+    ],
+  },
+  {
+    label: "Money",
+    items: [
+      { to: "/invoices", icon: CreditCard, key: "nav.invoices", capability: "payments" },
+      { to: "/analytics", icon: BarChart3, key: "nav.analytics", capability: "reports" },
+      { to: "/billing", icon: Wallet, key: "nav.billing", roles: ["admin", "superadmin"] },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { to: "/settings", icon: Settings, key: "nav.settings" },
+      { to: "/locales", icon: Languages, key: "nav.locales" },
+      { to: "/audit", icon: ScrollText, key: "nav.audit" },
+    ],
+  },
+  {
+    label: "Platform",
+    items: [
+      { to: "/superadmin", icon: Building2, key: "nav.nurseries", roles: ["superadmin"] },
+      { to: "/superadmin/plans", icon: Layers, key: "nav.plans_admin", roles: ["superadmin"] },
+    ],
+  },
 ];
 
 const LOCALES = [
@@ -60,6 +127,18 @@ export function Layout() {
   const navigate = useNavigate();
   const { user, locale, setLocale, refreshToken, logout } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
+  const { data: ctx } = useMeContext();
+
+  // Nav filtering is a convenience, not a control: the API enforces the same
+  // capability and role rules, so a hand-typed URL still gets a 403.
+  const visible = NAV.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => {
+      if (item.roles && !item.roles.includes(user?.role ?? "")) return false;
+      if (item.capability && ctx && !ctx.capabilities.includes(item.capability)) return false;
+      return true;
+    }),
+  })).filter((section) => section.items.length > 0);
 
   const signOut = async () => {
     try {
@@ -97,26 +176,35 @@ export function Layout() {
             </div>
           )}
         </div>
-        <nav className="flex-1 space-y-1 px-3 py-6 overflow-y-auto max-h-[calc(100vh-140px)]">
-          {NAV.map(({ to, icon: Icon, key, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              title={collapsed ? t(key) : undefined}
-              className={({ isActive }) =>
-                `flex items-center rounded-xl transition-all duration-200 ${
-                  collapsed ? "justify-center p-3" : "gap-3 px-4 py-3"
-                } ${
-                  isActive
-                    ? "bg-brand-50 text-brand-800 shadow-sm shadow-brand-600/5 font-bold"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-semibold"
-                } text-sm`
-              }
-            >
-              <Icon size={18} className="shrink-0" />
-              {!collapsed && <span className="truncate">{t(key)}</span>}
-            </NavLink>
+        <nav className="flex-1 space-y-4 px-3 py-6 overflow-y-auto max-h-[calc(100vh-140px)]">
+          {visible.map((section) => (
+            <div key={section.label} className="space-y-1">
+              {!collapsed && (
+                <p className="px-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                  {section.label}
+                </p>
+              )}
+              {section.items.map(({ to, icon: Icon, key, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  title={collapsed ? t(key) : undefined}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-xl transition-all duration-200 ${
+                      collapsed ? "justify-center p-3" : "gap-3 px-4 py-2.5"
+                    } ${
+                      isActive
+                        ? "bg-brand-50 text-brand-800 shadow-sm shadow-brand-600/5 font-bold"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-semibold"
+                    } text-sm`
+                  }
+                >
+                  <Icon size={18} className="shrink-0" />
+                  {!collapsed && <span className="truncate">{t(key)}</span>}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="p-3 border-t border-slate-100 bg-slate-50/50">
@@ -143,14 +231,7 @@ export function Layout() {
             >
               <Menu size={18} />
             </button>
-            <div className="relative w-48 md:w-64">
-              <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search rooms, kids, records..."
-                className="w-full rounded-xl bg-slate-50/70 border-none px-4 py-2 ps-9 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all placeholder:text-slate-400 text-slate-700"
-              />
-            </div>
+            <GlobalSearch />
           </div>
           
           <div className="flex items-center gap-6">
@@ -182,6 +263,7 @@ export function Layout() {
           </div>
         </header>
         <main className="flex-1 p-8">
+          <BillingBanner />
           <Outlet />
         </main>
       </div>

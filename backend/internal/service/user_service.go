@@ -60,6 +60,11 @@ func (s *UserService) Create(ctx context.Context, req *dto.CreateUserRequest, ac
 	if err := s.users.Create(ctx, u); err != nil {
 		return nil, apperr.Internal(err)
 	}
+	// Parents and teachers sign in on mobile with a login id, which is derived
+	// from the row's own primary key and so can only be assigned post-insert.
+	if err := AssignLoginID(ctx, s.users.DB(), u); err != nil {
+		return nil, apperr.Internal(err)
+	}
 	s.audit.Record(ctx, actorID, "create", "user", u.ID, map[string]any{"email": u.Email, "role": u.Role}, ip)
 	return u, nil
 }

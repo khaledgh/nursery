@@ -18,8 +18,11 @@ func NewAuthHandler(auth *service.AuthService, locales *service.LocaleService) *
 	return &AuthHandler{auth: auth, locales: locales}
 }
 
-func (h *AuthHandler) Register(public, protected *echo.Group) {
-	public.POST("/auth/login", h.Login)
+// Register mounts the auth routes. loginLimit throttles per identifier, which
+// the IP limiter on `public` does not cover: login ids are short and
+// sequential, so a distributed sweep could stay under a per-IP budget.
+func (h *AuthHandler) Register(public, protected *echo.Group, loginLimit echo.MiddlewareFunc) {
+	public.POST("/auth/login", h.Login, loginLimit)
 	public.POST("/auth/refresh", h.Refresh)
 	public.POST("/auth/forgot-password", h.ForgotPassword)
 	public.POST("/auth/reset-password", h.ResetPassword)

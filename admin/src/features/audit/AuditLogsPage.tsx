@@ -2,12 +2,8 @@ import { useTranslation } from "react-i18next";
 import { DataTable, type Column } from "../../components/DataTable";
 import { usePagedList } from "../../hooks/usePagedList";
 import type { AuditLog } from "../../types/api";
+import { ACTION_TINT } from "../../lib/tints";
 
-const ACTION_TINT: Record<string, string> = {
-  create: "bg-emerald-100 text-emerald-700",
-  update: "bg-sky-100 text-sky-700",
-  delete: "bg-rose-100 text-rose-700",
-};
 
 export function AuditLogsPage() {
   const { t } = useTranslation();

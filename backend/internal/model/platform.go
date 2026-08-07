@@ -16,7 +16,7 @@ const (
 )
 
 type Media struct {
-	Base
+	TenantBase
 	Disk       string `gorm:"type:enum('local','s3');not null" json:"-"`
 	Path       string `gorm:"size:500;not null" json:"-"`
 	URL        string `gorm:"size:500;not null" json:"url"`
@@ -72,7 +72,10 @@ type Setting struct {
 }
 
 type AuditLog struct {
-	ID          uint64         `gorm:"primaryKey" json:"id"`
+	ID uint64 `gorm:"primaryKey" json:"id"`
+	// Audit rows are append-only, so no Base/soft delete — but they are still
+	// tenant-owned and must never surface across nurseries.
+	NurseryID   uint64         `gorm:"not null;index" json:"nursery_id"`
 	ActorUserID uint64         `gorm:"not null;index" json:"actor_user_id"`
 	Action      string         `gorm:"size:50;not null" json:"action"` // create | update | delete | login | ...
 	Entity      string         `gorm:"size:100;not null;index" json:"entity"`
@@ -104,7 +107,7 @@ func NotificationCategory(s string) string {
 }
 
 type Notification struct {
-	Base
+	TenantBase
 	UserID   uint64         `gorm:"not null;index" json:"user_id"`
 	Category string         `gorm:"size:30;not null" json:"category"` // see Category* constants
 	Title    string         `gorm:"size:191;not null" json:"title"`

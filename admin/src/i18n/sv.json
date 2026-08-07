@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Little Talent Childcare" },
+  "app": {
+    "name": "Little Talent Childcare"
+  },
   "nav": {
     "dashboard": "Översikt",
     "users": "Användare",
@@ -19,7 +21,12 @@
     "locales": "Språk",
     "settings": "Inställningar",
     "audit": "Ändringslogg",
-    "logout": "Logga ut"
+    "logout": "Logga ut",
+    "messages": "Meddelanden",
+    "billing": "Prenumeration",
+    "nurseries": "Förskolor",
+    "plans_admin": "Planer & fakturering",
+    "analytics": "Analys"
   },
   "auth": {
     "title": "Logga in på Little Talent Childcare",

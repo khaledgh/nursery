@@ -33,20 +33,16 @@ let registeredId: string | null = null;
  * in; onAuthenticated() replays it once a token exists.
  */
 async function syncSubscription(id: string | null | undefined) {
-  console.log("[Push] syncSubscription called with ID:", id, "current registeredId:", registeredId);
   if (!id || id === registeredId) return;
   if (!useAuthStore.getState().accessToken) {
-    console.log("[Push] syncSubscription skipped: No access token available yet");
     return;
   }
   try {
-    console.log("[Push] Sending device registration to backend...");
     await api.post("/devices", {
       onesignal_player_id: id,
       platform: Platform.OS === "ios" ? "ios" : "android",
       locale: useAuthStore.getState().locale,
     });
-    console.log("[Push] Device registered successfully!");
     registeredId = id;
   } catch (err) {
     console.error("[Push] Failed to register device with backend:", err);
@@ -90,7 +86,6 @@ export function initPush() {
 async function pollForSubscriptionId(attempts = 0) {
   if (!useAuthStore.getState().accessToken) return;
   const id = await OneSignal.User.pushSubscription.getIdAsync();
-  console.log(`[Push] pollForSubscriptionId attempt ${attempts}: ID is`, id);
   if (id) {
     void syncSubscription(id);
   } else if (attempts < 20) {

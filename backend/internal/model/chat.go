@@ -9,8 +9,10 @@ const (
 	ConversationParentAdmin   ConversationType = "parent_admin"
 )
 
+// Conversation gained TenantBase (and thus soft delete) in migration 000010;
+// it was originally created without either.
 type Conversation struct {
-	ID                 uint64           `gorm:"primaryKey" json:"id"`
+	TenantBase
 	Type               ConversationType `gorm:"type:enum('parent_teacher','parent_admin');not null;default:'parent_teacher'" json:"type"`
 	ParentUserID       uint64           `gorm:"not null;index" json:"parent_user_id"`
 	ParentUser         *User            `gorm:"foreignKey:ParentUserID" json:"parent_user,omitempty"`
@@ -21,14 +23,10 @@ type Conversation struct {
 	LastMessageAt      *time.Time       `gorm:"index" json:"last_message_at"`
 	LastMessagePreview string           `gorm:"size:500" json:"last_message_preview"`
 	UnreadCount        int              `gorm:"-" json:"unread_count"`
-	CreatedAt          time.Time        `json:"created_at"`
-	UpdatedAt          time.Time        `json:"updated_at"`
 }
 
-func (c *Conversation) GetID() uint64 { return c.ID }
-
 type ChatMessage struct {
-	ID             uint64        `gorm:"primaryKey" json:"id"`
+	TenantBase
 	ConversationID uint64        `gorm:"not null;index" json:"conversation_id"`
 	Conversation   *Conversation `gorm:"foreignKey:ConversationID" json:"conversation,omitempty"`
 	SenderUserID   uint64        `gorm:"not null;index" json:"sender_user_id"`
@@ -37,8 +35,4 @@ type ChatMessage struct {
 	MediaID        *uint64       `json:"media_id"`
 	Media          *Media        `gorm:"foreignKey:MediaID" json:"media,omitempty"`
 	ReadAt         *time.Time    `json:"read_at"`
-	CreatedAt      time.Time     `json:"created_at"`
-	UpdatedAt      time.Time     `json:"updated_at"`
 }
-
-func (m *ChatMessage) GetID() uint64 { return m.ID }

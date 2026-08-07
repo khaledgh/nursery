@@ -25,7 +25,7 @@ export default function LoginScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
-  const [email, setEmail] = useState("");
+  const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const errors = useFieldErrors();
@@ -34,8 +34,11 @@ export default function LoginScreen() {
     setBusy(true);
     errors.reset();
     try {
+      // Parents and teachers sign in with the id their nursery issued, not an
+      // email: it resolves the nursery unambiguously, and many parents share
+      // or lack a personal address.
       const res = await api.post<{ data: { user: AuthUser; tokens: TokenPair } }>("/auth/login", {
-        email: email.trim(),
+        login_id: loginId.trim().toLowerCase(),
         password,
       });
       const { user, tokens } = res.data.data;
@@ -68,19 +71,22 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
           </View>
           <View style={styles.form}>
-            <Text style={styles.label}>{t("auth.email")}</Text>
-            <View style={[styles.inputWrap, errors.fieldError("email") && styles.inputWrapError]}>
-              <Ionicons name="mail-outline" size={18} color={colors.textMuted} />
+            <Text style={styles.label}>{t("auth.loginId")}</Text>
+            <View style={[styles.inputWrap, errors.fieldError("login_id") && styles.inputWrapError]}>
+              <Ionicons name="card-outline" size={18} color={colors.textMuted} />
               <TextInput
                 style={styles.input}
                 autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
+                autoCorrect={false}
+                autoComplete="username"
+                value={loginId}
+                onChangeText={setLoginId}
+                placeholder="nursery-1042"
+                placeholderTextColor={colors.textMuted}
               />
             </View>
-            <FieldError message={errors.fieldError("email")} />
+            <Text style={styles.hint}>{t("auth.loginIdHint")}</Text>
+            <FieldError message={errors.fieldError("login_id")} />
             <Text style={styles.label}>{t("auth.password")}</Text>
             <View style={[styles.inputWrap, errors.fieldError("password") && styles.inputWrapError]}>
               <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} />
@@ -98,7 +104,7 @@ export default function LoginScreen() {
               label={t("auth.submit")}
               onPress={() => void submit()}
               loading={busy}
-              disabled={!email || !password}
+              disabled={!loginId || !password}
             />
           </View>
         </ScrollView>
@@ -139,6 +145,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
+  hint: { fontFamily: fonts.semibold, fontSize: 11, color: colors.textMuted, marginTop: -spacing.xs },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",

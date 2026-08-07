@@ -7,7 +7,7 @@ import (
 )
 
 type MilestoneCategory struct {
-	Base
+	TenantBase
 	Name        string `gorm:"size:191;not null" json:"name"`
 	Description string `gorm:"size:500" json:"description"`
 	Color       string `gorm:"size:20" json:"color"`
@@ -15,7 +15,7 @@ type MilestoneCategory struct {
 }
 
 type ChildMilestone struct {
-	Base
+	TenantBase
 	ChildID     uint64             `gorm:"not null;uniqueIndex:ux_milestone_child_cat" json:"child_id"`
 	CategoryID  uint64             `gorm:"not null;uniqueIndex:ux_milestone_child_cat" json:"category_id"`
 	Category    *MilestoneCategory `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
@@ -27,7 +27,7 @@ type ChildMilestone struct {
 }
 
 type AchievementTemplate struct {
-	Base
+	TenantBase
 	Title       string `gorm:"size:191;not null" json:"title"`
 	Description string `gorm:"size:500" json:"description"`
 	Icon        string `gorm:"size:50" json:"icon"`
@@ -35,7 +35,7 @@ type AchievementTemplate struct {
 }
 
 type ChildAchievement struct {
-	Base
+	TenantBase
 	ChildID               uint64               `gorm:"not null;index" json:"child_id"`
 	AchievementTemplateID uint64               `gorm:"not null" json:"achievement_template_id"`
 	Template              *AchievementTemplate `gorm:"foreignKey:AchievementTemplateID" json:"template,omitempty"`
@@ -45,7 +45,7 @@ type ChildAchievement struct {
 }
 
 type DailyReport struct {
-	Base
+	TenantBase
 	ChildID          uint64         `gorm:"not null;uniqueIndex:ux_report_child_date" json:"child_id"`
 	Date             string         `gorm:"type:date;not null;uniqueIndex:ux_report_child_date" json:"date"`
 	Summary          string         `gorm:"size:2000" json:"summary"`

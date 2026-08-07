@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Little Talent Childcare" },
+  "app": {
+    "name": "Little Talent Childcare"
+  },
   "nav": {
     "dashboard": "لوحة التحكم",
     "users": "المستخدمون",
@@ -19,7 +21,12 @@
     "locales": "اللغات",
     "settings": "الإعدادات",
     "audit": "سجل التدقيق",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "messages": "الرسائل",
+    "billing": "الاشتراك",
+    "nurseries": "الحضانات",
+    "plans_admin": "الخطط والفوترة",
+    "analytics": "التحليلات"
   },
   "auth": {
     "title": "تسجيل الدخول",

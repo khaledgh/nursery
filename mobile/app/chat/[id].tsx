@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useMessages, useSendMessage } from "../../src/api/hooks";
+import { useMarkConversationRead, useMessages, useSendMessage } from "../../src/api/hooks";
 import type { ChatMessage } from "../../src/api/types";
 import { IconCircle } from "../../src/components/IconCircle";
 import { Loading, Screen } from "../../src/components/ui";
@@ -28,7 +28,15 @@ export default function ChatRoomScreen() {
   const [text, setText] = useState("");
   const messagesQuery = useMessages(conversationId);
   const sendMsg = useSendMessage(conversationId);
+  const markRead = useMarkConversationRead(conversationId);
   const flatListRef = useRef<FlatList>(null);
+
+  // Clear the unread badge once the thread is open. Must run before the loading
+  // early-return below, or the hook order changes between renders.
+  const markReadMutate = markRead.mutate;
+  useEffect(() => {
+    if (conversationId > 0) markReadMutate();
+  }, [conversationId, markReadMutate]);
 
   if (messagesQuery.isLoading) {
     return (

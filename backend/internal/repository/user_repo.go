@@ -3,10 +3,12 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
 	"github.com/sunnystars/backend/internal/model"
 )
@@ -25,9 +27,27 @@ func (r *UserRepo) ByID(ctx context.Context, id uint64) (*model.User, error) {
 	return &u, err
 }
 
+// ByEmail resolves a login by email across every nursery.
+//
+// Login is one of the few legitimately cross-tenant lookups: the caller's
+// nursery is unknown until the user is found. Safe because the lookup is by a
+// unique credential and the token minted afterwards is scoped to that user's
+// own nursery. Email is unique per nursery, so a shared address can match more
+// than one row — First() takes the oldest, which is why mobile uses LoginID.
 func (r *UserRepo) ByEmail(ctx context.Context, email string) (*model.User, error) {
 	var u model.User
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
+	err := r.db.WithContext(database.WithCrossTenant(ctx)).
+		Where("email = ?", email).Order("id ASC").First(&u).Error
+	return &u, err
+}
+
+// ByLoginID resolves a login by the nursery-issued mobile credential. Unlike
+// email this is globally unique, so one lookup resolves both the user and the
+// nursery with no ambiguity.
+func (r *UserRepo) ByLoginID(ctx context.Context, loginID string) (*model.User, error) {
+	var u model.User
+	err := r.db.WithContext(database.WithCrossTenant(ctx)).
+		Where("login_id = ?", strings.ToLower(strings.TrimSpace(loginID))).First(&u).Error
 	return &u, err
 }
 
@@ -64,7 +84,10 @@ func (r *UserRepo) List(ctx context.Context, q dto.PageQuery, role model.Role) (
 		users []model.User
 		total int64
 	)
-	tx := r.db.WithContext(ctx).Model(&model.User{})
+	// The tenancy scope already excludes superadmins (they carry nursery_id 0),
+	// but state it explicitly: a platform operator must never appear in a
+	// customer's staff list, and this must not depend on that side effect.
+	tx := r.db.WithContext(ctx).Model(&model.User{}).Where("role <> ?", model.RoleSuperAdmin)
 	if role != "" {
 		tx = tx.Where("role = ?", role)
 	}

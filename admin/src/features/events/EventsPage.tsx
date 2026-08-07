@@ -14,6 +14,7 @@ import { applyServerErrors } from "../../lib/formErrors";
 import { ImageUpload } from "../../components/ImageUpload";
 import { EventMediaPanel } from "./EventMediaPanel";
 import type { EventItem, Media } from "../../types/api";
+import { EVENT_STATUS_TINT } from "../../lib/tints";
 
 const schema = z.object({
   title: z.string().min(1).max(191),
@@ -24,11 +25,6 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-const STATUS_TINT: Record<string, string> = {
-  upcoming: "bg-emerald-100 text-emerald-700",
-  completed: "bg-slate-100 text-slate-500",
-  cancelled: "bg-rose-100 text-rose-700",
-};
 
 export function EventsPage() {
   const { t } = useTranslation();
@@ -72,7 +68,7 @@ export function EventsPage() {
     { header: "Location", render: (e) => e.location || "—" },
     {
       header: t("common.status"),
-      render: (e) => <span className={`badge ${STATUS_TINT[e.status]}`}>{e.status}</span>,
+      render: (e) => <span className={`badge ${EVENT_STATUS_TINT[e.status]}`}>{e.status}</span>,
     },
     {
       header: t("common.actions"),

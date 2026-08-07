@@ -84,9 +84,9 @@ func (h *ChatHandler) GetMessages(c echo.Context) error {
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
 
-	msgs, err := h.chat.GetMessages(c.Request().Context(), convID, userID, page, limit)
+	msgs, err := h.chat.GetMessages(c.Request().Context(), convID, userID, mw.Role(c), page, limit)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return err
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{"data": msgs})
@@ -113,9 +113,9 @@ func (h *ChatHandler) SendMessage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "message body required")
 	}
 
-	msg, err := h.chat.SendMessage(c.Request().Context(), convID, userID, req.Body, req.MediaID)
+	msg, err := h.chat.SendMessage(c.Request().Context(), convID, userID, mw.Role(c), req.Body, req.MediaID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return err
 	}
 
 	return c.JSON(http.StatusCreated, map[string]any{"data": msg})
@@ -132,8 +132,8 @@ func (h *ChatHandler) MarkAsRead(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid conversation id")
 	}
 
-	if err := h.chat.MarkAsRead(c.Request().Context(), convID, userID); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	if err := h.chat.MarkAsRead(c.Request().Context(), convID, userID, mw.Role(c)); err != nil {
+		return err
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{"status": "ok"})

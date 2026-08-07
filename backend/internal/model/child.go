@@ -11,7 +11,7 @@ const (
 )
 
 type Child struct {
-	Base
+	TenantBase
 	FirstName     string        `gorm:"size:100;not null" json:"first_name"`
 	LastName      string        `gorm:"size:100;not null" json:"last_name"`
 	DOB           time.Time     `gorm:"type:date;not null" json:"dob"`
@@ -41,7 +41,7 @@ type Guardian struct {
 }
 
 type Classroom struct {
-	Base
+	TenantBase
 	Name         string                 `gorm:"size:191;not null" json:"name"` // default-locale name; translations override
 	RoomLocation string                 `gorm:"size:191" json:"room_location"`
 	AgeGroup     string                 `gorm:"size:50" json:"age_group"`

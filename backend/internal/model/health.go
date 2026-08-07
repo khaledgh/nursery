@@ -6,7 +6,7 @@ package model
 // sends is always overwritten from the route.
 
 type Allergy struct {
-	Base
+	TenantBase
 	ChildID  uint64 `gorm:"not null;index" json:"child_id"`
 	Name     string `gorm:"size:191;not null" json:"name"`
 	Severity string `gorm:"type:enum('mild','moderate','severe');not null;default:'mild'" json:"severity"`
@@ -15,7 +15,7 @@ type Allergy struct {
 func (m *Allergy) SetChildID(id uint64) { m.ChildID = id }
 
 type IllnessLog struct {
-	Base
+	TenantBase
 	ChildID     uint64  `gorm:"not null;index" json:"child_id"`
 	Title       string  `gorm:"size:191;not null" json:"title"`
 	Status      string  `gorm:"type:enum('active','recovered','resolved');not null;default:'active'" json:"status"`
@@ -27,7 +27,7 @@ type IllnessLog struct {
 func (m *IllnessLog) SetChildID(id uint64) { m.ChildID = id }
 
 type Medication struct {
-	Base
+	TenantBase
 	ChildID   uint64 `gorm:"not null;index" json:"child_id"`
 	Name      string `gorm:"size:191;not null" json:"name"`
 	Dosage    string `gorm:"size:100" json:"dosage"`
@@ -40,7 +40,7 @@ type Medication struct {
 func (m *Medication) SetChildID(id uint64) { m.ChildID = id }
 
 type Immunization struct {
-	Base
+	TenantBase
 	ChildID     uint64 `gorm:"not null;index" json:"child_id"`
 	Vaccine     string `gorm:"size:191;not null" json:"vaccine"`
 	GivenDate   string `gorm:"type:date" json:"given_date"`
@@ -51,7 +51,7 @@ type Immunization struct {
 func (m *Immunization) SetChildID(id uint64) { m.ChildID = id }
 
 type Checkup struct {
-	Base
+	TenantBase
 	ChildID uint64 `gorm:"not null;index" json:"child_id"`
 	Type    string `gorm:"size:100;not null" json:"type"`
 	Date    string `gorm:"type:date" json:"date"`
@@ -62,7 +62,7 @@ type Checkup struct {
 func (m *Checkup) SetChildID(id uint64) { m.ChildID = id }
 
 type GrowthRecord struct {
-	Base
+	TenantBase
 	ChildID    uint64  `gorm:"not null;index" json:"child_id"`
 	Date       string  `gorm:"type:date;not null" json:"date"`
 	HeightCm   float32 `json:"height_cm"`
@@ -73,7 +73,7 @@ type GrowthRecord struct {
 func (m *GrowthRecord) SetChildID(id uint64) { m.ChildID = id }
 
 type VitalLog struct {
-	Base
+	TenantBase
 	ChildID      uint64  `gorm:"not null;index" json:"child_id"`
 	Date         string  `gorm:"type:date;not null" json:"date"`
 	Temperature  float32 `json:"temperature"`
@@ -86,7 +86,7 @@ type VitalLog struct {
 func (m *VitalLog) SetChildID(id uint64) { m.ChildID = id }
 
 type EmergencyContact struct {
-	Base
+	TenantBase
 	ChildID  uint64 `gorm:"not null;index" json:"child_id"`
 	Name     string `gorm:"size:191;not null" json:"name"`
 	Relation string `gorm:"size:50" json:"relation"`
@@ -97,7 +97,7 @@ type EmergencyContact struct {
 func (m *EmergencyContact) SetChildID(id uint64) { m.ChildID = id }
 
 type InsuranceInfo struct {
-	Base
+	TenantBase
 	ChildID    uint64 `gorm:"not null;index" json:"child_id"`
 	Provider   string `gorm:"size:191;not null" json:"provider"`
 	PolicyNo   string `gorm:"size:100" json:"policy_no"`
@@ -108,7 +108,7 @@ type InsuranceInfo struct {
 func (m *InsuranceInfo) SetChildID(id uint64) { m.ChildID = id }
 
 type MedicalDocument struct {
-	Base
+	TenantBase
 	ChildID uint64 `gorm:"not null;index" json:"child_id"`
 	MediaID uint64 `gorm:"not null" json:"media_id"`
 	Media   *Media `gorm:"foreignKey:MediaID" json:"media,omitempty"`
@@ -119,7 +119,7 @@ type MedicalDocument struct {
 func (m *MedicalDocument) SetChildID(id uint64) { m.ChildID = id }
 
 type HealthNote struct {
-	Base
+	TenantBase
 	ChildID    uint64 `gorm:"not null;index" json:"child_id"`
 	Title      string `gorm:"size:191;not null" json:"title"`
 	Body       string `gorm:"size:2000" json:"body"`

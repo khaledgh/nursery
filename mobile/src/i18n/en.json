@@ -10,6 +10,8 @@
     "title": "Little Talent Childcare",
     "subtitle": "Sign in to follow your child's day",
     "email": "Email",
+    "loginId": "Login ID",
+    "loginIdHint": "The ID your nursery gave you",
     "password": "Password",
     "submit": "Sign in"
   },

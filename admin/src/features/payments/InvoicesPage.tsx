@@ -7,13 +7,8 @@ import { Modal } from "../../components/Modal";
 import { usePagedList } from "../../hooks/usePagedList";
 import { api, errorMessage } from "../../lib/api";
 import type { Child, Invoice, ListResponse } from "../../types/api";
+import { INVOICE_STATUS_TINT } from "../../lib/tints";
 
-const STATUS_TINT: Record<string, string> = {
-  due: "bg-amber-100 text-amber-700",
-  paid: "bg-emerald-100 text-emerald-700",
-  overdue: "bg-rose-100 text-rose-700",
-  cancelled: "bg-slate-100 text-slate-500",
-};
 
 interface DraftItem {
   label: string;
@@ -75,7 +70,7 @@ export function InvoicesPage() {
     { header: t("nav.children"), render: (i) => (i.child ? `${i.child.first_name} ${i.child.last_name}` : `#${i.child_id}`) },
     { header: "Total", render: (i) => <span className="font-medium">{money(i.total_minor, i.currency)}</span> },
     { header: "Due", render: (i) => i.due_date.slice(0, 10) },
-    { header: t("common.status"), render: (i) => <span className={`badge ${STATUS_TINT[i.status]}`}>{i.status}</span> },
+    { header: t("common.status"), render: (i) => <span className={`badge ${INVOICE_STATUS_TINT[i.status]}`}>{i.status}</span> },
     {
       header: t("common.actions"),
       className: "w-24",
@@ -91,7 +86,9 @@ export function InvoicesPage() {
   const [multiCreating, setMultiCreating] = useState(false);
   const [multiChildId, setMultiChildId] = useState("");
   const [multiMonths, setMultiMonths] = useState("3");
-  const [multiStart, setMultiStart] = useState("2026-08");
+  // Defaults to the current month. This was hardcoded to "2026-08", which
+  // silently billed the wrong period for anyone who didn't notice and edit it.
+  const [multiStart, setMultiStart] = useState(() => new Date().toISOString().slice(0, 7));
 
   const payMulti = useMutation({
     mutationFn: async () =>
@@ -121,7 +118,7 @@ export function InvoicesPage() {
           <>
             <select className="input !w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="">All statuses</option>
-              {Object.keys(STATUS_TINT).map((s) => (
+              {Object.keys(INVOICE_STATUS_TINT).map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>

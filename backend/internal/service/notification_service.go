@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/notification"
 )
@@ -28,8 +29,8 @@ func NewNotificationService(db *gorm.DB, onesignal *notification.OneSignalClient
 
 const sendTimeout = 15 * time.Second
 
-func (s *NotificationService) NotifyGuardians(_ context.Context, childID uint64, category, title, body string, data map[string]any) {
-	go s.deliver(func(ctx context.Context) ([]uint64, error) {
+func (s *NotificationService) NotifyGuardians(ctx context.Context, childID uint64, category, title, body string, data map[string]any) {
+	go s.deliver(ctx, func(ctx context.Context) ([]uint64, error) {
 		var ids []uint64
 		err := s.db.WithContext(ctx).Model(&model.Guardian{}).
 			Joins("JOIN users ON users.id = guardians.parent_user_id AND users.status = 'active'").
@@ -42,8 +43,8 @@ func (s *NotificationService) NotifyGuardians(_ context.Context, childID uint64,
 // NotifyClassroomGuardians resolves the whole classroom in one query. The
 // per-child loop it replaces sent one HTTP request per child and notified a
 // parent once for each of their children in the room.
-func (s *NotificationService) NotifyClassroomGuardians(_ context.Context, classroomID uint64, category, title, body string, data map[string]any) {
-	go s.deliver(func(ctx context.Context) ([]uint64, error) {
+func (s *NotificationService) NotifyClassroomGuardians(ctx context.Context, classroomID uint64, category, title, body string, data map[string]any) {
+	go s.deliver(ctx, func(ctx context.Context) ([]uint64, error) {
 		var ids []uint64
 		err := s.db.WithContext(ctx).Model(&model.Guardian{}).
 			Joins("JOIN children ON children.id = guardians.child_id").
@@ -54,14 +55,14 @@ func (s *NotificationService) NotifyClassroomGuardians(_ context.Context, classr
 	}, category, title, body, data)
 }
 
-func (s *NotificationService) NotifyUser(_ context.Context, userID uint64, category, title, body string, data map[string]any) {
-	go s.deliver(func(ctx context.Context) ([]uint64, error) {
+func (s *NotificationService) NotifyUser(ctx context.Context, userID uint64, category, title, body string, data map[string]any) {
+	go s.deliver(ctx, func(ctx context.Context) ([]uint64, error) {
 		return []uint64{userID}, nil
 	}, category, title, body, data)
 }
 
-func (s *NotificationService) NotifyRole(_ context.Context, role string, category, title, body string, data map[string]any) {
-	go s.deliver(func(ctx context.Context) ([]uint64, error) {
+func (s *NotificationService) NotifyRole(ctx context.Context, role string, category, title, body string, data map[string]any) {
+	go s.deliver(ctx, func(ctx context.Context) ([]uint64, error) {
 		var ids []uint64
 		q := s.db.WithContext(ctx).Model(&model.User{}).Where("status = 'active'")
 		if role != "" {
@@ -74,13 +75,17 @@ func (s *NotificationService) NotifyRole(_ context.Context, role string, categor
 
 // deliver runs in its own goroutine with a detached context so an aborted
 // HTTP request doesn't cancel the send mid-flight.
-func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64, error), category, title, body string, data map[string]any) {
+//
+// caller supplies the tenant scope: detaching from the request context would
+// also drop the nursery, and an unscoped recipient lookup here would fan a
+// broadcast out across every nursery on the platform.
+func (s *NotificationService) deliver(caller context.Context, recipients func(context.Context) ([]uint64, error), category, title, body string, data map[string]any) {
 	defer func() {
 		if r := recover(); r != nil {
 			s.log.Error().Any("panic", r).Msg("notification delivery panicked")
 		}
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
+	ctx, cancel := context.WithTimeout(database.CarryTenant(context.Background(), caller), sendTimeout)
 	defer cancel()
 
 	userIDs, err := recipients(ctx)
@@ -88,13 +93,13 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 		s.log.Error().Err(err).Msg("notification recipient lookup failed")
 		return
 	}
-	s.log.Info().
+	s.log.Debug().
 		Str("category", category).
 		Interface("user_ids", userIDs).
 		Msg("Resolved notification recipients")
 
 	if len(userIDs) == 0 {
-		s.log.Info().Msg("No recipients found for notification, skipping delivery")
+		s.log.Debug().Msg("No recipients found for notification, skipping delivery")
 		return
 	}
 
@@ -112,67 +117,66 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 	}
 
 	if !s.onesignal.Enabled() {
-		s.log.Info().Msg("OneSignal client is disabled (missing credentials), skipping push delivery")
+		s.log.Debug().Msg("OneSignal client is disabled (missing credentials), skipping push delivery")
 		return
 	}
 
-	// Filter userIDs based on user_notification_settings preferences
+	// Preferences are fetched in one query rather than one per recipient. The
+	// loop this replaces issued a SELECT per user, which is tolerable for a
+	// classroom but not for a nursery-wide broadcast — and far worse now that
+	// several nurseries share the connection pool.
+	settingsByUser := make(map[uint64]model.UserNotificationSetting, len(userIDs))
+	var prefs []model.UserNotificationSetting
+	if err := s.db.WithContext(ctx).
+		Where("user_id IN ?", userIDs).Find(&prefs).Error; err != nil {
+		s.log.Error().Err(err).Msg("notification preference lookup failed")
+	}
+	for _, p := range prefs {
+		settingsByUser[p.UserID] = p
+	}
+
 	var pushUserIDs []uint64
 	for _, uid := range userIDs {
-		var setting model.UserNotificationSetting
-		err := s.db.WithContext(ctx).Where("user_id = ?", uid).First(&setting).Error
-		if err == nil {
-			s.log.Info().
-				Uint64("user_id", uid).
-				Str("category", category).
-				Bool("push_enabled", setting.PushEnabled).
-				Bool("messages_enabled", setting.MessagesEnabled).
-				Bool("announcements_enabled", setting.AnnouncementsEnabled).
-				Bool("reminders_enabled", setting.RemindersEnabled).
-				Bool("events_enabled", setting.EventsEnabled).
-				Msg("Checking user notification preference in DB")
+		setting, found := settingsByUser[uid]
+		// A missing row means the user has never changed their preferences,
+		// which is opt-out semantics: everything stays enabled.
+		if found {
 			if !setting.PushEnabled {
-				s.log.Info().Uint64("user_id", uid).Msg("Skipping push: PushEnabled is false")
+				s.log.Debug().Uint64("user_id", uid).Msg("Skipping push: PushEnabled is false")
 				continue
 			}
 			switch category {
 			case model.CategoryMessages:
 				if !setting.MessagesEnabled {
-					s.log.Info().Uint64("user_id", uid).Msg("Skipping push: MessagesEnabled is false")
+					s.log.Debug().Uint64("user_id", uid).Msg("Skipping push: MessagesEnabled is false")
 					continue
 				}
 			case model.CategoryUpdates:
 				if !setting.AnnouncementsEnabled {
-					s.log.Info().Uint64("user_id", uid).Msg("Skipping push: AnnouncementsEnabled is false")
+					s.log.Debug().Uint64("user_id", uid).Msg("Skipping push: AnnouncementsEnabled is false")
 					continue
 				}
 			case model.CategoryReminders:
 				if !setting.RemindersEnabled {
-					s.log.Info().Uint64("user_id", uid).Msg("Skipping push: RemindersEnabled is false")
+					s.log.Debug().Uint64("user_id", uid).Msg("Skipping push: RemindersEnabled is false")
 					continue
 				}
 			case model.CategoryEvents:
 				if !setting.EventsEnabled {
-					s.log.Info().Uint64("user_id", uid).Msg("Skipping push: EventsEnabled is false")
+					s.log.Debug().Uint64("user_id", uid).Msg("Skipping push: EventsEnabled is false")
 					continue
 				}
 			}
-		} else {
-			s.log.Info().
-				Uint64("user_id", uid).
-				Str("category", category).
-				Err(err).
-				Msg("No user preference setting row found (defaulting to enabled)")
 		}
 		pushUserIDs = append(pushUserIDs, uid)
 	}
 
-	s.log.Info().
+	s.log.Debug().
 		Interface("push_user_ids", pushUserIDs).
 		Msg("Filtered user IDs for push delivery")
 
 	if len(pushUserIDs) == 0 {
-		s.log.Info().Msg("All recipient user IDs were filtered out, skipping push delivery")
+		s.log.Debug().Msg("All recipient user IDs were filtered out, skipping push delivery")
 		return
 	}
 
@@ -189,7 +193,7 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 		s.log.Error().Err(err).Msg("device token lookup failed")
 		return
 	}
-	s.log.Info().
+	s.log.Debug().
 		Interface("devices_found", devices).
 		Msg("Device tokens found in DB for push")
 
@@ -198,7 +202,7 @@ func (s *NotificationService) deliver(recipients func(context.Context) ([]uint64
 		byLocale[d.Locale] = append(byLocale[d.Locale], d.OneSignalPlayerID)
 	}
 	if len(byLocale) == 0 {
-		s.log.Info().Msg("No OneSignal player IDs found in DB for recipients, skipping push delivery")
+		s.log.Debug().Msg("No OneSignal player IDs found in DB for recipients, skipping push delivery")
 		return
 	}
 	// Bodies are not translated yet, so every locale gets the same text; the
@@ -238,4 +242,3 @@ func (s *NotificationService) UpdateUserSettings(ctx context.Context, setting *m
 		Assign(setting).
 		FirstOrCreate(setting).Error
 }
-

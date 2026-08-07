@@ -23,7 +23,7 @@ export interface ApiErrorBody {
   };
 }
 
-export type Role = "admin" | "teacher" | "parent";
+export type Role = "superadmin" | "admin" | "teacher" | "parent";
 
 export interface Media {
   id: number;
@@ -49,8 +49,163 @@ export interface AuthUser {
   id: number;
   name: string;
   email: string;
+  /** Nursery-issued mobile credential. Absent for admins and superadmins. */
+  login_id?: string | null;
   role: Role;
   locale: string;
+  nursery_id: number;
+}
+
+// --- multi-tenancy, subscription, capabilities ---
+
+export type Capability =
+  | "payments"
+  | "reports"
+  | "community"
+  | "chat"
+  | "events"
+  | "health";
+
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "suspended"
+  | "cancelled";
+
+export interface SeatUsage {
+  plan_code: string;
+  plan_name: string;
+  status: SubscriptionStatus;
+  students_used: number;
+  students_max: number;
+  students_remaining: number;
+  staff_used: number;
+  staff_max: number;
+  /** False once a subscription lapses — reads stay open, writes stop. */
+  allows_writes: boolean;
+  payment_due: boolean;
+  period_end: string | null;
+  grace_until: string | null;
+}
+
+export interface Nursery {
+  id: number;
+  name: string;
+  slug: string;
+  status: "active" | "suspended" | "cancelled";
+  locale: string;
+  timezone: string;
+}
+
+/** One call on load: identity, tenant, purchased modules, seats left. */
+export interface MeContext {
+  user: AuthUser;
+  nursery: Nursery;
+  capabilities: Capability[];
+  seats?: SeatUsage;
+}
+
+export interface Plan {
+  id: number;
+  code: string;
+  name: string;
+  max_students: number;
+  max_staff: number;
+  price_minor: number;
+  currency: string;
+  billing_period: "monthly" | "yearly";
+  is_active: boolean;
+}
+
+export interface NurseryOverview extends Nursery {
+  plan_code: string;
+  subscription_status: SubscriptionStatus;
+  students_used: number;
+  students_max: number;
+  created_at: string;
+}
+
+export interface PlatformStats {
+  nurseries: number;
+  active_nurseries: number;
+  children: number;
+  users: number;
+  overdue_invoices: number;
+  mrr_minor: number;
+  nurseries_past_due: number;
+}
+
+export interface SubscriptionInvoice {
+  id: number;
+  nursery_id: number;
+  invoice_no: string;
+  amount_minor: number;
+  currency: string;
+  period: string;
+  due_date: string;
+  status: "due" | "paid" | "overdue" | "cancelled";
+  paid_at: string | null;
+}
+
+// --- chat ---
+
+export interface Conversation {
+  id: number;
+  type: "parent_teacher" | "parent_admin";
+  parent_user_id: number;
+  recipient_user_id: number;
+  parent_user?: User | null;
+  recipient_user?: User | null;
+  child?: Child | null;
+  last_message_at: string | null;
+  last_message_preview: string;
+  unread_count: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversation_id: number;
+  sender_user_id: number;
+  sender_user?: User | null;
+  body: string;
+  media?: Media | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+// --- family workflow ---
+
+export interface FamilyParent {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  login_id?: string | null;
+  status: string;
+  locale: string;
+}
+
+export interface FamilyChild extends Child {
+  relationship: string;
+  is_primary: boolean;
+  can_pickup: boolean;
+}
+
+export interface FamilyResponse {
+  parent: FamilyParent;
+  child: Child;
+  created: boolean;
+}
+
+/** Backs /parents/:id — the family hub the panel previously lacked. */
+export interface ParentDetail {
+  parent: FamilyParent;
+  children: FamilyChild[];
+  invoices: Invoice[];
+  outstanding_minor: number;
+  paid_minor: number;
+  unpaid_invoices: number;
 }
 
 export interface TokenPair {
@@ -356,4 +511,20 @@ export interface AchievementTemplate {
   description: string;
   icon: string;
   color: string;
+}
+
+// --- global search ---
+
+export interface SearchHit {
+  id: number;
+  label: string;
+  sub: string;
+}
+
+export interface SearchResults {
+  children?: SearchHit[];
+  parents?: SearchHit[];
+  staff?: SearchHit[];
+  classrooms?: SearchHit[];
+  invoices?: SearchHit[];
 }

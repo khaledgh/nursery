@@ -17,9 +17,17 @@ import { AuditLogsPage } from "./features/audit/AuditLogsPage";
 import { MenusPage } from "./features/menus/MenusPage";
 import { WeeklyPlansPage } from "./features/plans/WeeklyPlansPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
+import { AnalyticsPage } from "./features/reports/AnalyticsPage";
 import { MilestonesPage } from "./features/milestones/MilestonesPage";
 import { AttendancePage } from "./features/attendance/AttendancePage";
 import { CommunityPage } from "./features/community/CommunityPage";
+import { NewFamilyPage } from "./features/families/NewFamilyPage";
+import { ParentDetailPage } from "./features/families/ParentDetailPage";
+import { ChildDetailPage } from "./features/children/ChildDetailPage";
+import { MessagesPage } from "./features/messages/MessagesPage";
+import { BillingPage } from "./features/billing/BillingPage";
+import { NurseriesPage } from "./features/superadmin/NurseriesPage";
+import { PlansPage } from "./features/superadmin/PlansPage";
 
 export default function App() {
   return (
@@ -30,11 +38,20 @@ export default function App() {
           <Route element={<Layout />}>
             <Route index element={<DashboardPage />} />
             <Route path="users" element={<UsersPage />} />
+            {/* Real routes, so a family is linkable and survives a refresh. */}
+            <Route path="families/new" element={<NewFamilyPage />} />
+            <Route path="parents/:id" element={<ParentDetailPage />} />
             <Route path="children" element={<ChildrenPage />} />
+            <Route path="children/:id" element={<ChildDetailPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="billing" element={<BillingPage />} />
+            <Route path="superadmin" element={<NurseriesPage />} />
+            <Route path="superadmin/plans" element={<PlansPage />} />
             <Route path="classrooms" element={<ClassroomsPage />} />
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="care" element={<CarePage />} />
             <Route path="reports" element={<ReportsPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="milestones" element={<MilestonesPage />} />
             <Route path="menus" element={<MenusPage />} />
             <Route path="weekly-plans" element={<WeeklyPlansPage />} />

@@ -5,6 +5,7 @@ import { api, errorMessage } from "../../lib/api";
 import { ImageUpload } from "../../components/ImageUpload";
 import { toISODate } from "../../components/WeekPicker";
 import { Modal } from "../../components/Modal";
+import { DIMENSIONS, MOODS, MOOD_OPTIONS, RATING_OPTIONS } from "../reports/reportConstants";
 import type {
   Child,
   DailyReport,
@@ -23,36 +24,36 @@ interface QuickHubModalProps {
   child: Child | null;
   open: boolean;
   onClose: () => void;
+  /**
+   * Render the tab bodies bare, for the /children/:id page.
+   *
+   * The care, report, and milestone editors are ~700 lines of interlocking
+   * form state. Parameterising the chrome keeps one implementation for both
+   * surfaces rather than forking it — a fork would drift, and both write to
+   * the same endpoints.
+   */
+  embedded?: boolean;
+  /** Externally controlled tab; only meaningful when embedded. */
+  tab?: TabType;
+}
+
+/**
+ * The child hub rendered inline on the detail page instead of in a modal.
+ */
+export function ChildHubTabs({ child, tab }: { child: Child; tab: TabType }) {
+  return <QuickHubModal child={child} open onClose={() => {}} embedded tab={tab} />;
 }
 
 type TabType = "care" | "report" | "milestones";
 type LogKind = "diary" | "meal" | "sleep" | "diaper" | "hydration";
 
-// Constants for Daily Report
-const DIMENSIONS: { key: ReportRating["dimension"]; label: string }[] = [
-  { key: "social", label: "Engagement with classmates" },
-  { key: "participation", label: "Participation in activities" },
-  { key: "listening", label: "Listening to the teacher" },
-  { key: "focus", label: "Focus & concentration" },
-  { key: "hygiene", label: "Hygiene / self-care" },
-  { key: "eating", label: "Meal / eating habits" },
-];
-
-const RATING_OPTIONS: ReportRating["rating"][] = ["thriving", "doing_well", "improving", "needs_support"];
-
-const MOODS: { key: ReportMood["key"]; label: string }[] = [
-  { key: "social", label: "Social" },
-  { key: "creative", label: "Creative" },
-  { key: "happy", label: "Happy" },
-  { key: "calm", label: "Calm" },
-];
-
-const MOOD_OPTIONS: ReportMood["rating"][] = ["great", "good", "okay"];
-
-export function QuickHubModal({ child, open, onClose }: QuickHubModalProps) {
+export function QuickHubModal({ child, open, onClose, embedded = false, tab }: QuickHubModalProps) {
   const qc = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<TabType>("care");
+  const [localTab, setActiveTab] = useState<TabType>("care");
+  // Embedded, the tab comes from the URL so it survives a refresh and can be
+  // linked to; in the modal it stays local state.
+  const activeTab: TabType = embedded ? (tab ?? "care") : localTab;
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -312,10 +313,20 @@ export function QuickHubModal({ child, open, onClose }: QuickHubModalProps) {
 
   if (!child) return null;
 
-  return (
-    <Modal open={open} title="" onClose={onClose} wide>
+  // Embedded on the detail page, the surrounding page already shows the child's
+  // name and tabs, so the modal chrome and header would only repeat them.
+  //
+  // Built as an element rather than a component defined during render: a fresh
+  // component identity each pass would remount the whole subtree on every
+  // keystroke and wipe the form being typed into.
+  const body = (
+    <>
       {/* Custom Hub Header */}
-      <div className="-mx-6 -mt-6 bg-slate-50 border-b border-slate-200 px-6 py-5 rounded-t-2xl flex items-center justify-between">
+      <div
+        className={`${
+          embedded ? "hidden" : ""
+        } -mx-6 -mt-6 bg-slate-50 border-b border-slate-200 px-6 py-5 rounded-t-2xl flex items-center justify-between`}
+      >
         <div className="flex items-center gap-4">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-100 text-brand-800 font-extrabold shadow-sm border border-brand-200">
             {child.first_name[0]}{child.last_name[0]}
@@ -980,6 +991,13 @@ export function QuickHubModal({ child, open, onClose }: QuickHubModalProps) {
           {errorMsg && <span className="text-rose-700 bg-rose-50 rounded-lg px-3 py-1.5">{errorMsg}</span>}
         </div>
       )}
+    </>
+  );
+
+  if (embedded) return <div className="card p-6">{body}</div>;
+  return (
+    <Modal open={open} title="" onClose={onClose} wide>
+      {body}
     </Modal>
   );
 }

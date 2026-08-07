@@ -39,6 +39,11 @@ func main() {
 		log.Fatal().Err(err).Msg("database connection failed")
 	}
 
+	if hasArg("--superadmin") {
+		seedSuperAdmin(db, log)
+		return
+	}
+
 	seedAdmin(db, cfg, log)
 
 	if hasArg("--demo") || os.Getenv("SEED_DEMO") == "1" {
@@ -78,6 +83,7 @@ func seedAdmin(db *gorm.DB, cfg *config.Config, log zerolog.Logger) {
 		log.Fatal().Err(err).Msg("failed to hash password")
 	}
 	admin := &model.User{
+		NurseryID:    defaultNurseryID,
 		Name:         "Administrator",
 		Email:        cfg.Seed.AdminEmail,
 		PasswordHash: pwHash,
@@ -89,6 +95,58 @@ func seedAdmin(db *gorm.DB, cfg *config.Config, log zerolog.Logger) {
 		log.Fatal().Err(err).Msg("failed to create admin user")
 	}
 	log.Info().Str("email", admin.Email).Msg("admin user created — change the password after first login")
+}
+
+// defaultNurseryID is the tenant that migration 000010 backfills every existing
+// row to. Demo records rely on the column's DEFAULT 1 rather than setting this
+// on each struct, since most models carry it via an embedded TenantBase.
+const defaultNurseryID = 1
+
+// seedSuperAdmin creates the platform operator, who sits above every nursery.
+//
+//	go run ./cmd/seed --superadmin
+//
+// Deliberately reachable only from this command: no HTTP route mints a
+// superadmin, so a compromised nursery admin cannot escalate to platform level.
+func seedSuperAdmin(db *gorm.DB, log zerolog.Logger) {
+	email := os.Getenv("SEED_SUPERADMIN_EMAIL")
+	password := os.Getenv("SEED_SUPERADMIN_PASSWORD")
+	if email == "" || password == "" {
+		log.Fatal().Msg("SEED_SUPERADMIN_EMAIL and SEED_SUPERADMIN_PASSWORD must be set")
+	}
+	if len(password) < 12 {
+		log.Fatal().Msg("SEED_SUPERADMIN_PASSWORD must be at least 12 characters")
+	}
+
+	var existing int64
+	db.Model(&model.User{}).Where("role = ?", model.RoleSuperAdmin).Count(&existing)
+	if existing > 0 {
+		log.Info().Msg("a superadmin already exists; skipped")
+		return
+	}
+
+	pwHash, err := hash.Password(password)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to hash password")
+	}
+	su := &model.User{
+		Name:         "Platform Operator",
+		Email:        email,
+		PasswordHash: pwHash,
+		Role:         model.RoleSuperAdmin,
+		Locale:       "en",
+		Status:       model.UserActive,
+	}
+	if err := db.Create(su).Error; err != nil {
+		log.Fatal().Err(err).Msg("failed to create superadmin")
+	}
+	// A superadmin belongs to no tenant, but users.nursery_id DEFAULTs to 1 and
+	// GORM omits zero-valued fields on insert — so without this the operator
+	// would silently land inside nursery 1 and be scoped to it.
+	if err := db.Model(su).Update("nursery_id", 0).Error; err != nil {
+		log.Fatal().Err(err).Msg("failed to detach superadmin from a nursery")
+	}
+	log.Info().Str("email", su.Email).Msg("superadmin created — change the password after first login")
 }
 
 // seedDemo is idempotent: it bails out if the demo parent already exists.
@@ -626,7 +684,7 @@ func seedMore(db *gorm.DB, log zerolog.Logger) {
 			})
 			mustCreate("diary", &model.DiaryEntry{
 				ChildID: child.ID, Type: model.DiarySleep, Title: "Nap Time",
-				Body: fmt.Sprintf("Slept for %dh %dm and woke up %s.", mins/60, mins%60, moods[idx%len(moods)]),
+				Body:       fmt.Sprintf("Slept for %dh %dm and woke up %s.", mins/60, mins%60, moods[idx%len(moods)]),
 				OccurredAt: at(12, 30), LoggedByUserID: teacher.ID, IsLive: false,
 			})
 
