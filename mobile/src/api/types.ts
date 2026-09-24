@@ -202,9 +202,17 @@ export interface ChildMilestone {
   assessed_at: string;
 }
 
+export interface AchievementTemplate {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+  color: string;
+}
+
 export interface ChildAchievement {
   id: number;
-  template?: { title: string; description: string; icon: string; color: string };
+  template?: AchievementTemplate;
   awarded_date: string;
   note: string;
 }

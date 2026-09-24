@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { api, errorMessage } from "../../lib/api";
 import { Modal } from "../../components/Modal";
 import { ImageUpload } from "../../components/ImageUpload";
@@ -19,11 +20,28 @@ interface CellDraft {
   image: Media | null;
 }
 
+interface MenusPageProps {
+  classroomId?: string | number;
+  hideHeader?: boolean;
+}
+
 /** Weekly menu planner: one grid per classroom, cells upsert via PUT /classrooms/:id/menu. */
-export function MenusPage() {
+export function MenusPage({ classroomId: propClassroomId, hideHeader }: MenusPageProps = {}) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [classroomId, setClassroomId] = useState("");
+  // Seeded from ?classroom= so the classroom detail page's "Menu" link opens
+  // straight to that room's grid instead of an empty picker.
+  const [searchParams] = useSearchParams();
+  const [classroomId, setClassroomId] = useState(
+    () => (propClassroomId ? String(propClassroomId) : searchParams.get("classroom") ?? "")
+  );
+
+  useEffect(() => {
+    if (propClassroomId) {
+      setClassroomId(String(propClassroomId));
+    }
+  }, [propClassroomId]);
+
   const [week, setWeek] = useState(() => startOfWeek(new Date()));
   const [draft, setDraft] = useState<CellDraft | null>(null);
   const [error, setError] = useState("");
@@ -86,11 +104,17 @@ export function MenusPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{t("nav.menus")}</h1>
+        {!hideHeader ? (
+          <h1 className="text-2xl font-semibold">{t("nav.menus")}</h1>
+        ) : (
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Weekly Meal Menu Grid</div>
+        )}
         <div className="flex items-center gap-3">
-          <div className="w-56">
-            <ClassroomPicker value={classroomId} onChange={setClassroomId} />
-          </div>
+          {!propClassroomId && (
+            <div className="w-56">
+              <ClassroomPicker value={classroomId} onChange={setClassroomId} />
+            </div>
+          )}
           <WeekPicker week={week} onChange={setWeek} />
         </div>
       </div>

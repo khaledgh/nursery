@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 import { FormField } from "../../components/FormField";
+import { DatePicker } from "../../components/DatePicker";
 import { PageHeader } from "../../components/PageHeader";
 import { SeatMeter } from "../../components/SeatMeter";
 import { api } from "../../lib/api";
@@ -161,20 +162,25 @@ export function NewFamilyPage() {
             )}
           </section>
 
-          <section className="space-y-4 border-t border-slate-100 pt-6">
+          <section className="space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6">
             <div className="flex items-center gap-2">
               <UserPlus size={16} className="text-brand-600" />
-              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-700">Child</h2>
+              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">Child Details</h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="First name" error={err.first_name?.message}>
-                <input className="input" {...form.register("first_name")} />
+              <FormField label="First name" required error={err.first_name?.message}>
+                <input className="input" placeholder="e.g. Liam" {...form.register("first_name")} />
               </FormField>
-              <FormField label="Last name" error={err.last_name?.message}>
-                <input className="input" {...form.register("last_name")} />
+              <FormField label="Last name" required error={err.last_name?.message}>
+                <input className="input" placeholder="e.g. Smith" {...form.register("last_name")} />
               </FormField>
-              <FormField label="Date of birth" error={err.dob?.message}>
-                <input className="input" type="date" {...form.register("dob")} />
+              <FormField label="Date of birth" required error={err.dob?.message}>
+                <DatePicker
+                  value={form.watch("dob")}
+                  onChange={(d) => form.setValue("dob", d, { shouldValidate: true })}
+                  isInvalid={!!err.dob}
+                  errorMessage={err.dob?.message}
+                />
               </FormField>
               <FormField label="Classroom" error={err.classroom_id?.message}>
                 <select className="input" {...form.register("classroom_id")}>
@@ -185,26 +191,41 @@ export function NewFamilyPage() {
                 </select>
               </FormField>
               <FormField label="Gender" error={err.gender?.message}>
-                <input className="input" {...form.register("gender")} />
+                <select className="input" {...form.register("gender")}>
+                  <option value="">— Select gender —</option>
+                  <option value="girl">Girl</option>
+                  <option value="boy">Boy</option>
+                </select>
               </FormField>
               <FormField label="Blood type" error={err.blood_type?.message}>
-                <input className="input" {...form.register("blood_type")} />
+                <select className="input" {...form.register("blood_type")}>
+                  <option value="">— Select (optional) —</option>
+                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bt) => (
+                    <option key={bt} value={bt}>{bt}</option>
+                  ))}
+                </select>
               </FormField>
             </div>
           </section>
 
-          <section className="space-y-4 border-t border-slate-100 pt-6">
-            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-700">Relationship</h2>
+          <section className="space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6">
+            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">Relationship & Pickup Permissions</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Relationship" error={err.relationship?.message}>
-                <input className="input" placeholder="parent / guardian" {...form.register("relationship")} />
+                <select className="input" {...form.register("relationship")}>
+                  <option value="parent">Parent</option>
+                  <option value="mother">Mother</option>
+                  <option value="father">Father</option>
+                  <option value="guardian">Guardian</option>
+                  <option value="relative">Relative</option>
+                </select>
               </FormField>
-              <div className="flex items-end gap-6 pb-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <input type="checkbox" {...form.register("is_primary")} /> Primary contact
+              <div className="flex items-center gap-6 pt-6">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <input type="checkbox" className="rounded" {...form.register("is_primary")} /> Primary contact
                 </label>
-                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <input type="checkbox" {...form.register("can_pickup")} /> Can collect
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <input type="checkbox" className="rounded" {...form.register("can_pickup")} /> Can collect child
                 </label>
               </div>
             </div>

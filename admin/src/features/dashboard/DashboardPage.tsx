@@ -1,77 +1,111 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Baby, CalendarDays, CreditCard, Users, CheckSquare, Square, Plus, Trash2, ArrowRight, UserPlus } from "lucide-react";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import {
+  Calendar,
+  CheckCircle2,
+  CreditCard,
+  Plus,
+  Square,
+  CheckSquare,
+  Trash2,
+  School,
+  UserPlus,
+  TrendingUp,
+  Wallet,
+  ClipboardCheck,
+  ShieldCheck,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ResponsiveContainer,
-  AreaChart,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Chip,
+  Input,
+  Progress,
+} from "@heroui/react";
+import {
   Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
 } from "recharts";
-import { StatCard } from "../../components/StatCard";
-import { SeatMeter } from "../../components/SeatMeter";
+import { useCurrency } from "../../hooks/useCurrency";
 import { api } from "../../lib/api";
-import type { AuditLog, Child, ListResponse, Reminder, ItemResponse } from "../../types/api";
-
-function useCount(key: string, url: string, params: Record<string, string | number> = {}) {
-  return useQuery({
-    queryKey: ["count", key],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<unknown>>(url, { params: { page: 1, per_page: 1, ...params } });
-      return res.data.meta?.total ?? 0;
-    },
-  });
-}
-
-const COLORS = ["#5b9c34", "#8fc464", "#2f551a", "#f59e0b", "#3b82f6", "#8b5cf6"];
+import { useAuthStore } from "../../store/auth";
+import type {
+  AuditLog,
+  Child,
+  Classroom,
+  EventItem,
+  Invoice,
+  ItemResponse,
+  ListResponse,
+  Reminder,
+  SeatUsage,
+} from "../../types/api";
 
 export function DashboardPage() {
-  const { t } = useTranslation();
   const qc = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const { currency, formatMoneyCompact } = useCurrency();
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
-  // Counts for cards
-  const parents = useCount("parents", "/admin/users", { role: "parent" });
-  const events = useCount("events", "/events", { tab: "upcoming" });
-  const dueInvoices = useCount("invoices-due", "/invoices", { status: "due" });
-
-  // Full children list to compute attendance ratio & classroom distributions
+  // Children query
   const childrenQuery = useQuery({
     queryKey: ["children-dashboard"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<Child>>("/children", { params: { per_page: 200 } });
-      return res.data.data;
-    },
+    queryFn: async () =>
+      (await api.get<ListResponse<Child>>("/children", { params: { per_page: 300 } })).data.data,
+  });
+
+  // Classrooms query
+  const classroomsQuery = useQuery({
+    queryKey: ["classrooms-dashboard"],
+    queryFn: async () =>
+      (await api.get<ListResponse<Classroom>>("/classrooms", { params: { per_page: 50 } })).data.data,
+  });
+
+  // Invoices query for live financial snapshot
+  const invoicesQuery = useQuery({
+    queryKey: ["invoices-dashboard"],
+    queryFn: async () =>
+      (await api.get<ListResponse<Invoice>>("/invoices", { params: { per_page: 300 } })).data.data,
+  });
+
+  // Upcoming events
+  const eventsQuery = useQuery({
+    queryKey: ["events-dashboard"],
+    queryFn: async () =>
+      (await api.get<ListResponse<EventItem>>("/events", { params: { tab: "upcoming", per_page: 4 } })).data.data,
   });
 
   // Reminders list
   const remindersQuery = useQuery({
     queryKey: ["reminders-dashboard"],
-    queryFn: async () => {
-      const res = await api.get<ItemResponse<Reminder[]>>("/reminders");
-      return res.data.data;
-    },
+    queryFn: async () =>
+      (await api.get<ItemResponse<Reminder[]>>("/reminders")).data.data,
   });
 
   // Recent audit logs
-  const audit = useQuery({
-    queryKey: ["audit-recent"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<AuditLog>>("/admin/audit-logs", { params: { page: 1, per_page: 6 } });
-      return res.data.data;
-    },
+  const auditQuery = useQuery({
+    queryKey: ["audit-dashboard"],
+    queryFn: async () =>
+      (await api.get<ListResponse<AuditLog>>("/admin/audit-logs", { params: { page: 1, per_page: 6 } })).data.data,
   });
 
-  // Delete reminder mutation (triggered by clicking checkbox / trash)
+  // Seats & Plan usage
+  const seatsQuery = useQuery({
+    queryKey: ["seats-dashboard"],
+    queryFn: async () =>
+      (await api.get<ItemResponse<SeatUsage>>("/me/seats")).data.data,
+  });
+
+  // Delete reminder mutation
   const deleteReminder = useMutation({
     mutationFn: async (id: number) => api.delete(`/reminders/${id}`),
     onSuccess: () => {
@@ -79,7 +113,7 @@ export function DashboardPage() {
     },
   });
 
-  // Add reminder quick task mutation
+  // Add reminder mutation
   const addReminder = useMutation({
     mutationFn: async (title: string) =>
       api.post("/reminders", {
@@ -94,54 +128,6 @@ export function DashboardPage() {
     },
   });
 
-  // Compute metrics
-  const kidsList = childrenQuery.data ?? [];
-  const totalChildren = kidsList.length;
-  const checkedIn = kidsList.filter((c) => c.present_status === "checked_in").length;
-  const checkedOut = kidsList.filter((c) => c.present_status === "checked_out").length;
-  const absent = kidsList.filter((c) => c.present_status === "absent").length;
-
-  const presentPercentage = totalChildren > 0 ? Math.round((checkedIn / totalChildren) * 100) : 0;
-
-  // Calculate real new children added this month
-  const now = new Date();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const newKidsThisMonth = kidsList.filter(
-    (c) => c.created_at && c.created_at.slice(0, 7) === currentMonthStr
-  ).length;
-
-  // Enrollment trend, derived from each child's created_at.
-  //
-  // This deliberately charts enrolment only. A historical attendance series
-  // used to be plotted alongside it, but the past months were synthesised
-  // (`88 + activeKids % 8`) rather than measured — a fabricated line on a
-  // dashboard is worse than an absent one, because it gets acted on. Restore
-  // it once the API exposes real per-month attendance.
-  const dynamicTrendData = (() => {
-    const trendData = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthLabel = d.toLocaleString("en-US", { month: "short" });
-      const yearMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-
-      const activeKids = kidsList.filter((c) => {
-        if (!c.created_at) return true;
-        return c.created_at.slice(0, 7) <= yearMonthStr;
-      }).length;
-
-      trendData.push({ name: monthLabel, "Active Children": activeKids });
-    }
-    return trendData;
-  })();
-
-  // Compute classroom distribution
-  const classroomMap: Record<string, number> = {};
-  kidsList.forEach((c) => {
-    const roomName = c.classroom?.name ?? "Unassigned";
-    classroomMap[roomName] = (classroomMap[roomName] || 0) + 1;
-  });
-  const pieData = Object.entries(classroomMap).map(([name, value]) => ({ name, value }));
-
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTaskTitle.trim()) {
@@ -149,312 +135,677 @@ export function DashboardPage() {
     }
   };
 
+  // Operational metrics
+  const kidsList = childrenQuery.data ?? [];
+  const classroomsList = classroomsQuery.data ?? [];
+  const invoicesList = invoicesQuery.data ?? [];
+  const seats = seatsQuery.data;
+
+  const totalChildren = kidsList.length;
+  const checkedIn = kidsList.filter((c) => c.present_status === "checked_in").length;
+  const checkedOut = kidsList.filter((c) => c.present_status === "checked_out").length;
+  const absent = kidsList.filter((c) => c.present_status === "absent").length;
+  const attendanceRate = totalChildren > 0 ? Math.round((checkedIn / totalChildren) * 100) : 0;
+
+  // Financial calculations
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const currentMonthInvoices = useMemo(() => {
+    return invoicesList.filter((i) => (i.period || i.due_date?.slice(0, 7)) === currentMonthStr);
+  }, [invoicesList, currentMonthStr]);
+
+  const mtdCollected = useMemo(() => {
+    return currentMonthInvoices
+      .filter((i) => i.status === "paid")
+      .reduce((sum, i) => sum + i.total_minor, 0);
+  }, [currentMonthInvoices]);
+
+  const mtdBilled = useMemo(() => {
+    return currentMonthInvoices.reduce((sum, i) => sum + i.total_minor, 0);
+  }, [currentMonthInvoices]);
+
+  const totalOutstanding = useMemo(() => {
+    return invoicesList
+      .filter((i) => i.status === "due" || i.status === "overdue")
+      .reduce((sum, i) => sum + i.total_minor, 0);
+  }, [invoicesList]);
+
+  const overdueInvoices = useMemo(() => {
+    return invoicesList.filter((i) => i.status === "overdue");
+  }, [invoicesList]);
+
+  // 6-Month Revenue Trend
+  const revenueTrendData = useMemo(() => {
+    const trend = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleString("en-US", { month: "short" });
+
+      const monthInvs = invoicesList.filter((inv) => (inv.period || inv.due_date?.slice(0, 7)) === key);
+      const billed = monthInvs.reduce((acc, inv) => acc + inv.total_minor, 0);
+      const paid = monthInvs.filter((inv) => inv.status === "paid").reduce((acc, inv) => acc + inv.total_minor, 0);
+
+      trend.push({
+        name: label,
+        Billed: Math.round(billed / 100),
+        Collected: Math.round(paid / 100),
+      });
+    }
+    return trend;
+  }, [invoicesList]);
+
+  // Classroom occupancy breakdown
+  const roomStats = useMemo(() => {
+    return classroomsList.map((room) => {
+      const roomKids = kidsList.filter(
+        (c) => c.classroom?.name === room.name || c.classroom_id === room.id
+      );
+      const roomCheckedIn = roomKids.filter((c) => c.present_status === "checked_in").length;
+      const roomAbsent = roomKids.filter((c) => c.present_status === "absent").length;
+      const capacity = room.capacity || 20;
+      const utilRate = capacity > 0 ? Math.round((roomKids.length / capacity) * 100) : 0;
+
+      return {
+        id: room.id,
+        name: room.name,
+        ageGroup: room.age_group || "Preschool",
+        enrolled: roomKids.length,
+        capacity,
+        checkedIn: roomCheckedIn,
+        absent: roomAbsent,
+        utilRate,
+      };
+    });
+  }, [classroomsList, kidsList]);
+
+  // Time of day greeting
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const formattedToday = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
-    <div className="space-y-8">
-      {/* Welcome banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-6 pb-8">
+      {/* Executive Welcome & Action Ribbon */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 shadow-sm">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{t("nav.dashboard")}</h1>
-          <p className="text-sm font-semibold text-slate-400 mt-1">Here is a quick overview of your nursery today.</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-primary uppercase tracking-wider">Nursery Operations</span>
+            <span className="h-1 w-1 rounded-full bg-slate-400" />
+            <span className="text-xs font-semibold text-slate-500">{formattedToday}</span>
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-1">
+            {greeting}, {user?.name?.split(" ")[0] ?? "Director"}! 👋
+          </h1>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            {checkedIn} of {totalChildren} children currently checked in · All systems operational
+          </p>
         </div>
-        <Link to="/families/new" className="btn btn-primary shrink-0">
-          <UserPlus size={16} /> Enrol a family
-        </Link>
+
+        {/* Quick Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button
+            as={Link}
+            to="/classrooms"
+            size="sm"
+            color="primary"
+            variant="solid"
+            startContent={<ClipboardCheck size={14} />}
+            className="font-bold text-xs shadow-sm shadow-primary/25"
+          >
+            Attendance
+          </Button>
+
+          <Button
+            as={Link}
+            to="/families/new"
+            size="sm"
+            variant="flat"
+            startContent={<UserPlus size={14} />}
+            className="font-bold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+          >
+            Enrol Child
+          </Button>
+
+          <Button
+            as={Link}
+            to="/invoices"
+            size="sm"
+            variant="flat"
+            startContent={<CreditCard size={14} />}
+            className="font-bold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+          >
+            New Invoice
+          </Button>
+
+          <Button
+            as={Link}
+            to="/events"
+            size="sm"
+            variant="flat"
+            startContent={<Calendar size={14} />}
+            className="font-bold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+          >
+            Schedule
+          </Button>
+        </div>
       </div>
 
-      {/* Seat usage: shows the plan's ceiling before a create fails against it. */}
-      <SeatMeter />
-
-      {/* 4 Stat Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={Baby}
-          label={t("nav.children")}
-          value={totalChildren}
-          tint="bg-brand-50 text-brand-700"
-          trend={newKidsThisMonth > 0 ? `+${newKidsThisMonth}` : "0"}
-          trendDirection={newKidsThisMonth > 0 ? "up" : "down"}
-        />
-        <StatCard
-          icon={Users}
-          label={t("nav.users")}
-          value={parents.data ?? 0}
-          tint="bg-sky-50 text-sky-700"
-        />
-        <StatCard
-          icon={CalendarDays}
-          label={t("nav.events")}
-          value={events.data ?? 0}
-          tint="bg-amber-50 text-amber-700"
-        />
-        <StatCard
-          icon={CreditCard}
-          label={t("nav.invoices")}
-          value={dueInvoices.data ?? 0}
-          tint="bg-rose-50 text-rose-700"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Left Column: Presence & Charts */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Presence Tracker */}
-          <div className="card p-6 space-y-6">
+      {/* 5-Card Operational & Financial Executive KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {/* Attendance Today */}
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+          <CardBody className="p-4 flex flex-col justify-between">
             <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                Today's Presence
+              </span>
+              <div className="h-7 w-7 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 size={15} />
+              </div>
+            </div>
+            <div className="mt-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xl font-black text-slate-900 dark:text-slate-100">
+                  {attendanceRate}%
+                </span>
+                <span className="text-xs font-bold text-slate-500">
+                  {checkedIn}/{totalChildren}
+                </span>
+              </div>
+              <Progress
+                value={attendanceRate}
+                color={attendanceRate > 80 ? "success" : "warning"}
+                size="sm"
+                className="mt-2"
+              />
+              <div className="mt-1 flex items-center justify-between text-[10px] font-semibold text-slate-400">
+                <span className="text-rose-500">{absent} absent</span>
+                <span>{checkedOut} checked out</span>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Month-to-Date Revenue */}
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+          <CardBody className="p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                MTD Collections ({currency})
+              </span>
+              <div className="h-7 w-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <TrendingUp size={15} />
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block truncate">
+                {formatMoneyCompact(mtdCollected)}
+              </span>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Chip size="sm" variant="flat" color="primary" className="h-4 text-[9px] font-extrabold px-1">
+                  {mtdBilled > 0 ? `${Math.round((mtdCollected / mtdBilled) * 100)}%` : "100%"} of billed
+                </Chip>
+                <span className="text-[10px] text-slate-400 font-medium">this month</span>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Outstanding Receivables */}
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+          <CardBody className="p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                Unpaid Invoices
+              </span>
+              <div className="h-7 w-7 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <Wallet size={15} />
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block truncate">
+                {formatMoneyCompact(totalOutstanding)}
+              </span>
+              <div className="mt-1 flex items-center gap-1.5">
+                {overdueInvoices.length > 0 ? (
+                  <Chip size="sm" variant="flat" color="danger" className="h-4 text-[9px] font-extrabold px-1">
+                    {overdueInvoices.length} overdue
+                  </Chip>
+                ) : (
+                  <span className="text-[10px] text-emerald-600 font-bold">All current</span>
+                )}
+                <Link to="/invoices" className="text-[10px] text-primary hover:underline font-bold ml-auto">
+                  View →
+                </Link>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Active Classrooms */}
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+          <CardBody className="p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                Active Classrooms
+              </span>
+              <div className="h-7 w-7 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center">
+                <School size={15} />
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100">
+                {classroomsList.length} rooms
+              </span>
+              <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                <span>{totalChildren} enrolled kids</span>
+                <Link to="/classrooms" className="text-primary hover:underline font-bold">
+                  Manage →
+                </Link>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* Subscription Seats */}
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+          <CardBody className="p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                Plan Seats
+              </span>
+              <div className="h-7 w-7 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
+                <ShieldCheck size={15} />
+              </div>
+            </div>
+            <div className="mt-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xl font-black text-slate-900 dark:text-slate-100">
+                  {seats?.students_used ?? totalChildren}
+                  <span className="text-xs text-slate-400 font-bold">
+                    /{seats?.students_max ?? "—"}
+                  </span>
+                </span>
+                <span className="text-[10px] font-extrabold text-purple-600 uppercase">
+                  {seats?.plan_name ?? "Standard"}
+                </span>
+              </div>
+              <Progress
+                value={
+                  seats?.students_max
+                    ? Math.min(Math.round(((seats.students_used || totalChildren) / seats.students_max) * 100), 100)
+                    : 50
+                }
+                color="secondary"
+                size="sm"
+                className="mt-2"
+              />
+              <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                <span>{seats?.students_remaining ?? 0} seats left</span>
+                <Link to="/billing" className="text-primary hover:underline font-bold">
+                  Billing →
+                </Link>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* Main 2-Column Responsive Operational Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Cols: Classroom Live Hub & Financial Trend */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Classrooms Live Status Hub */}
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
               <div>
-                <h3 className="text-[15px] font-extrabold text-slate-800">Children Presence Tracker</h3>
-                <p className="text-xs font-bold text-slate-400 mt-0.5">Real-time occupancy status</p>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  Classroom Live Operations
+                </h3>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">
+                  Real-time occupancy and attendance status across rooms
+                </p>
               </div>
-              <span className="badge bg-emerald-50 text-emerald-700 font-bold">{presentPercentage}% Present</span>
-            </div>
+              <Button
+                as={Link}
+                to="/classrooms"
+                size="sm"
+                variant="flat"
+                className="font-bold text-xs"
+              >
+                All Classrooms →
+              </Button>
+            </CardHeader>
 
-            {/* Stacked progress bar */}
-            <div className="h-4 w-full flex rounded-full overflow-hidden bg-slate-100">
-              <div
-                style={{ width: `${totalChildren > 0 ? (checkedIn / totalChildren) * 100 : 0}%` }}
-                className="bg-brand-600 transition-all duration-500"
-                title={`Checked In: ${checkedIn}`}
-              ></div>
-              <div
-                style={{ width: `${totalChildren > 0 ? (checkedOut / totalChildren) * 100 : 0}%` }}
-                className="bg-brand-300 transition-all duration-500"
-                title={`Checked Out: ${checkedOut}`}
-              ></div>
-              <div
-                style={{ width: `${totalChildren > 0 ? (absent / totalChildren) * 100 : 0}%` }}
-                className="bg-rose-400 transition-all duration-500"
-                title={`Absent: ${absent}`}
-              ></div>
-            </div>
-
-            {/* Occupancy details */}
-            <div className="grid grid-cols-3 gap-4 pt-2">
-              <div className="text-center p-3 rounded-2xl bg-brand-50/40 border border-brand-100/50">
-                <span className="block text-xl font-extrabold text-brand-800">{checkedIn}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Checked In</span>
-              </div>
-              <div className="text-center p-3 rounded-2xl bg-brand-50/20 border border-slate-100">
-                <span className="block text-xl font-extrabold text-brand-600">{checkedOut}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Checked Out</span>
-              </div>
-              <div className="text-center p-3 rounded-2xl bg-rose-50/30 border border-rose-100/30">
-                <span className="block text-xl font-extrabold text-rose-600">{absent}</span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Absent</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Enrollment Area Chart */}
-          <div className="card p-6 space-y-4">
-            <div>
-              <h3 className="text-[15px] font-extrabold text-slate-800">Enrollment & Attendance Trends</h3>
-              <p className="text-xs font-bold text-slate-400 mt-0.5">Development over the last 6 months</p>
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dynamicTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorKids" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#5b9c34" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#5b9c34" stopOpacity={0.01} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      borderRadius: "12px",
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Active Children"
-                    stroke="#5b9c34"
-                    strokeWidth={2.5}
-                    fillOpacity={1}
-                    fill="url(#colorKids)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Donut Chart & Reminders Checklist */}
-        <div className="space-y-8">
-          {/* Classroom Donut Chart */}
-          <div className="card p-6 space-y-4">
-            <div>
-              <h3 className="text-[15px] font-extrabold text-slate-800">Classroom Distribution</h3>
-              <p className="text-xs font-bold text-slate-400 mt-0.5">Children registered per room</p>
-            </div>
-            <div className="h-56 relative flex items-center justify-center">
-              {pieData.length === 0 ? (
-                <div className="text-xs text-slate-400">No classroom data available</div>
+            <CardBody className="px-6 pb-6 pt-3">
+              {roomStats.length === 0 ? (
+                <div className="py-8 text-center text-xs font-semibold text-slate-400">
+                  No classrooms configured yet.
+                </div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={75}
-                      paddingAngle={4}
-                      dataKey="value"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {roomStats.map((room) => (
+                    <Link
+                      key={room.id}
+                      to={`/classrooms/${room.id}`}
+                      className="group p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:border-primary/40 transition-all flex flex-col justify-between"
                     >
-                      {pieData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                            {room.name}
+                          </h4>
+                          <span className="text-[10px] font-semibold text-slate-400">
+                            {room.ageGroup}
+                          </span>
+                        </div>
+                        <Chip
+                          size="sm"
+                          variant="flat"
+                          color={room.checkedIn > 0 ? "success" : "default"}
+                          className="h-5 text-[10px] font-black"
+                        >
+                          {room.checkedIn} Present
+                        </Chip>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between text-xs font-bold mb-1">
+                          <span className="text-slate-600 dark:text-slate-300">
+                            Capacity: {room.enrolled}/{room.capacity}
+                          </span>
+                          <span className="text-slate-400 text-[10px]">
+                            {room.utilRate}% Full
+                          </span>
+                        </div>
+                        <Progress
+                          value={Math.min(room.utilRate, 100)}
+                          color={room.utilRate >= 100 ? "danger" : room.utilRate > 80 ? "warning" : "primary"}
+                          size="sm"
+                        />
+                      </div>
+
+                      <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between text-[11px] font-semibold">
+                        <span className="text-rose-500 font-bold">
+                          {room.absent} absent
+                        </span>
+                        <span className="text-primary font-bold group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
+                          Open Room →
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Monthly Revenue & Billing Trend Chart */}
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  Billing & Collections Trend ({currency})
+                </h3>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">
+                  Monthly cash flow over the last 6 months
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-bold">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-primary" />
+                  <span className="text-slate-500 text-[11px]">Billed</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-slate-500 text-[11px]">Collected</span>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardBody className="px-6 pb-6 pt-2">
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueTrendData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="dashBilled" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.0} />
+                      </linearGradient>
+                      <linearGradient id="dashCollected" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis
+                      stroke="#94a3b8"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) => `${v.toLocaleString()} ${currency}`}
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "#fff",
                         borderRadius: "12px",
                         border: "1px solid #e2e8f0",
+                        fontSize: "12px",
+                        fontWeight: "bold",
                       }}
+                      formatter={(val: any) => [`${Number(val).toLocaleString()} ${currency}`, ""]}
                     />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      iconType="circle"
-                      iconSize={8}
-                      wrapperStyle={{ fontSize: "11px", fontWeight: "bold", color: "#64748b" }}
+                    <Area
+                      type="monotone"
+                      dataKey="Billed"
+                      stroke="#0ea5e9"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#dashBilled)"
                     />
-                  </PieChart>
+                    <Area
+                      type="monotone"
+                      dataKey="Collected"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#dashCollected)"
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
-              )}
-            </div>
-          </div>
-
-          {/* Tasks & Reminders List */}
-          <div className="card p-6 flex flex-col justify-between min-h-[340px]">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-[15px] font-extrabold text-slate-800">Tasks & Reminders</h3>
-                  <p className="text-xs font-bold text-slate-400 mt-0.5">Active alerts checklist</p>
-                </div>
-                <Link to="/reminders" className="text-xs font-bold text-brand-600 hover:text-brand-800 flex items-center gap-0.5">
-                  View All <ArrowRight size={12} />
-                </Link>
               </div>
+            </CardBody>
+          </Card>
+        </div>
 
-              {/* Tasks Checklist */}
-              <ul className="space-y-3 max-h-52 overflow-y-auto pr-1">
+        {/* Right 1 Col: Urgent Tasks, Events & Recent Activity */}
+        <div className="space-y-6">
+          {/* Actionable Reminders / Checklist */}
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl flex flex-col justify-between">
+            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  Tasks & Daily Alerts
+                </h3>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">Nursery action checklist</p>
+              </div>
+              <Link to="/reminders" className="text-xs font-bold text-primary hover:underline">
+                View all →
+              </Link>
+            </CardHeader>
+
+            <CardBody className="px-6 py-2">
+              <ul className="space-y-2 max-h-56 overflow-y-auto pr-1">
                 {(remindersQuery.data ?? []).slice(0, 4).map((task) => (
                   <li
                     key={task.id}
-                    className="flex items-start justify-between gap-3 p-3 rounded-xl border border-slate-50 bg-slate-50/50 hover:bg-slate-50 transition-colors group"
+                    className="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors group"
                   >
                     <button
                       onClick={() => deleteReminder.mutate(task.id)}
-                      className="text-slate-400 hover:text-brand-600 shrink-0 mt-0.5 transition-colors"
+                      className="text-slate-400 hover:text-primary shrink-0 mt-0.5"
                       title="Mark as completed"
                     >
-                      <Square size={16} className="group-hover:hidden" />
-                      <CheckSquare size={16} className="hidden group-hover:block text-brand-600" />
+                      <Square size={15} className="group-hover:hidden" />
+                      <CheckSquare size={15} className="hidden group-hover:block text-primary" />
                     </button>
-                    
+
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-slate-700 truncate">{task.title}</div>
-                      {task.description && (
-                        <div className="text-[10px] font-medium text-slate-400 truncate mt-0.5">{task.description}</div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {task.title}
+                      </p>
+                      {task.date && (
+                        <span className="text-[10px] font-semibold text-amber-600 block mt-0.5">
+                          Due: {task.date.slice(0, 10)}
+                        </span>
                       )}
-                      <div className="flex gap-1.5 mt-1.5">
-                        <span className="badge bg-brand-100 text-brand-700 !text-[8px] px-1 py-0">{task.scope}</span>
-                        {task.date && (
-                          <span className="badge bg-amber-50 text-amber-700 !text-[8px] px-1 py-0">
-                            {task.date.slice(0, 10)}
-                          </span>
-                        )}
-                      </div>
                     </div>
 
                     <button
                       onClick={() => deleteReminder.mutate(task.id)}
-                      className="text-slate-300 hover:text-red-600 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity duration-150"
-                      aria-label="Delete task"
+                      className="text-slate-300 hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <Trash2 size={13} />
                     </button>
                   </li>
                 ))}
                 {(remindersQuery.data ?? []).length === 0 && (
-                  <li className="py-6 text-center text-xs font-bold text-slate-400">All tasks completed!</li>
+                  <li className="py-6 text-center text-xs font-bold text-slate-400">
+                    All caught up! No pending alerts.
+                  </li>
                 )}
               </ul>
-            </div>
 
-            {/* Quick add input */}
-            <form onSubmit={handleAddTask} className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Add quick task..."
-                className="flex-1 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white text-slate-700"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={!newTaskTitle.trim() || addReminder.isPending}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors shrink-0 disabled:opacity-50"
-              >
-                <Plus size={16} />
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
+              {/* Quick Add Inline */}
+              <form onSubmit={handleAddTask} className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <Input
+                  size="sm"
+                  variant="bordered"
+                  radius="lg"
+                  placeholder="Add quick reminder..."
+                  value={newTaskTitle}
+                  onValueChange={setNewTaskTitle}
+                  classNames={{
+                    inputWrapper: "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-8",
+                  }}
+                />
+                <Button
+                  isIconOnly
+                  type="submit"
+                  size="sm"
+                  color="primary"
+                  radius="lg"
+                  isDisabled={!newTaskTitle.trim() || addReminder.isPending}
+                  className="h-8 w-8 min-w-8 shrink-0"
+                >
+                  <Plus size={14} />
+                </Button>
+              </form>
+            </CardBody>
+          </Card>
 
-      {/* Recent Activities Feed (Audit Logs) */}
-      <div className="card p-6 space-y-5">
-        <div>
-          <h3 className="text-[15px] font-extrabold text-slate-800">Recent Activities Feed</h3>
-          <p className="text-xs font-bold text-slate-400 mt-0.5">Audit updates from nursery operations</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(audit.data ?? []).map((log) => {
-            const dateStr = new Date(log.created_at).toLocaleDateString([], {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            return (
-              <div
-                key={log.id}
-                className="flex items-start gap-3 p-4 rounded-xl border border-slate-100 hover:border-brand-100 hover:bg-brand-50/5 transition-all duration-200"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 shrink-0 font-extrabold text-xs">
-                  {log.action.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="badge bg-brand-100 text-brand-700 !text-[9px] font-bold px-1.5 py-0">
-                      {log.action}
-                    </span>
-                    <span className="text-[9px] font-bold text-slate-400">{dateStr}</span>
-                  </div>
-                  <div className="text-xs font-bold text-slate-700 mt-1.5 truncate">
-                    {log.entity} <span className="text-slate-400 font-semibold">#{log.entity_id}</span>
-                  </div>
-                  <div className="text-[10px] font-semibold text-slate-400 mt-0.5">IP: {log.ip}</div>
-                </div>
+          {/* Upcoming Events Agenda */}
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  Upcoming Agenda
+                </h3>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">Events & calendar milestones</p>
               </div>
-            );
-          })}
-          {audit.data?.length === 0 && (
-            <div className="col-span-full py-8 text-center text-xs font-bold text-slate-400">{t("common.noData")}</div>
-          )}
+              <Link to="/events" className="text-xs font-bold text-primary hover:underline">
+                Calendar →
+              </Link>
+            </CardHeader>
+
+            <CardBody className="px-6 pb-5 pt-2">
+              {(eventsQuery.data ?? []).length === 0 ? (
+                <div className="py-6 text-center text-xs font-medium text-slate-400">
+                  No upcoming events scheduled.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {(eventsQuery.data ?? []).slice(0, 3).map((ev) => {
+                    const d = new Date(ev.starts_at);
+                    const monthStr = d.toLocaleDateString("en-US", { month: "short" });
+                    const dayStr = d.getDate();
+                    return (
+                      <div
+                        key={ev.id}
+                        className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40"
+                      >
+                        <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex flex-col items-center justify-center shrink-0">
+                          <span className="text-[9px] font-black uppercase leading-none">{monthStr}</span>
+                          <span className="text-sm font-black leading-none mt-0.5">{dayStr}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h5 className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+                            {ev.title}
+                          </h5>
+                          <p className="text-[10px] font-semibold text-slate-400 truncate mt-0.5">
+                            {ev.location || "Nursery Main Hall"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Recent Live Operations Feed */}
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
+            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  Live Activity Feed
+                </h3>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">Recent system actions</p>
+              </div>
+              <Link to="/settings" className="text-xs font-bold text-primary hover:underline">
+                Audit logs →
+              </Link>
+            </CardHeader>
+
+            <CardBody className="px-6 pb-5 pt-2">
+              <div className="space-y-2">
+                {(auditQuery.data ?? []).slice(0, 4).map((log) => {
+                  const dateStr = new Date(log.created_at).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+                  return (
+                    <div
+                      key={log.id}
+                      className="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {log.action}
+                        </span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                          {log.entity} #{log.entity_id}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-400 shrink-0 ml-2">
+                        {dateStr}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
         </div>
       </div>
     </div>
   );
 }
-

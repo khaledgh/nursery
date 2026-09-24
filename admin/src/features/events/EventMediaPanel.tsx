@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ImagePlus } from "lucide-react";
 import { api, errorMessage } from "../../lib/api";
 import { uploadMedia } from "../../lib/media";
-import { useChildren } from "../../components/Pickers";
+import { useChildren } from "../../hooks/usePickers";
 import type { EventMedia, ItemResponse } from "../../types/api";
 
 /** Photo album manager for one event (drives the parent app's event details). */

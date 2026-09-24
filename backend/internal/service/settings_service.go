@@ -28,8 +28,56 @@ var settingValidators = map[string]func(v any) bool{
 		s, ok := v.(string)
 		return ok && len(s) <= 191
 	},
+	"currency": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) >= 2 && len(s) <= 10
+	},
+	"s3_bucket": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 255
+	},
+	"s3_region": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 64
+	},
+	"s3_endpoint": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 512
+	},
+	"s3_access_key": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 255
+	},
+	"s3_secret_key": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 512
+	},
+	"s3_public_url": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 512
+	},
+	"s3_path_style": func(v any) bool { _, ok := v.(bool); return ok },
+	"onesignal_app_id": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 128
+	},
+	"onesignal_rest_api_key": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 256
+	},
+	"onesignal_enabled": func(v any) bool { _, ok := v.(bool); return ok },
 	"feature_community": func(v any) bool { _, ok := v.(bool); return ok },
 	"feature_payments":  func(v any) bool { _, ok := v.(bool); return ok },
+	"community_hours_enabled": func(v any) bool { _, ok := v.(bool); return ok },
+	"community_hours_start": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 10
+	},
+	"community_hours_end": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) <= 10
+	},
+	"community_banned_users": func(v any) bool { return true },
 }
 
 type SettingsService struct {

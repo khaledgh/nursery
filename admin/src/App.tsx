@@ -1,4 +1,5 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { HeroUIProvider } from "@heroui/react";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./features/auth/LoginPage";
@@ -11,6 +12,8 @@ import { AnnouncementsPage } from "./features/announcements/AnnouncementsPage";
 import { EventsPage } from "./features/events/EventsPage";
 import { RemindersPage } from "./features/reminders/RemindersPage";
 import { InvoicesPage } from "./features/payments/InvoicesPage";
+import { InvoiceDetailPage } from "./features/payments/InvoiceDetailPage";
+import { NotificationsPage } from "./features/notifications/NotificationsPage";
 import { LocalesPage } from "./features/locales/LocalesPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { AuditLogsPage } from "./features/audit/AuditLogsPage";
@@ -24,14 +27,17 @@ import { CommunityPage } from "./features/community/CommunityPage";
 import { NewFamilyPage } from "./features/families/NewFamilyPage";
 import { ParentDetailPage } from "./features/families/ParentDetailPage";
 import { ChildDetailPage } from "./features/children/ChildDetailPage";
+import { ClassroomDetailPage } from "./features/classrooms/ClassroomDetailPage";
 import { MessagesPage } from "./features/messages/MessagesPage";
 import { BillingPage } from "./features/billing/BillingPage";
 import { NurseriesPage } from "./features/superadmin/NurseriesPage";
 import { PlansPage } from "./features/superadmin/PlansPage";
 
-export default function App() {
+function AppContent() {
+  const navigate = useNavigate();
+
   return (
-    <BrowserRouter>
+    <HeroUIProvider navigate={navigate}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>
@@ -48,6 +54,7 @@ export default function App() {
             <Route path="superadmin" element={<NurseriesPage />} />
             <Route path="superadmin/plans" element={<PlansPage />} />
             <Route path="classrooms" element={<ClassroomsPage />} />
+            <Route path="classrooms/:id" element={<ClassroomDetailPage />} />
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="care" element={<CarePage />} />
             <Route path="reports" element={<ReportsPage />} />
@@ -60,12 +67,22 @@ export default function App() {
             <Route path="community" element={<CommunityPage />} />
             <Route path="reminders" element={<RemindersPage />} />
             <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="locales" element={<LocalesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="audit" element={<AuditLogsPage />} />
           </Route>
         </Route>
       </Routes>
+    </HeroUIProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }

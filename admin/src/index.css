@@ -4,48 +4,100 @@
 
 @layer base {
   html {
-    @apply font-sans text-slate-800 antialiased;
+    @apply font-sans text-slate-800 antialiased scroll-smooth;
   }
   body {
-    @apply bg-slate-50/60; /* Soft background tint */
+    @apply bg-slate-50/60 dark:bg-slate-950 text-slate-800 dark:text-slate-100;
+  }
+
+  /* Custom sleek scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300/80 dark:bg-slate-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-600;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] shadow-sm;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97] shadow-sm select-none focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-700 hover:shadow-md hover:shadow-brand-600/10;
+    @apply btn bg-primary text-white shadow-md shadow-primary/25 hover:bg-primary-600 focus:ring-primary/30;
   }
   .btn-secondary {
-    @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300;
+    @apply btn bg-slate-100/90 text-slate-700 hover:bg-slate-200/90 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border border-slate-200/70 dark:border-slate-700 focus:ring-slate-300;
   }
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 hover:shadow-md hover:shadow-red-600/10;
+    @apply btn bg-danger text-white shadow-md shadow-danger/25 hover:bg-danger-600 focus:ring-danger/30;
+  }
+  .btn-flat {
+    @apply btn bg-primary/10 text-primary-700 hover:bg-primary/20 dark:text-primary-300;
   }
   .input {
-    @apply w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white transition-all duration-200 shadow-sm placeholder:text-slate-400;
+    @apply w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/15 transition-all duration-150 shadow-sm disabled:bg-slate-50 dark:disabled:bg-slate-800/60 disabled:text-slate-400 disabled:cursor-not-allowed;
+  }
+  select.input {
+    @apply appearance-none bg-no-repeat pr-10 cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-size: 1.25rem 1.25rem;
+  }
+  .dark select.input {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  }
+  textarea.input {
+    @apply min-h-[84px] leading-relaxed resize-y;
+  }
+  .input-error {
+    @apply border-rose-400 dark:border-rose-500 focus:border-rose-500 focus:ring-rose-500/20;
   }
   .label {
-    @apply block text-sm font-semibold text-slate-700 mb-1.5;
+    @apply block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 select-none;
   }
   .card {
-    @apply bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(47,85,26,0.03)];
+    @apply bg-white/95 dark:bg-slate-900/90 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm transition-all duration-200;
   }
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide transition-all;
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide border transition-all;
+  }
+  .badge-primary {
+    @apply badge bg-primary/10 text-primary-700 dark:text-primary-300 border-primary/20;
+  }
+  .badge-success {
+    @apply badge bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60;
+  }
+  .badge-danger {
+    @apply badge bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60;
+  }
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60;
+  }
+  .badge-secondary {
+    @apply badge bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200/60 dark:border-indigo-800/60;
+  }
+  .badge-neutral {
+    @apply badge bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200/80 dark:border-slate-700;
   }
   
-  /* Additional Premium Elements */
+  /* Additional Elements */
   .table-header {
-    @apply bg-slate-50/75 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider px-6 py-4;
+    @apply bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider px-6 py-4;
   }
   .table-cell {
-    @apply px-6 py-4 text-sm text-slate-600 border-b border-slate-100 align-middle;
+    @apply px-6 py-4 text-sm text-slate-600 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800/60 align-middle;
   }
   .table-row {
-    @apply transition-colors duration-150 hover:bg-slate-50/50;
+    @apply transition-colors duration-150 hover:bg-slate-50/60 dark:hover:bg-slate-800/40;
   }
 }
+
 

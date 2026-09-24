@@ -85,7 +85,7 @@ export default function TeacherRoster() {
 
   // Sequential rather than parallel: each check-in is independently authorised
   // server-side, and a partial failure must leave the rest applied.
-  const bulkCheck = async (action: "check_in" | "check_out") => {
+  const bulkCheck = async (action: "check_in" | "check_out" | "absent") => {
     const ids = [...selection];
     for (const id of ids) {
       try {
@@ -95,6 +95,24 @@ export default function TeacherRoster() {
       }
     }
     setSelection(new Set());
+  };
+
+  const markAllPresent = async () => {
+    const notIn = allChildren.filter((c) => c.present_status !== "checked_in");
+    for (const child of notIn) {
+      try {
+        await checkInOut.mutateAsync({ childId: child.id, action: "check_in" });
+      } catch {}
+    }
+  };
+
+  const allSelected = visible.length > 0 && visible.every((c) => selection.has(c.id));
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelection(new Set());
+    } else {
+      setSelection(new Set(visible.map((c) => c.id)));
+    }
   };
 
   const renderItem = useCallback(
@@ -133,6 +151,25 @@ export default function TeacherRoster() {
         <SummaryPill label={t("teacher.roster.absent")} value={counts.absent} tone={colors.danger} />
       </View>
 
+      {/* Classroom Quick Action Bar */}
+      <View style={styles.quickBar}>
+        <Pressable style={styles.markAllBtn} onPress={() => void markAllPresent()}>
+          <Ionicons name="checkmark-done" size={15} color="#fff" />
+          <Text style={styles.markAllBtnText}>Mark all present ({allChildren.length})</Text>
+        </Pressable>
+
+        <Pressable style={styles.selectAllBtn} onPress={toggleSelectAll}>
+          <Ionicons
+            name={allSelected ? "checkbox" : "square-outline"}
+            size={16}
+            color={colors.primary}
+          />
+          <Text style={styles.selectAllBtnText}>
+            {allSelected ? "Deselect all" : "Select all"}
+          </Text>
+        </Pressable>
+      </View>
+
       <View style={styles.filters}>
         {FILTERS.map((f) => (
           <Pressable
@@ -152,7 +189,7 @@ export default function TeacherRoster() {
           data={visible}
           keyExtractor={(c) => String(c.id)}
           renderItem={renderItem}
-          contentContainerStyle={[styles.list, { paddingBottom: 96 + insets.bottom }]}
+          contentContainerStyle={[styles.list, { paddingBottom: 110 + insets.bottom }]}
           refreshControl={<RefreshControl refreshing={roster.isRefetching} onRefresh={() => void roster.refetch()} />}
           ListEmptyComponent={<EmptyState icon="people-outline" title={t("teacher.roster.empty")} />}
         />
@@ -160,13 +197,60 @@ export default function TeacherRoster() {
 
       {selectionMode ? (
         <View style={[styles.bulkBar, { paddingBottom: insets.bottom + spacing.sm }]}>
-          <Pressable onPress={() => setSelection(new Set())} hitSlop={8}>
-            <Text style={styles.bulkClear}>{t("teacher.roster.clear")}</Text>
-          </Pressable>
-          <Text style={styles.bulkCount}>{t("teacher.roster.selected", { count: selection.size })}</Text>
-          <Pressable style={styles.bulkBtn} onPress={() => void bulkCheck("check_in")}>
-            <Text style={styles.bulkBtnLabel}>{t("teacher.roster.bulkCheckIn", { count: selection.size })}</Text>
-          </Pressable>
+          <View style={styles.bulkTopRow}>
+            <Text style={styles.bulkCount}>{t("teacher.roster.selected", { count: selection.size })}</Text>
+            <Pressable onPress={() => setSelection(new Set())} hitSlop={8}>
+              <Text style={styles.bulkClear}>{t("teacher.roster.clear")}</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.bulkActionsRow}>
+            <Pressable style={styles.bulkCheckInBtn} onPress={() => void bulkCheck("check_in")}>
+              <Text style={styles.bulkBtnText}>Present</Text>
+            </Pressable>
+            <Pressable style={styles.bulkCheckOutBtn} onPress={() => void bulkCheck("check_out")}>
+              <Text style={styles.bulkBtnText}>Out</Text>
+            </Pressable>
+            <Pressable style={styles.bulkAbsentBtn} onPress={() => void bulkCheck("absent")}>
+              <Text style={styles.bulkBtnText}>Absent</Text>
+            </Pressable>
+            <Pressable
+              style={styles.bulkActionPill}
+              onPress={() =>
+                router.push({
+                  pathname: "/teacher/log",
+                  params: { ids: Array.from(selection).join(",") },
+                })
+              }
+            >
+              <Ionicons name="heart-outline" size={14} color={colors.primary} />
+              <Text style={styles.bulkActionPillText}>Care</Text>
+            </Pressable>
+            <Pressable
+              style={styles.bulkActionPill}
+              onPress={() =>
+                router.push({
+                  pathname: "/teacher/batch/report",
+                  params: { ids: Array.from(selection).join(",") },
+                })
+              }
+            >
+              <Ionicons name="document-text-outline" size={14} color={colors.primary} />
+              <Text style={styles.bulkActionPillText}>Report</Text>
+            </Pressable>
+            <Pressable
+              style={styles.bulkActionPill}
+              onPress={() =>
+                router.push({
+                  pathname: "/teacher/batch/milestone",
+                  params: { ids: Array.from(selection).join(",") },
+                })
+              }
+            >
+              <Ionicons name="trophy-outline" size={14} color="#f59e0b" />
+              <Text style={styles.bulkActionPillText}>Milestone</Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
     </View>
@@ -225,28 +309,94 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipLabel: { fontSize: 12, fontFamily: fonts.bold, color: colors.text },
   chipLabelActive: { color: "#fff" },
+  quickBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  markAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 7,
+  },
+  markAllBtnText: { color: "#fff", fontSize: 12, fontFamily: fonts.bold },
+  selectAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.card,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  selectAllBtnText: { color: colors.text, fontSize: 12, fontFamily: fonts.bold },
   list: { padding: spacing.md, gap: spacing.sm },
   bulkBar: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
+    gap: spacing.sm,
+    ...shadows.card,
+  },
+  bulkTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   bulkClear: { fontSize: 13, fontFamily: fonts.bold, color: colors.textMuted },
-  bulkCount: { flex: 1, fontSize: 13, fontFamily: fonts.bold, color: colors.text },
-  bulkBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+  bulkCount: { fontSize: 13, fontFamily: fonts.extrabold, color: colors.text },
+  bulkActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
-  bulkBtnLabel: { color: "#fff", fontSize: 13, fontFamily: fonts.bold },
+  bulkCheckInBtn: {
+    flex: 1,
+    backgroundColor: colors.success,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  bulkCheckOutBtn: {
+    flex: 1,
+    backgroundColor: colors.textMuted,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  bulkAbsentBtn: {
+    flex: 1,
+    backgroundColor: colors.danger,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  bulkBtnText: { color: "#fff", fontSize: 11, fontFamily: fonts.bold },
+  bulkActionPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: radius.md,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  bulkActionPillText: { fontSize: 11, fontFamily: fonts.bold, color: colors.primary },
 });

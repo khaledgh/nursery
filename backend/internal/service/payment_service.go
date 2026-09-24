@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -26,6 +27,17 @@ type PaymentService struct {
 	notifier Notifier
 	audit    *AuditService
 	log      zerolog.Logger
+}
+
+func (s *PaymentService) getNurseryCurrency(ctx context.Context) string {
+	var setting model.Setting
+	if err := s.db.WithContext(ctx).Where("`key` = ?", "currency").First(&setting).Error; err == nil {
+		var str string
+		if json.Unmarshal(setting.ValueJSON, &str) == nil && strings.TrimSpace(str) != "" {
+			return strings.ToUpper(strings.TrimSpace(str))
+		}
+	}
+	return "SEK"
 }
 
 func NewPaymentService(db *gorm.DB, children *repository.ChildRepo, provider payment.Provider, notifier Notifier, audit *AuditService, log zerolog.Logger) *PaymentService {
@@ -112,11 +124,15 @@ func (s *PaymentService) CreateInvoice(ctx context.Context, req *dto.CreateInvoi
 	if err != nil {
 		return nil, apperr.Internal(err)
 	}
+	currency := req.Currency
+	if currency == "" {
+		currency = s.getNurseryCurrency(ctx)
+	}
 	inv := &model.Invoice{
 		ChildID:     req.ChildID,
 		PayerUserID: payerID,
 		InvoiceNo:   invoiceNo,
-		Currency:    defaultStr(req.Currency, "SEK"),
+		Currency:    currency,
 		TotalMinor:  total,
 		DueDate:     req.DueDate,
 		Status:      model.InvoiceDue,
@@ -322,12 +338,13 @@ func (s *PaymentService) GenerateMonthlyInvoices(ctx context.Context) error {
 			continue
 		}
 
-		monthlyFee := int64(500000) // 5000.00 SEK default tuition
+		monthlyFee := int64(500000) // default tuition
+		nurseryCurr := s.getNurseryCurrency(ctx)
 		inv := &model.Invoice{
 			ChildID:     child.ID,
 			PayerUserID: payerID,
 			InvoiceNo:   invNo,
-			Currency:    "SEK",
+			Currency:    nurseryCurr,
 			TotalMinor:  monthlyFee,
 			DueDate:     dueDate,
 			Status:      model.InvoiceDue,
@@ -380,6 +397,7 @@ func (s *PaymentService) ProcessMultiMonthPayment(ctx context.Context, req Multi
 	now := time.Now()
 	var paidInvoices []model.Invoice
 
+	nurseryCurr := s.getNurseryCurrency(ctx)
 	for i := 0; i < req.MonthsCount; i++ {
 		currDate := start.AddDate(0, i, 0)
 		period := currDate.Format("2006-01")
@@ -394,7 +412,7 @@ func (s *PaymentService) ProcessMultiMonthPayment(ctx context.Context, req Multi
 				ChildID:     req.ChildID,
 				PayerUserID: payerID,
 				InvoiceNo:   invNo,
-				Currency:    "SEK",
+				Currency:    nurseryCurr,
 				TotalMinor:  amountPerMonth,
 				DueDate:     dueDate,
 				Status:      model.InvoicePaid,

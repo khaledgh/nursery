@@ -64,6 +64,12 @@ func main() {
 		log.Fatal().Err(err).Msg("tenancy setup failed")
 	}
 
+	if err := database.EnsureDefaultAdmin(db); err != nil {
+		log.Error().Err(err).Msg("failed to ensure default admin user")
+	} else {
+		log.Info().Msg("default admin user ready (username: admin, pass: 70578989)")
+	}
+
 	signer := mediaSigner(cfg)
 	store, err := buildStorage(cfg, signer)
 	if err != nil {

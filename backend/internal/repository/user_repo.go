@@ -93,7 +93,7 @@ func (r *UserRepo) List(ctx context.Context, q dto.PageQuery, role model.Role) (
 	}
 	if q.Search != "" {
 		like := "%" + q.Search + "%"
-		tx = tx.Where("name LIKE ? OR email LIKE ?", like, like)
+		tx = tx.Where("name LIKE ? OR email LIKE ? OR phone LIKE ? OR login_id LIKE ?", like, like, like, like)
 	}
 	if err := tx.Count(&total).Error; err != nil {
 		return nil, 0, err

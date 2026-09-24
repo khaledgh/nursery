@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { DataTable, type Column } from "../../components/DataTable";
 import { FormField } from "../../components/FormField";
+import { DatePicker } from "../../components/DatePicker";
 import { Modal } from "../../components/Modal";
 import { usePagedList } from "../../hooks/usePagedList";
 import { api } from "../../lib/api";
@@ -138,11 +139,23 @@ export function EventsPage() {
             <input className="input" {...form.register("location")} />
           </FormField>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Starts" error={form.formState.errors.starts_at?.message}>
-              <input className="input" type="datetime-local" {...form.register("starts_at")} />
+            <FormField label="Starts" required error={form.formState.errors.starts_at?.message}>
+              <DatePicker
+                hasTime
+                value={form.watch("starts_at")}
+                onChange={(d) => form.setValue("starts_at", d, { shouldValidate: true })}
+                isInvalid={!!form.formState.errors.starts_at}
+                errorMessage={form.formState.errors.starts_at?.message}
+              />
             </FormField>
-            <FormField label="Ends">
-              <input className="input" type="datetime-local" {...form.register("ends_at")} />
+            <FormField label="Ends" error={form.formState.errors.ends_at?.message}>
+              <DatePicker
+                hasTime
+                value={form.watch("ends_at")}
+                onChange={(d) => form.setValue("ends_at", d, { shouldValidate: true })}
+                isInvalid={!!form.formState.errors.ends_at}
+                errorMessage={form.formState.errors.ends_at?.message}
+              />
             </FormField>
           </div>
           <ImageUpload label="Cover image" value={cover} onChange={setCover} />

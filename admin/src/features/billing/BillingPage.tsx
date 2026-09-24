@@ -6,10 +6,6 @@ import { api } from "../../lib/api";
 import { SUBSCRIPTION_STATUS_TINT, tint } from "../../lib/tints";
 import type { SeatUsage } from "../../types/api";
 
-function money(minor: number, currency = "SEK") {
-  return `${(minor / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}`;
-}
-
 /**
  * The nursery's own subscription: plan, seats, and payment state.
  *
@@ -95,5 +91,3 @@ export function BillingPage() {
     </>
   );
 }
-
-export { money };

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { HeartPulse, FileText, Trophy } from "lucide-react";
 import { api, errorMessage } from "../../lib/api";
 import { ImageUpload } from "../../components/ImageUpload";
+import { DatePicker } from "../../components/DatePicker";
 import { toISODate } from "../../components/WeekPicker";
 import { Modal } from "../../components/Modal";
 import { DIMENSIONS, MOODS, MOOD_OPTIONS, RATING_OPTIONS } from "../reports/reportConstants";
@@ -494,20 +495,18 @@ export function QuickHubModal({ child, open, onClose, embedded = false, tab }: Q
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="label">Start Time</label>
-                      <input
-                        className="input"
-                        type="datetime-local"
+                      <DatePicker
+                        hasTime
                         value={sleepStart}
-                        onChange={(e) => setSleepStart(e.target.value)}
+                        onChange={setSleepStart}
                       />
                     </div>
                     <div>
                       <label className="label">End Time</label>
-                      <input
-                        className="input"
-                        type="datetime-local"
+                      <DatePicker
+                        hasTime
                         value={sleepEnd}
-                        onChange={(e) => setSleepEnd(e.target.value)}
+                        onChange={setSleepEnd}
                       />
                     </div>
                   </div>
@@ -672,11 +671,9 @@ export function QuickHubModal({ child, open, onClose, embedded = false, tab }: Q
             <div className="grid grid-cols-2 gap-4 max-w-md bg-slate-50 p-4 rounded-xl border border-slate-100">
               <div>
                 <label className="label">Report Date</label>
-                <input
-                  type="date"
-                  className="input"
+                <DatePicker
                   value={reportDate}
-                  onChange={(e) => setReportDate(e.target.value)}
+                  onChange={setReportDate}
                 />
               </div>
             </div>
@@ -928,11 +925,10 @@ export function QuickHubModal({ child, open, onClose, embedded = false, tab }: Q
 
                     <div className="col-span-12 sm:col-span-3">
                       <label className="label !text-[11px]">Award Date</label>
-                      <input
-                        type="date"
-                        className="input !py-1.5"
+                      <DatePicker
+                        size="sm"
                         value={awardDate}
-                        onChange={(e) => setAwardDate(e.target.value)}
+                        onChange={setAwardDate}
                       />
                     </div>
 

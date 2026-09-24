@@ -62,6 +62,21 @@ type CreateCommentRequest struct {
 	Body string `json:"body" validate:"required,min=1,max=2000"`
 }
 
+type CommunityBanRequest struct {
+	UserID uint64 `json:"user_id" validate:"required"`
+	Reason string `json:"reason" validate:"omitempty,max=255"`
+}
+
+type CommunityUnbanRequest struct {
+	UserID uint64 `json:"user_id" validate:"required"`
+}
+
+type CommunityHoursRequest struct {
+	Enabled bool   `json:"enabled"`
+	Start   string `json:"start" validate:"omitempty,max=10"`
+	End     string `json:"end" validate:"omitempty,max=10"`
+}
+
 type MeetupRSVPRequest struct {
 	Response string `json:"response" validate:"required,oneof=going interested"`
 }

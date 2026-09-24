@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Copy } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { api, errorMessage } from "../../lib/api";
 import { ClassroomPicker } from "../../components/Pickers";
 import { WeekPicker, startOfWeek, toISODate } from "../../components/WeekPicker";
@@ -28,11 +29,28 @@ const SECTIONS: { kind: PlanItemKind; title: string; hint: string }[] = [
 
 const PRESET_COLORS = ["#5b9c34", "#8fc464", "#f59e0b", "#3b82f6", "#6366f1", "#8b5cf6", "#10b981", "#ef4444", "#ec4899"];
 
+interface WeeklyPlansPageProps {
+  classroomId?: string | number;
+  hideHeader?: boolean;
+}
+
 /** Curated weekly learning plan editor (drives the parent app's Overview tab). */
-export function WeeklyPlansPage() {
+export function WeeklyPlansPage({ classroomId: propClassroomId, hideHeader }: WeeklyPlansPageProps = {}) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [classroomId, setClassroomId] = useState("");
+  // Seeded from ?classroom= so the classroom detail page's "Weekly plan" link
+  // opens straight to that room's plan instead of an empty picker.
+  const [searchParams] = useSearchParams();
+  const [classroomId, setClassroomId] = useState(
+    () => (propClassroomId ? String(propClassroomId) : searchParams.get("classroom") ?? "")
+  );
+
+  useEffect(() => {
+    if (propClassroomId) {
+      setClassroomId(String(propClassroomId));
+    }
+  }, [propClassroomId]);
+
   const [week, setWeek] = useState(() => startOfWeek(new Date()));
   const [note, setNote] = useState("");
   const [items, setItems] = useState<ItemDraft[]>([]);
@@ -130,10 +148,14 @@ export function WeeklyPlansPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{t("nav.plans")}</h1>
-          <p className="text-sm font-semibold text-slate-400 mt-1">Plan lessons, activities, and targets for classrooms.</p>
-        </div>
+        {!hideHeader ? (
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{t("nav.plans")}</h1>
+            <p className="text-sm font-semibold text-slate-400 mt-1">Plan lessons, activities, and targets for classrooms.</p>
+          </div>
+        ) : (
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Weekly Curriculum & Plan</div>
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -145,9 +167,11 @@ export function WeeklyPlansPage() {
             <Copy size={15} />
             {copyPreviousPlan.isPending ? "Copying..." : "Copy Last Week"}
           </button>
-          <div className="w-56">
-            <ClassroomPicker value={classroomId} onChange={setClassroomId} />
-          </div>
+          {!propClassroomId && (
+            <div className="w-56">
+              <ClassroomPicker value={classroomId} onChange={setClassroomId} />
+            </div>
+          )}
           <WeekPicker week={week} onChange={setWeek} />
         </div>
       </div>

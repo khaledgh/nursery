@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import { Breadcrumbs, BreadcrumbItem, Button } from "@heroui/react";
 
 interface Crumb {
   label: string;
@@ -19,48 +20,52 @@ interface Props {
 }
 
 /**
- * The standard page heading.
- *
- * Every page previously hand-rolled its own `<h1>`, so spacing and weight
- * drifted between screens.
+ * Modern page heading with HeroUI Breadcrumbs and Button.
  */
 export function PageHeader({ title, subtitle, actions, breadcrumbs, backTo }: Props) {
   return (
-    <header className="mb-6">
+    <header className="mb-6 space-y-2">
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        <Breadcrumbs size="sm" variant="light" color="primary">
           {breadcrumbs.map((c, i) => (
-            <span key={`${c.label}-${i}`} className="flex items-center gap-1.5">
-              {i > 0 && <span aria-hidden="true">/</span>}
-              {c.to ? (
-                <Link to={c.to} className="hover:text-brand-600 transition-colors">
-                  {c.label}
-                </Link>
-              ) : (
-                <span className="text-slate-500">{c.label}</span>
-              )}
-            </span>
+            <BreadcrumbItem key={`${c.label}-${i}`} href={c.to}>
+              {c.label}
+            </BreadcrumbItem>
           ))}
-        </nav>
+        </Breadcrumbs>
       )}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3 min-w-0">
+
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+        <div className="flex items-center gap-3 min-w-0">
           {backTo && (
-            <Link
+            <Button
+              as={Link}
               to={backTo}
+              isIconOnly
+              size="sm"
+              variant="flat"
+              radius="lg"
               aria-label="Back"
-              className="mt-1 rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"
+              className="text-slate-500 hover:text-slate-900 dark:text-slate-300"
             >
-              <ChevronLeft size={16} />
-            </Link>
+              <ChevronLeft size={18} />
+            </Button>
           )}
           <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold text-slate-900 truncate">{title}</h1>
-            {subtitle && <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>}
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight truncate">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+
+        {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
       </div>
     </header>
   );
 }
+

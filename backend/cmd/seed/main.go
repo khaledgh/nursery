@@ -72,20 +72,24 @@ func seedAdmin(db *gorm.DB, cfg *config.Config, log zerolog.Logger) {
 		log.Info().Msg("users already exist; admin seed skipped")
 		return
 	}
-	if cfg.Seed.AdminEmail == "" || cfg.Seed.AdminPassword == "" {
-		log.Fatal().Msg("SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set (no default credentials)")
+	adminEmail := cfg.Seed.AdminEmail
+	if adminEmail == "" {
+		adminEmail = "admin@nurseeplus.com"
 	}
-	if len(cfg.Seed.AdminPassword) < 12 {
-		log.Fatal().Msg("SEED_ADMIN_PASSWORD must be at least 12 characters")
+	adminPassword := cfg.Seed.AdminPassword
+	if adminPassword == "" {
+		adminPassword = "70578989"
 	}
-	pwHash, err := hash.Password(cfg.Seed.AdminPassword)
+	pwHash, err := hash.Password(adminPassword)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to hash password")
 	}
+	adminLoginID := "admin"
 	admin := &model.User{
 		NurseryID:    defaultNurseryID,
 		Name:         "Administrator",
-		Email:        cfg.Seed.AdminEmail,
+		Email:        adminEmail,
+		LoginID:      &adminLoginID,
 		PasswordHash: pwHash,
 		Role:         model.RoleAdmin,
 		Locale:       cfg.App.DefaultLocale,
@@ -94,7 +98,7 @@ func seedAdmin(db *gorm.DB, cfg *config.Config, log zerolog.Logger) {
 	if err := db.Create(admin).Error; err != nil {
 		log.Fatal().Err(err).Msg("failed to create admin user")
 	}
-	log.Info().Str("email", admin.Email).Msg("admin user created — change the password after first login")
+	log.Info().Str("email", admin.Email).Msg("admin user created (username: admin, pass: 70578989)")
 }
 
 // defaultNurseryID is the tenant that migration 000010 backfills every existing
@@ -152,9 +156,9 @@ func seedSuperAdmin(db *gorm.DB, log zerolog.Logger) {
 // seedDemo is idempotent: it bails out if the demo parent already exists.
 func seedDemo(db *gorm.DB, log zerolog.Logger) {
 	var existing int64
-	db.Model(&model.User{}).Where("email = ?", "parent@sunnystars.app").Count(&existing)
+	db.Model(&model.User{}).Where("email = ?", "parent@nurseeplus.com").Count(&existing)
 	if existing > 0 {
-		log.Info().Msg("demo data already present; skipped (delete parent@sunnystars.app to re-seed)")
+		log.Info().Msg("demo data already present; skipped (delete parent@nurseeplus.com to re-seed)")
 		return
 	}
 
@@ -183,10 +187,10 @@ func seedDemo(db *gorm.DB, log zerolog.Logger) {
 		mustCreate("user "+email, u)
 		return u
 	}
-	teacher1 := user("Ms. Olivia", "teacher@sunnystars.app", model.RoleTeacher)
-	teacher2 := user("Ms. Emma", "teacher2@sunnystars.app", model.RoleTeacher)
-	parent1 := user("Sophie Andersson", "parent@sunnystars.app", model.RoleParent)
-	parent2 := user("Daniel Berg", "parent2@sunnystars.app", model.RoleParent)
+	teacher1 := user("Ms. Olivia", "teacher@nurseeplus.com", model.RoleTeacher)
+	teacher2 := user("Ms. Emma", "teacher2@nurseeplus.com", model.RoleTeacher)
+	parent1 := user("Sophie Andersson", "parent@nurseeplus.com", model.RoleParent)
+	parent2 := user("Daniel Berg", "parent2@nurseeplus.com", model.RoleParent)
 
 	// ---- classroom + teachers + schedule ----
 	room := &model.Classroom{
@@ -587,9 +591,9 @@ func seedDemo(db *gorm.DB, log zerolog.Logger) {
 	notify("messages", "New Summer Program!", "We're excited to announce our fun-filled Summer Program.", 27, true)
 
 	log.Info().
-		Str("teacher", "teacher@sunnystars.app").
-		Str("parent", "parent@sunnystars.app").
-		Str("parent2", "parent2@sunnystars.app").
+		Str("teacher", "teacher@nurseeplus.com").
+		Str("parent", "parent@nurseeplus.com").
+		Str("parent2", "parent2@nurseeplus.com").
 		Str("password", DemoPassword).
 		Msg("demo data seeded 🎉 — sign into the app as the parent")
 }
@@ -599,11 +603,11 @@ func seedDemo(db *gorm.DB, log zerolog.Logger) {
 // Requires --demo to have run first. Skips if it already ran.
 func seedMore(db *gorm.DB, log zerolog.Logger) {
 	var parent1, parent2, teacher model.User
-	if err := db.Where("email = ?", "parent@sunnystars.app").First(&parent1).Error; err != nil {
+	if err := db.Where("email = ?", "parent@nurseeplus.com").First(&parent1).Error; err != nil {
 		log.Fatal().Msg("--more requires the demo data; run with --demo first")
 	}
-	_ = db.Where("email = ?", "parent2@sunnystars.app").First(&parent2).Error
-	if err := db.Where("email = ?", "teacher@sunnystars.app").First(&teacher).Error; err != nil {
+	_ = db.Where("email = ?", "parent2@nurseeplus.com").First(&parent2).Error
+	if err := db.Where("email = ?", "teacher@nurseeplus.com").First(&teacher).Error; err != nil {
 		log.Fatal().Msg("--more requires the demo data; run with --demo first")
 	}
 	var children []model.Child

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage } from "../../lib/api";
 import { ChildPicker } from "../../components/Pickers";
+import { DatePicker } from "../../components/DatePicker";
 import { ImageUpload } from "../../components/ImageUpload";
 import { toISODate } from "../../components/WeekPicker";
 import type { DailyReport, ListResponse, Media, ReportMood, ReportRating } from "../../types/api";
@@ -84,7 +85,7 @@ export function ReportsPage() {
         </div>
         <div>
           <label className="label">{t("common.date")}</label>
-          <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <DatePicker value={date} onChange={setDate} />
         </div>
       </div>
 

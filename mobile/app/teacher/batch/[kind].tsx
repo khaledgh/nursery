@@ -27,7 +27,7 @@ type Kind = "meal" | "nap" | "diaper";
 const NAP_PRESETS = [30, 45, 60, 90, 120];
 
 export default function BatchLog() {
-  const { kind } = useLocalSearchParams<{ kind: Kind }>();
+  const { kind, ids } = useLocalSearchParams<{ kind: Kind; ids?: string }>();
   const { t } = useTranslation();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -54,7 +54,33 @@ export default function BatchLog() {
     navigation.setOptions({ title: t(titleKey) });
   }, [navigation, t, titleKey]);
 
-  const children = useMemo(() => roster.data ?? [], [roster.data]);
+  const selectedIdSet = useMemo(() => {
+    if (!ids) return null;
+    const parsed = ids.split(",").map(Number).filter(Boolean);
+    return parsed.length > 0 ? new Set(parsed) : null;
+  }, [ids]);
+
+  const allChildren = useMemo(() => roster.data ?? [], [roster.data]);
+  const children = useMemo(() => {
+    if (!selectedIdSet) return allChildren;
+    return allChildren.filter((c) => selectedIdSet.has(c.id));
+  }, [allChildren, selectedIdSet]);
+
+  const fillAll = useCallback(
+    (value: string) => {
+      const next: Record<number, string> = {};
+      for (const c of children) {
+        next[c.id] = value;
+      }
+      setPicks(next);
+    },
+    [children],
+  );
+
+  const clearAllPicks = useCallback(() => {
+    setPicks({});
+  }, []);
+
   const chosen = useMemo(() => Object.keys(picks).length, [picks]);
 
   const setPick = useCallback((childId: number, value: string) => {
@@ -163,24 +189,103 @@ export default function BatchLog() {
 
   return (
     <View style={styles.root}>
-      {kind !== "diaper" ? (
-        <View style={styles.head}>
-          <EnumPicker
-            label={t("teacher.care.mealType")}
-            options={Object.keys(MEAL_TYPE)}
-            visuals={MEAL_TYPE}
-            i18nPrefix="enums.mealType"
-            value={mealType}
-            onChange={setMealType}
-          />
-        </View>
-      ) : null}
-
       <FlatList
         data={children}
         keyExtractor={(c) => String(c.id)}
         renderItem={renderItem}
         contentContainerStyle={[styles.list, { paddingBottom: 120 + insets.bottom }]}
+        ListHeaderComponent={
+          <View style={styles.headerBlock}>
+            {kind !== "diaper" ? (
+              <View style={styles.head}>
+                <EnumPicker
+                  label={t("teacher.care.mealType")}
+                  options={Object.keys(MEAL_TYPE)}
+                  visuals={MEAL_TYPE}
+                  i18nPrefix="enums.mealType"
+                  value={mealType}
+                  onChange={setMealType}
+                />
+              </View>
+            ) : null}
+
+            {/* Quick Fill All Row */}
+            <View style={styles.quickFillBar}>
+              <View style={styles.quickFillHeader}>
+                <Text style={styles.quickFillTitle}>
+                  Quick Fill All ({children.length} Children)
+                </Text>
+                {chosen > 0 ? (
+                  <Pressable onPress={clearAllPicks} hitSlop={6}>
+                    <Text style={styles.clearPicksText}>Clear All</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <View style={styles.quickFillChips}>
+                {kind === "meal" && (
+                  <>
+                    <Pressable
+                      style={styles.fillChip}
+                      onPress={() => fillAll("ate_well")}
+                    >
+                      <Text style={styles.fillChipText}>All Ate Well 😋</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.fillChip}
+                      onPress={() => fillAll("some")}
+                    >
+                      <Text style={styles.fillChipText}>All Some 😐</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.fillChip}
+                      onPress={() => fillAll("little")}
+                    >
+                      <Text style={styles.fillChipText}>All Little 🙁</Text>
+                    </Pressable>
+                  </>
+                )}
+
+                {kind === "nap" && (
+                  <>
+                    {[30, 45, 60, 90, 120].map((m) => (
+                      <Pressable
+                        key={m}
+                        style={styles.fillChip}
+                        onPress={() => fillAll(String(m))}
+                      >
+                        <Text style={styles.fillChipText}>All {m}m</Text>
+                      </Pressable>
+                    ))}
+                  </>
+                )}
+
+                {kind === "diaper" && (
+                  <>
+                    <Pressable
+                      style={styles.fillChip}
+                      onPress={() => fillAll("wet")}
+                    >
+                      <Text style={styles.fillChipText}>All Wet 💧</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.fillChip}
+                      onPress={() => fillAll("dry")}
+                    >
+                      <Text style={styles.fillChipText}>All Clean ☁</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.fillChip}
+                      onPress={() => fillAll("dirty")}
+                    >
+                      <Text style={styles.fillChipText}>All Dirty 💩</Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+            </View>
+          </View>
+        }
         ListEmptyComponent={<EmptyState icon="people-outline" title={t("teacher.roster.empty")} />}
       />
 
@@ -203,7 +308,52 @@ export default function BatchLog() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  head: { padding: spacing.md, paddingBottom: spacing.sm },
+  headerBlock: { paddingBottom: spacing.sm },
+  head: { paddingBottom: spacing.xs },
+  quickFillBar: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginVertical: spacing.xs,
+  },
+  quickFillHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.xs,
+  },
+  quickFillTitle: {
+    fontSize: 11,
+    fontFamily: fonts.extrabold,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  clearPicksText: {
+    fontSize: 11,
+    fontFamily: fonts.bold,
+    color: colors.danger,
+  },
+  quickFillChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  fillChip: {
+    backgroundColor: colors.bg,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  fillChipText: {
+    fontSize: 12,
+    fontFamily: fonts.bold,
+    color: colors.text,
+  },
   list: { paddingHorizontal: spacing.md, gap: spacing.sm },
   row: {
     flexDirection: "row",

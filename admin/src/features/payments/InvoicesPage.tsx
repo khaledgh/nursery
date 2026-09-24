@@ -1,13 +1,18 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Plus, Trash2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button, Select, SelectItem } from "@heroui/react";
 import { DataTable, type Column } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
+import { DatePicker } from "../../components/DatePicker";
+import { ChildPicker } from "../../components/Pickers";
 import { usePagedList } from "../../hooks/usePagedList";
+import { useCurrency } from "../../hooks/useCurrency";
 import { api, errorMessage } from "../../lib/api";
-import type { Child, Invoice, ListResponse } from "../../types/api";
+import type { Invoice } from "../../types/api";
 import { INVOICE_STATUS_TINT } from "../../lib/tints";
+import { Link } from "react-router-dom";
 
 
 interface DraftItem {
@@ -17,6 +22,7 @@ interface DraftItem {
 
 export function InvoicesPage() {
   const { t } = useTranslation();
+  const { currency: defaultCurrency, formatMoney } = useCurrency();
   const [statusFilter, setStatusFilter] = useState("");
   const list = usePagedList<Invoice>("invoices", "/invoices", { status: statusFilter || undefined });
   const [creating, setCreating] = useState(false);
@@ -25,22 +31,16 @@ export function InvoicesPage() {
   const [childId, setChildId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [period, setPeriod] = useState("");
-  const [currency, setCurrency] = useState("SEK");
-  const [items, setItems] = useState<DraftItem[]>([{ label: "Tuition", amount: "" }]);
+  const [currency, setCurrency] = useState("");
 
-  const children = useQuery({
-    queryKey: ["children-invoices"],
-    queryFn: async () => {
-      const res = await api.get<ListResponse<Child>>("/children", { params: { per_page: 100 } });
-      return res.data.data;
-    },
-  });
+  const activeCurrency = currency || defaultCurrency;
+  const [items, setItems] = useState<DraftItem[]>([{ label: "Tuition", amount: "" }]);
 
   const create = useMutation({
     mutationFn: async () =>
       api.post("/admin/invoices", {
         child_id: Number(childId),
-        currency,
+        currency: activeCurrency,
         due_date: dueDate,
         period: period || undefined,
         items: items
@@ -63,22 +63,61 @@ export function InvoicesPage() {
     onSuccess: () => void list.refetch(),
   });
 
-  const money = (minor: number, cur: string) => `${(minor / 100).toFixed(2)} ${cur}`;
-
   const columns: Column<Invoice>[] = [
-    { header: "Invoice", render: (i) => <span className="font-mono text-xs">{i.invoice_no}</span> },
+    {
+      header: "Invoice",
+      sortKey: "invoice_no",
+      allowsSorting: true,
+      render: (i) => (
+        <Link to={`/invoices/${i.id}`} className="font-mono text-xs font-bold text-primary hover:underline">
+          {i.invoice_no}
+        </Link>
+      ),
+    },
     { header: t("nav.children"), render: (i) => (i.child ? `${i.child.first_name} ${i.child.last_name}` : `#${i.child_id}`) },
-    { header: "Total", render: (i) => <span className="font-medium">{money(i.total_minor, i.currency)}</span> },
-    { header: "Due", render: (i) => i.due_date.slice(0, 10) },
-    { header: t("common.status"), render: (i) => <span className={`badge ${INVOICE_STATUS_TINT[i.status]}`}>{i.status}</span> },
+    {
+      header: "Total",
+      sortKey: "total_minor",
+      allowsSorting: true,
+      render: (i) => <span className="font-semibold text-slate-800 dark:text-slate-100">{formatMoney(i.total_minor, i.currency)}</span>,
+    },
+    {
+      header: "Due",
+      sortKey: "due_date",
+      allowsSorting: true,
+      render: (i) => i.due_date.slice(0, 10),
+    },
+    {
+      header: t("common.status"),
+      render: (i) => {
+        const badgeClass =
+          i.status === "paid"
+            ? "badge-success"
+            : i.status === "overdue"
+              ? "badge-danger"
+              : i.status === "due"
+                ? "badge-warning"
+                : "badge-neutral";
+        return <span className={`badge ${badgeClass} uppercase text-[10px]`}>{i.status}</span>;
+      },
+    },
     {
       header: t("common.actions"),
       className: "w-24",
       render: (i) =>
         i.status === "due" || i.status === "overdue" ? (
-          <button className="btn-secondary !p-1.5 text-red-600" title="Cancel invoice" onClick={() => cancel.mutate(i.id)}>
-            <XCircle size={14} />
-          </button>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            color="danger"
+            radius="lg"
+            title="Cancel invoice"
+            onPress={() => cancel.mutate(i.id)}
+            className="text-rose-500 hover:bg-rose-50"
+          >
+            <XCircle size={15} />
+          </Button>
         ) : null,
     },
   ];
@@ -86,8 +125,6 @@ export function InvoicesPage() {
   const [multiCreating, setMultiCreating] = useState(false);
   const [multiChildId, setMultiChildId] = useState("");
   const [multiMonths, setMultiMonths] = useState("3");
-  // Defaults to the current month. This was hardcoded to "2026-08", which
-  // silently billed the wrong period for anyone who didn't notice and edit it.
   const [multiStart, setMultiStart] = useState(() => new Date().toISOString().slice(0, 7));
 
   const payMulti = useMutation({
@@ -106,31 +143,63 @@ export function InvoicesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">{t("nav.invoices")}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">{t("nav.invoices")}</h1>
+      </div>
       <DataTable
         columns={columns}
         rows={list.rows}
         meta={list.meta}
         loading={list.loading}
+        search={list.search}
+        onSearch={list.setSearch}
         onPage={list.setPage}
         rowKey={(i) => i.id}
+        sortDescriptor={list.sortDescriptor}
+        onSortChange={list.setSortDescriptor}
         toolbar={
-          <>
-            <select className="input !w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="">All statuses</option>
-              {Object.keys(INVOICE_STATUS_TINT).map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
+          <div className="flex items-center gap-2">
+            <Select
+              size="sm"
+              variant="bordered"
+              radius="lg"
+              placeholder="All statuses"
+              selectedKeys={statusFilter ? [statusFilter] : []}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label="Filter by status"
+              className="w-36"
+              classNames={{
+                trigger: "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-sm rounded-xl",
+                popoverContent: "bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl rounded-2xl p-1",
+              }}
+            >
+              {[
+                { key: "", label: "All statuses" },
+                ...Object.keys(INVOICE_STATUS_TINT).map((s) => ({ key: s, label: s })),
+              ].map((item) => (
+                <SelectItem key={item.key} textValue={item.label}>
+                  {item.label}
+                </SelectItem>
               ))}
-            </select>
-            <button className="btn-secondary" onClick={() => setMultiCreating(true)}>
+            </Select>
+            <Button
+              variant="bordered"
+              radius="lg"
+              onPress={() => setMultiCreating(true)}
+              className="font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm"
+            >
               Pay Multi-Months
-            </button>
-            <button className="btn-primary" onClick={() => setCreating(true)}>
-              <Plus size={16} /> {t("common.create")}
-            </button>
-          </>
+            </Button>
+            <Button
+              color="primary"
+              radius="lg"
+              startContent={<Plus size={16} />}
+              onPress={() => setCreating(true)}
+              className="font-bold shadow-md shadow-primary/25"
+            >
+              {t("common.create")}
+            </Button>
+          </div>
         }
       />
 
@@ -138,19 +207,12 @@ export function InvoicesPage() {
         <div className="space-y-4">
           <div>
             <label className="label">Child</label>
-            <select className="input" value={childId} onChange={(e) => setChildId(e.target.value)}>
-              <option value="">—</option>
-              {(children.data ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.first_name} {c.last_name}
-                </option>
-              ))}
-            </select>
+            <ChildPicker value={childId} onChange={setChildId} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="label">Due date</label>
-              <input className="input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              <DatePicker value={dueDate} onChange={setDueDate} />
             </div>
             <div>
               <label className="label">Period</label>
@@ -158,9 +220,9 @@ export function InvoicesPage() {
             </div>
             <div>
               <label className="label">Currency</label>
-              <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                {["SEK", "EUR", "USD"].map((c) => (
-                  <option key={c}>{c}</option>
+              <select className="input" value={activeCurrency} onChange={(e) => setCurrency(e.target.value)}>
+                {Array.from(new Set([defaultCurrency, "SEK", "EUR", "USD", "GBP", "AED", "SAR"])).map((c) => (
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
@@ -185,29 +247,47 @@ export function InvoicesPage() {
                     value={item.amount}
                     onChange={(e) => setItems((p) => p.map((it, i) => (i === idx ? { ...it, amount: e.target.value } : it)))}
                   />
-                  <button
-                    className="text-slate-400 hover:text-red-600"
-                    onClick={() => setItems((p) => p.filter((_, i) => i !== idx))}
-                    disabled={items.length === 1}
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    color="danger"
+                    radius="lg"
+                    onPress={() => setItems((p) => p.filter((_, i) => i !== idx))}
+                    isDisabled={items.length === 1}
                     aria-label="Remove item"
                   >
-                    <Trash2 size={16} />
-                  </button>
+                    <Trash2 size={15} />
+                  </Button>
                 </div>
               ))}
             </div>
-            <button className="btn-secondary mt-2 !px-2 !py-1 text-xs" onClick={() => setItems((p) => [...p, { label: "", amount: "" }])}>
-              <Plus size={12} /> Item
-            </button>
+            <Button
+              size="sm"
+              variant="flat"
+              color="primary"
+              radius="lg"
+              className="mt-2 font-bold"
+              startContent={<Plus size={14} />}
+              onPress={() => setItems((p) => [...p, { label: "", amount: "" }])}
+            >
+              Add Item
+            </Button>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
-            <button className="btn-secondary" onClick={() => setCreating(false)}>
+            <Button variant="flat" color="default" onPress={() => setCreating(false)}>
               {t("common.cancel")}
-            </button>
-            <button className="btn-primary" disabled={!childId || !dueDate || create.isPending} onClick={() => create.mutate()}>
+            </Button>
+            <Button
+              color="primary"
+              isDisabled={!childId || !dueDate || create.isPending}
+              isLoading={create.isPending}
+              onPress={() => create.mutate()}
+              className="font-bold shadow-md shadow-primary/25"
+            >
               {create.isPending ? t("common.saving") : t("common.save")}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -216,14 +296,7 @@ export function InvoicesPage() {
         <div className="space-y-4">
           <div>
             <label className="label">Child</label>
-            <select className="input" value={multiChildId} onChange={(e) => setMultiChildId(e.target.value)}>
-              <option value="">— Select Child —</option>
-              {(children.data ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.first_name} {c.last_name}
-                </option>
-              ))}
-            </select>
+            <ChildPicker value={multiChildId} onChange={setMultiChildId} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -247,18 +320,20 @@ export function InvoicesPage() {
               />
             </div>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
-            <button className="btn-secondary" onClick={() => setMultiCreating(false)}>
+            <Button variant="flat" color="default" onPress={() => setMultiCreating(false)}>
               {t("common.cancel")}
-            </button>
-            <button
-              className="btn-primary"
-              disabled={!multiChildId || !multiMonths || payMulti.isPending}
-              onClick={() => payMulti.mutate()}
+            </Button>
+            <Button
+              color="primary"
+              isDisabled={!multiChildId || !multiMonths || payMulti.isPending}
+              isLoading={payMulti.isPending}
+              onPress={() => payMulti.mutate()}
+              className="font-bold shadow-md shadow-primary/25"
             >
               {payMulti.isPending ? t("common.saving") : "Submit Payment"}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

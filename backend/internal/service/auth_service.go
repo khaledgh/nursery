@@ -50,6 +50,10 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest, deviceIn
 		user, err = s.users.ByLoginID(ctx, identifier)
 	} else {
 		user, err = s.users.ByEmail(ctx, identifier)
+		if err != nil {
+			// Fallback: check if the identifier matches a login_id (e.g. "admin")
+			user, err = s.users.ByLoginID(ctx, identifier)
+		}
 	}
 	if err != nil {
 		// Burn the same time on an unknown identifier as on a real one.

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage } from "../../lib/api";
 import { ImageUpload } from "../../components/ImageUpload";
+import { DatePicker } from "../../components/DatePicker";
 import type { Child, ListResponse, Media } from "../../types/api";
 
 type LogKind = "diary" | "meal" | "sleep" | "diaper" | "hydration";
@@ -197,11 +198,11 @@ export function CarePage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Start</label>
-              <input className="input" type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+              <DatePicker hasTime value={startAt} onChange={setStartAt} />
             </div>
             <div>
               <label className="label">End</label>
-              <input className="input" type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+              <DatePicker hasTime value={endAt} onChange={setEndAt} />
             </div>
             <div className="col-span-2">
               <label className="label">Quality: {quality}%</label>

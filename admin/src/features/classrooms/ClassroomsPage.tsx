@@ -4,6 +4,7 @@ import { CalendarClock, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { z } from "zod";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { DataTable, type Column } from "../../components/DataTable";
@@ -135,7 +136,16 @@ export function ClassroomsPage() {
   });
 
   const columns: Column<Classroom>[] = [
-    { header: t("common.name"), render: (r) => <span className="font-medium">{r.name}</span> },
+    {
+      header: t("common.name"),
+      sortKey: "name",
+      allowsSorting: true,
+      render: (r) => (
+        <Link to={`/classrooms/${r.id}`} className="font-bold text-primary hover:underline">
+          {r.name}
+        </Link>
+      ),
+    },
     { header: "Location", render: (r) => r.room_location || "—" },
     { header: "Age group", render: (r) => r.age_group || "—" },
     { header: "Capacity", render: (r) => r.capacity },
@@ -164,7 +174,7 @@ export function ClassroomsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">{t("nav.classrooms")}</h1>
+      <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">{t("nav.classrooms")}</h1>
       <DataTable
         columns={columns}
         rows={list.rows}
@@ -174,6 +184,8 @@ export function ClassroomsPage() {
         onSearch={list.setSearch}
         onPage={list.setPage}
         rowKey={(r) => r.id}
+        sortDescriptor={list.sortDescriptor}
+        onSortChange={list.setSortDescriptor}
         toolbar={
           <button className="btn-primary" onClick={openCreate}>
             <Plus size={16} /> {t("common.create")}

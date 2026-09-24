@@ -6,7 +6,7 @@ import "time"
 // mobile app sends the nursery-issued login_id, which resolves the nursery
 // unambiguously (email is only unique per nursery).
 type LoginRequest struct {
-	Email    string `json:"email" validate:"omitempty,email,max=191"`
+	Email    string `json:"email" validate:"omitempty,max=191"`
 	LoginID  string `json:"login_id" validate:"omitempty,max=32"`
 	Password string `json:"password" validate:"required,min=8,max=72"`
 }

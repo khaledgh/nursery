@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Modal } from "./Modal";
+import { Button } from "@heroui/react";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -13,15 +14,16 @@ export function ConfirmDialog({ open, title, busy, onConfirm, onCancel }: Confir
   const { t } = useTranslation();
   return (
     <Modal open={open} title={title} onClose={onCancel}>
-      <p className="text-sm text-slate-600">{t("common.confirmDelete")}</p>
+      <p className="text-sm text-slate-600 dark:text-slate-400">{t("common.confirmDelete")}</p>
       <div className="mt-6 flex justify-end gap-3">
-        <button className="btn-secondary" onClick={onCancel}>
+        <Button variant="flat" color="default" onPress={onCancel}>
           {t("common.cancel")}
-        </button>
-        <button className="btn-danger" onClick={onConfirm} disabled={busy}>
+        </Button>
+        <Button color="danger" onPress={onConfirm} isLoading={busy}>
           {t("common.delete")}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
 }
+

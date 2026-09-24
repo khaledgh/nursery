@@ -36,6 +36,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  login_id?: string | null;
   phone: string;
   role: Role;
   locale: string;
@@ -322,6 +323,17 @@ export interface InvoiceItem {
   amount_minor: number;
 }
 
+export interface Payment {
+  id: number;
+  invoice_id: number;
+  provider: string;
+  provider_ref: string;
+  amount_minor: number;
+  status: "pending" | "paid" | "declined" | "error";
+  paid_at: string | null;
+  initiated_by: number;
+}
+
 export interface Invoice {
   id: number;
   child_id: number;
@@ -333,6 +345,7 @@ export interface Invoice {
   status: "due" | "paid" | "overdue" | "cancelled";
   period: string;
   items?: InvoiceItem[];
+  payments?: Payment[];
   child?: Child;
 }
 
@@ -480,6 +493,7 @@ export interface EventMedia {
 export interface CommunityComment {
   id: number;
   post_id: number;
+  author_user_id?: number;
   author?: User;
   body: string;
   created_at: string;
@@ -487,6 +501,7 @@ export interface CommunityComment {
 
 export interface CommunityPost {
   id: number;
+  author_user_id?: number;
   author?: User;
   type: "moment" | "activity";
   body: string;
@@ -513,6 +528,17 @@ export interface AchievementTemplate {
   color: string;
 }
 
+export interface Notification {
+  id: number;
+  user_id: number;
+  category: string;
+  title: string;
+  body: string;
+  read_at: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
 // --- global search ---
 
 export interface SearchHit {
@@ -527,4 +553,21 @@ export interface SearchResults {
   staff?: SearchHit[];
   classrooms?: SearchHit[];
   invoices?: SearchHit[];
+}
+
+export interface CommunityBannedUser {
+  user_id: number;
+  user_name?: string;
+  user_email?: string;
+  reason?: string;
+  banned_at?: string;
+  banned_by?: number;
+}
+
+export interface CommunityModerationStatus {
+  hours_enabled: boolean;
+  hours_start: string;
+  hours_end: string;
+  is_open: boolean;
+  banned_users: CommunityBannedUser[];
 }

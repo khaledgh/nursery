@@ -144,8 +144,11 @@ func (s *AttendanceService) CheckInOut(ctx context.Context, role model.Role, use
 	case "check_out":
 		ch.PresentStatus = model.PresentOut
 		a.CheckedOutAt = &now
+	case "absent":
+		ch.PresentStatus = model.PresentAbs
+		a.Status = model.AttendanceAbsent
 	default:
-		return nil, apperr.BadRequest("action must be check_in or check_out")
+		return nil, apperr.BadRequest("action must be check_in, check_out, or absent")
 	}
 	a.ConfirmedBy = &userID
 	a.ConfirmedAt = &now
@@ -157,10 +160,12 @@ func (s *AttendanceService) CheckInOut(ctx context.Context, role model.Role, use
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, userID, action, "attendance", a.ID, map[string]any{"child_id": childID}, ip)
-	// Arrival and pickup are the two moments a parent most wants confirmed.
+	// Arrival, pickup, or absence notice
 	title, body := "Checked in", ch.FirstName+" arrived safely at the nursery"
 	if action == "check_out" {
 		title, body = "Checked out", ch.FirstName+" has been picked up"
+	} else if action == "absent" {
+		title, body = "Absence recorded", ch.FirstName+" has been marked absent today"
 	}
 	s.notifier.NotifyGuardians(ctx, childID, model.CategoryUpdates, title, body,
 		map[string]any{"screen": "attendance", "child_id": childID})

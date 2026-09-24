@@ -1,13 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Calendar, CloudRain } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { Card, CardBody, CardHeader, Chip, Button } from "@heroui/react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
+import { PageHeader } from "../../components/PageHeader";
+import { DatePicker } from "../../components/DatePicker";
 import { ClassroomPicker, ChildPicker } from "../../components/Pickers";
 import { api } from "../../lib/api";
 import { applyServerErrors } from "../../lib/formErrors";
@@ -72,44 +75,96 @@ export function RemindersPage() {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{t("nav.reminders")}</h1>
-        <button className="btn-primary" onClick={() => setCreating(true)}>
-          <Plus size={16} /> {t("common.create")}
-        </button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("nav.reminders")}
+        subtitle="Manage alerts, upcoming events, and weather notices for parents and staff"
+        actions={
+          <Button
+            color="primary"
+            radius="lg"
+            startContent={<Plus size={16} />}
+            onPress={() => setCreating(true)}
+            className="font-bold shadow-md shadow-primary/25"
+          >
+            {t("common.create")}
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {(reminders.data ?? []).map((r) => (
-          <div key={r.id} className="card p-5">
-            <div className="flex items-start justify-between">
-              <div className="font-medium">
-                {r.weather_alert && "🌦️ "}
-                {r.title}
+          <Card
+            key={r.id}
+            shadow="sm"
+            className="border border-slate-200/70 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 hover:shadow-md transition-all rounded-2xl"
+          >
+            <CardHeader className="flex items-start justify-between pb-1 px-5 pt-5">
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                {r.weather_alert && (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-100 text-amber-700 shrink-0">
+                    <CloudRain size={16} />
+                  </span>
+                )}
+                <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm truncate">
+                  {r.title}
+                </h3>
               </div>
-              <button className="text-slate-400 hover:text-red-600" onClick={() => setDeleting(r)} aria-label="Delete">
-                <Trash2 size={16} />
-              </button>
-            </div>
-            {r.description && <p className="mt-1 text-sm text-slate-600">{r.description}</p>}
-            <div className="mt-3 flex gap-2 text-xs">
-              <span className="badge bg-brand-100 text-brand-700">{r.scope}</span>
-              <span className="badge bg-slate-100 text-slate-600">{r.kind}</span>
-              {r.date && <span className="badge bg-amber-100 text-amber-700">{r.date.slice(0, 10)}</span>}
-            </div>
-          </div>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                color="danger"
+                onPress={() => setDeleting(r)}
+                aria-label="Delete"
+                className="text-slate-400 hover:text-danger shrink-0 -mr-1 -mt-1"
+              >
+                <Trash2 size={15} />
+              </Button>
+            </CardHeader>
+
+            <CardBody className="px-5 pb-5 pt-2 space-y-3">
+              {r.description && (
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 line-clamp-2">
+                  {r.description}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <Chip size="sm" variant="flat" color="primary" className="text-[10px] font-bold h-5 uppercase">
+                  {r.scope}
+                </Chip>
+                <Chip size="sm" variant="flat" color="default" className="text-[10px] font-bold h-5 uppercase">
+                  {r.kind}
+                </Chip>
+                {r.date && (
+                  <Chip
+                    size="sm"
+                    variant="flat"
+                    color="warning"
+                    startContent={<Calendar size={12} className="ml-1" />}
+                    className="text-[10px] font-bold h-5"
+                  >
+                    {r.date.slice(0, 10)}
+                  </Chip>
+                )}
+              </div>
+            </CardBody>
+          </Card>
         ))}
-        {reminders.data?.length === 0 && <p className="text-slate-400">{t("common.noData")}</p>}
+        {reminders.data?.length === 0 && (
+          <div className="col-span-full p-12 text-center text-xs font-semibold text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+            {t("common.noData")}
+          </div>
+        )}
       </div>
 
       <Modal open={creating} title={t("common.create")} onClose={() => setCreating(false)}>
         <form onSubmit={form.handleSubmit((v) => create.mutate(v))} className="space-y-4">
           <FormField label={t("common.title")} error={form.formState.errors.title?.message}>
-            <input className="input" {...form.register("title")} />
+            <input className="input" placeholder="e.g. Bring extra clothes" {...form.register("title")} />
           </FormField>
           <FormField label="Description">
-            <textarea className="input" rows={2} {...form.register("description")} />
+            <textarea className="input" rows={2} placeholder="Optional details..." {...form.register("description")} />
           </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Scope">
@@ -137,7 +192,10 @@ export function RemindersPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <FormField label={t("common.date")}>
-              <input className="input" type="date" {...form.register("date")} />
+              <DatePicker
+                value={form.watch("date") || ""}
+                onChange={(d) => form.setValue("date", d)}
+              />
             </FormField>
             <FormField label="Kind">
               <select className="input" {...form.register("kind")}>
@@ -146,17 +204,17 @@ export function RemindersPage() {
               </select>
             </FormField>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" {...form.register("weather_alert")} /> Weather alert
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+            <input type="checkbox" className="rounded" {...form.register("weather_alert")} /> Weather alert
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" className="btn-secondary" onClick={() => setCreating(false)}>
+            <Button variant="flat" color="default" onPress={() => setCreating(false)}>
               {t("common.cancel")}
-            </button>
-            <button type="submit" className="btn-primary" disabled={create.isPending}>
+            </Button>
+            <Button color="primary" type="submit" isLoading={create.isPending} className="font-bold">
               {create.isPending ? t("common.saving") : t("common.save")}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -171,3 +229,4 @@ export function RemindersPage() {
     </div>
   );
 }
+

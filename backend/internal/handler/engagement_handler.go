@@ -44,6 +44,13 @@ func (h *EngagementHandler) Register(protected *echo.Group) {
 	protected.POST("/community/posts/:id/like", h.ToggleLike)
 	protected.POST("/meetups/:id/rsvp", h.MeetupRSVP)
 
+	// Community admin moderation
+	adminComm := protected.Group("/admin/community", mw.RequireRole(model.RoleAdmin))
+	adminComm.GET("/moderation", h.GetCommunityModeration)
+	adminComm.POST("/ban", h.BanUser)
+	adminComm.POST("/unban", h.UnbanUser)
+	adminComm.PUT("/hours", h.UpdateCommunityHours)
+
 	// Reminders
 	protected.GET("/reminders", h.ListReminders)
 
@@ -312,11 +319,52 @@ func (h *EngagementHandler) Comment(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	comment, err := h.eng.Comment(c.Request().Context(), mw.UserID(c), id, req.Body)
+	comment, err := h.eng.Comment(c.Request().Context(), mw.Role(c), mw.UserID(c), id, req.Body)
 	if err != nil {
 		return err
 	}
 	return response.Created(c, comment)
+}
+
+func (h *EngagementHandler) GetCommunityModeration(c echo.Context) error {
+	status, err := h.eng.GetCommunityModeration(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, status)
+}
+
+func (h *EngagementHandler) BanUser(c echo.Context) error {
+	req, err := dto.Bind[dto.CommunityBanRequest](c)
+	if err != nil {
+		return err
+	}
+	if err := h.eng.BanUser(c.Request().Context(), mw.UserID(c), req.UserID, req.Reason, c.RealIP()); err != nil {
+		return err
+	}
+	return response.NoContent(c)
+}
+
+func (h *EngagementHandler) UnbanUser(c echo.Context) error {
+	req, err := dto.Bind[dto.CommunityUnbanRequest](c)
+	if err != nil {
+		return err
+	}
+	if err := h.eng.UnbanUser(c.Request().Context(), mw.UserID(c), req.UserID, c.RealIP()); err != nil {
+		return err
+	}
+	return response.NoContent(c)
+}
+
+func (h *EngagementHandler) UpdateCommunityHours(c echo.Context) error {
+	req, err := dto.Bind[dto.CommunityHoursRequest](c)
+	if err != nil {
+		return err
+	}
+	if err := h.eng.UpdateCommunityHours(c.Request().Context(), mw.UserID(c), req.Enabled, req.Start, req.End, c.RealIP()); err != nil {
+		return err
+	}
+	return response.NoContent(c)
 }
 
 func (h *EngagementHandler) DeleteComment(c echo.Context) error {

@@ -190,6 +190,13 @@ export function useMilestoneCategories() {
   });
 }
 
+export function useAchievementTemplates() {
+  return useQuery({
+    queryKey: ["achievementTemplates"],
+    queryFn: () => item<import("./types").AchievementTemplate[]>("/achievement-templates"),
+  });
+}
+
 export function useAssessMilestone() {
   const qc = useQueryClient();
   return useMutation({
@@ -501,10 +508,13 @@ function invalidateChild(qc: ReturnType<typeof useQueryClient>, childId: number)
 export function useCheckInOut() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { childId: number; action: "check_in" | "check_out" }) =>
+    mutationFn: async (input: { childId: number; action: "check_in" | "check_out" | "absent" }) =>
       (await api.post<ItemResponse<Attendance>>(`/children/${input.childId}/check`, { action: input.action })).data
         .data,
-    onSuccess: (_res, input) => invalidateChild(qc, input.childId),
+    onSuccess: (_res, input) => {
+      invalidateChild(qc, input.childId);
+      void qc.invalidateQueries({ queryKey: ["teacherRoster"] });
+    },
   });
 }
 
@@ -591,6 +601,28 @@ export function useCreateDiary() {
     onSuccess: (_res, input) => {
       invalidateChild(qc, input.childId);
       void qc.invalidateQueries({ queryKey: ["diary", input.childId] });
+    },
+  });
+}
+
+export interface DailyReportInput {
+  childId: number;
+  date: string;
+  summary: string;
+  moods?: { key: string; rating: string }[];
+  ratings?: { dimension: string; rating: string; note?: string }[];
+  home_tips?: string[];
+}
+
+export function useUpsertReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ childId, ...body }: DailyReportInput) =>
+      (await api.put<ItemResponse<DailyReport>>(`/children/${childId}/reports`, body)).data.data,
+    onSuccess: (_res, input) => {
+      invalidateChild(qc, input.childId);
+      void qc.invalidateQueries({ queryKey: ["reports", input.childId] });
+      void qc.invalidateQueries({ queryKey: ["teacherRoster"] });
     },
   });
 }

@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/datatypes"
@@ -458,6 +461,9 @@ func (s *EngagementService) ListPosts(ctx context.Context, q dto.PageQuery) ([]m
 }
 
 func (s *EngagementService) CreatePost(ctx context.Context, role model.Role, userID uint64, req *dto.CreateCommunityPostRequest, ip string) (*model.CommunityPost, error) {
+	if err := s.checkCommunityAccess(ctx, userID, role); err != nil {
+		return nil, err
+	}
 	if req.ChildID != nil {
 		if err := s.childSvc.Authorize(ctx, role, userID, *req.ChildID); err != nil {
 			return nil, err
@@ -514,7 +520,10 @@ func (s *EngagementService) DeletePost(ctx context.Context, role model.Role, use
 	return nil
 }
 
-func (s *EngagementService) Comment(ctx context.Context, userID, postID uint64, body string) (*model.CommunityComment, error) {
+func (s *EngagementService) Comment(ctx context.Context, role model.Role, userID, postID uint64, body string) (*model.CommunityComment, error) {
+	if err := s.checkCommunityAccess(ctx, userID, role); err != nil {
+		return nil, err
+	}
 	var post model.CommunityPost
 	if err := s.db.WithContext(ctx).First(&post, postID).Error; err != nil {
 		return nil, apperr.NotFound("post not found")
@@ -578,6 +587,243 @@ func (s *EngagementService) MeetupRSVP(ctx context.Context, userID, meetupID uin
 		return nil, apperr.Internal(err)
 	}
 	return rsvp, nil
+}
+
+type CommunityBannedUser struct {
+	UserID    uint64 `json:"user_id"`
+	UserName  string `json:"user_name,omitempty"`
+	UserEmail string `json:"user_email,omitempty"`
+	Reason    string `json:"reason,omitempty"`
+	BannedAt  string `json:"banned_at,omitempty"`
+	BannedBy  uint64 `json:"banned_by,omitempty"`
+}
+
+type CommunityModerationStatus struct {
+	HoursEnabled bool                  `json:"hours_enabled"`
+	HoursStart   string                `json:"hours_start"`
+	HoursEnd     string                `json:"hours_end"`
+	IsOpen       bool                  `json:"is_open"`
+	BannedUsers  []CommunityBannedUser `json:"banned_users"`
+}
+
+func isWithinHours(startStr, endStr string, now time.Time) bool {
+	parseMinutes := func(s string) (int, bool) {
+		parts := strings.Split(strings.TrimSpace(s), ":")
+		if len(parts) != 2 {
+			return 0, false
+		}
+		h, err1 := strconv.Atoi(parts[0])
+		m, err2 := strconv.Atoi(parts[1])
+		if err1 != nil || err2 != nil {
+			return 0, false
+		}
+		if h == 24 || (h == 0 && m == 0 && (strings.HasPrefix(s, "24") || strings.HasPrefix(s, "00"))) {
+			return 1440, true
+		}
+		return h*60 + m, true
+	}
+
+	startMin, ok1 := parseMinutes(startStr)
+	endMin, ok2 := parseMinutes(endStr)
+	if !ok1 || !ok2 {
+		return true
+	}
+	currMin := now.Hour()*60 + now.Minute()
+	if startMin == endMin {
+		return true
+	}
+	if startMin < endMin {
+		return currMin >= startMin && currMin < endMin
+	}
+	return currMin >= startMin || currMin < endMin
+}
+
+func (s *EngagementService) checkCommunityAccess(ctx context.Context, userID uint64, role model.Role) error {
+	// 1. Check if user is banned
+	var setting model.Setting
+	if err := s.db.WithContext(ctx).Where("`key` = ?", "community_banned_users").First(&setting).Error; err == nil {
+		var list []CommunityBannedUser
+		if json.Unmarshal(setting.ValueJSON, &list) == nil {
+			for _, b := range list {
+				if b.UserID == userID {
+					reason := b.Reason
+					if reason == "" {
+						reason = "inappropriate behavior or language"
+					}
+					return apperr.Forbidden("Your account has been suspended from the community (" + reason + "). Please contact administration.")
+				}
+			}
+		}
+	}
+
+	// 2. Check quiet hours (admins bypass)
+	if role != model.RoleAdmin {
+		var hoursEnabledSetting, startSetting, endSetting model.Setting
+		hoursEnabled := false
+		if err := s.db.WithContext(ctx).Where("`key` = ?", "community_hours_enabled").First(&hoursEnabledSetting).Error; err == nil {
+			_ = json.Unmarshal(hoursEnabledSetting.ValueJSON, &hoursEnabled)
+		}
+		if hoursEnabled {
+			start := "07:00"
+			end := "00:00"
+			if err := s.db.WithContext(ctx).Where("`key` = ?", "community_hours_start").First(&startSetting).Error; err == nil {
+				var v string
+				if json.Unmarshal(startSetting.ValueJSON, &v) == nil && v != "" {
+					start = v
+				}
+			}
+			if err := s.db.WithContext(ctx).Where("`key` = ?", "community_hours_end").First(&endSetting).Error; err == nil {
+				var v string
+				if json.Unmarshal(endSetting.ValueJSON, &v) == nil && v != "" {
+					end = v
+				}
+			}
+
+			if !isWithinHours(start, end, time.Now()) {
+				return apperr.BadRequest(fmt.Sprintf("Community is closed for quiet hours (open daily from %s to %s).", start, end))
+			}
+		}
+	}
+	return nil
+}
+
+func (s *EngagementService) GetCommunityModeration(ctx context.Context) (*CommunityModerationStatus, error) {
+	status := &CommunityModerationStatus{
+		HoursEnabled: false,
+		HoursStart:   "07:00",
+		HoursEnd:     "00:00",
+		IsOpen:       true,
+		BannedUsers:  []CommunityBannedUser{},
+	}
+	var rows []model.Setting
+	if err := s.db.WithContext(ctx).Where("`key` IN ?", []string{
+		"community_hours_enabled",
+		"community_hours_start",
+		"community_hours_end",
+		"community_banned_users",
+	}).Find(&rows).Error; err == nil {
+		for _, r := range rows {
+			switch r.Key {
+			case "community_hours_enabled":
+				_ = json.Unmarshal(r.ValueJSON, &status.HoursEnabled)
+			case "community_hours_start":
+				var v string
+				if json.Unmarshal(r.ValueJSON, &v) == nil && v != "" {
+					status.HoursStart = v
+				}
+			case "community_hours_end":
+				var v string
+				if json.Unmarshal(r.ValueJSON, &v) == nil && v != "" {
+					status.HoursEnd = v
+				}
+			case "community_banned_users":
+				_ = json.Unmarshal(r.ValueJSON, &status.BannedUsers)
+			}
+		}
+	}
+	if status.HoursEnabled {
+		status.IsOpen = isWithinHours(status.HoursStart, status.HoursEnd, time.Now())
+	}
+	return status, nil
+}
+
+func (s *EngagementService) BanUser(ctx context.Context, actorID, targetUserID uint64, reason, ip string) error {
+	var targetUser model.User
+	if err := s.db.WithContext(ctx).First(&targetUser, targetUserID).Error; err != nil {
+		return apperr.NotFound("user not found")
+	}
+
+	var banned []CommunityBannedUser
+	var setting model.Setting
+	if err := s.db.WithContext(ctx).Where("`key` = ?", "community_banned_users").First(&setting).Error; err == nil {
+		_ = json.Unmarshal(setting.ValueJSON, &banned)
+	}
+
+	for i, b := range banned {
+		if b.UserID == targetUserID {
+			banned[i].Reason = reason
+			banned[i].BannedAt = time.Now().Format(time.RFC3339)
+			banned[i].BannedBy = actorID
+			raw, _ := json.Marshal(banned)
+			setting.ValueJSON = raw
+			return s.db.WithContext(ctx).Save(&setting).Error
+		}
+	}
+
+	banned = append(banned, CommunityBannedUser{
+		UserID:    targetUserID,
+		UserName:  targetUser.Name,
+		UserEmail: targetUser.Email,
+		Reason:    reason,
+		BannedAt:  time.Now().Format(time.RFC3339),
+		BannedBy:  actorID,
+	})
+	raw, err := json.Marshal(banned)
+	if err != nil {
+		return apperr.Internal(err)
+	}
+
+	row := &model.Setting{Key: "community_banned_users", ValueJSON: raw}
+	if err := s.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value_json", "updated_at"}),
+	}).Create(row).Error; err != nil {
+		return apperr.Internal(err)
+	}
+
+	s.audit.Record(ctx, actorID, "ban", "community_user", targetUserID, map[string]any{"reason": reason}, ip)
+	return nil
+}
+
+func (s *EngagementService) UnbanUser(ctx context.Context, actorID, targetUserID uint64, ip string) error {
+	var banned []CommunityBannedUser
+	var setting model.Setting
+	if err := s.db.WithContext(ctx).Where("`key` = ?", "community_banned_users").First(&setting).Error; err != nil {
+		return nil
+	}
+	_ = json.Unmarshal(setting.ValueJSON, &banned)
+
+	filtered := make([]CommunityBannedUser, 0, len(banned))
+	for _, b := range banned {
+		if b.UserID != targetUserID {
+			filtered = append(filtered, b)
+		}
+	}
+
+	raw, _ := json.Marshal(filtered)
+	setting.ValueJSON = raw
+	if err := s.db.WithContext(ctx).Save(&setting).Error; err != nil {
+		return apperr.Internal(err)
+	}
+
+	s.audit.Record(ctx, actorID, "unban", "community_user", targetUserID, nil, ip)
+	return nil
+}
+
+func (s *EngagementService) UpdateCommunityHours(ctx context.Context, actorID uint64, enabled bool, start, end, ip string) error {
+	if start == "" {
+		start = "07:00"
+	}
+	if end == "" {
+		end = "00:00"
+	}
+	updates := map[string]any{
+		"community_hours_enabled": enabled,
+		"community_hours_start":   start,
+		"community_hours_end":     end,
+	}
+	for k, v := range updates {
+		raw, _ := json.Marshal(v)
+		row := &model.Setting{Key: k, ValueJSON: raw}
+		if err := s.db.WithContext(ctx).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "key"}},
+			DoUpdates: clause.AssignmentColumns([]string{"value_json", "updated_at"}),
+		}).Create(row).Error; err != nil {
+			return apperr.Internal(err)
+		}
+	}
+	s.audit.Record(ctx, actorID, "update", "community_hours", 0, updates, ip)
+	return nil
 }
 
 // ---------- reminders ----------

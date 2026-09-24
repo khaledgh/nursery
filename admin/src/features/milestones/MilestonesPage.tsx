@@ -6,6 +6,8 @@ import { api, errorMessage } from "../../lib/api";
 import { Modal } from "../../components/Modal";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ChildPicker } from "../../components/Pickers";
+import { DatePicker } from "../../components/DatePicker";
+import { FormField } from "../../components/FormField";
 import { toISODate } from "../../components/WeekPicker";
 import type {
   AchievementTemplate,
@@ -53,7 +55,7 @@ interface CategoryDraft {
   icon: string;
 }
 
-function CategoriesTab() {
+export function CategoriesTab() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<CategoryDraft | null>(null);
@@ -126,35 +128,47 @@ function CategoriesTab() {
 
       <Modal open={!!editing} title={editing?.id ? "Edit category" : "New category"} onClose={() => setEditing(null)}>
         {editing && (
-          <div className="space-y-3">
-            <input
-              className="input"
-              placeholder="Name (e.g. Communication)"
-              value={editing.name}
-              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-            />
-            <input
-              className="input"
-              placeholder="Description (e.g. Uses simple sentences and new words)"
-              value={editing.description}
-              onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-            />
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <FormField label="Category Name" required>
               <input
                 className="input"
-                placeholder="Icon (e.g. chatbubbles)"
-                value={editing.icon}
-                onChange={(e) => setEditing({ ...editing, icon: e.target.value })}
+                placeholder="e.g. Communication & Language"
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
               />
-              <input
-                type="color"
-                className="h-10 w-full cursor-pointer rounded-lg border border-slate-200"
-                value={editing.color || "#7c3aed"}
-                onChange={(e) => setEditing({ ...editing, color: e.target.value })}
+            </FormField>
+            <FormField label="Description" hint="Optional summary">
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="e.g. Uses simple sentences, asks questions and learns new words"
+                value={editing.description}
+                onChange={(e) => setEditing({ ...editing, description: e.target.value })}
               />
+            </FormField>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Icon Key" hint="Lucide or emoji">
+                <input
+                  className="input"
+                  placeholder="e.g. message-circle"
+                  value={editing.icon}
+                  onChange={(e) => setEditing({ ...editing, icon: e.target.value })}
+                />
+              </FormField>
+              <FormField label="Accent Color">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    className="h-10 w-16 cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white p-1"
+                    value={editing.color || "#7c3aed"}
+                    onChange={(e) => setEditing({ ...editing, color: e.target.value })}
+                  />
+                  <span className="text-xs font-mono text-slate-500">{editing.color || "#7c3aed"}</span>
+                </div>
+              </FormField>
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <div className="flex justify-end gap-3 pt-2">
+            {error && <p className="text-sm font-medium text-rose-600 dark:text-rose-400">{error}</p>}
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button className="btn-secondary" onClick={() => setEditing(null)}>
                 {t("common.cancel")}
               </button>
@@ -177,7 +191,7 @@ function CategoriesTab() {
   );
 }
 
-function TemplatesTab() {
+export function TemplatesTab() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
@@ -220,35 +234,47 @@ function TemplatesTab() {
       </div>
 
       <Modal open={creating} title="New achievement badge" onClose={() => setCreating(false)}>
-        <div className="space-y-3">
-          <input
-            className="input"
-            placeholder="Title (e.g. Kind Helper)"
-            value={draft.title}
-            onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-          />
-          <input
-            className="input"
-            placeholder="Description (e.g. Helped clean up toys without being asked)"
-            value={draft.description}
-            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-          />
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
+          <FormField label="Badge Title" required>
             <input
               className="input"
-              placeholder="Icon (e.g. thumbs-up)"
-              value={draft.icon}
-              onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
+              placeholder="e.g. Kind Helper"
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
             />
-            <input
-              type="color"
-              className="h-10 w-full cursor-pointer rounded-lg border border-slate-200"
-              value={draft.color}
-              onChange={(e) => setDraft({ ...draft, color: e.target.value })}
+          </FormField>
+          <FormField label="Description" hint="What does this badge award?">
+            <textarea
+              className="input"
+              rows={2}
+              placeholder="e.g. Consistently helps clean up toys and supports classmates"
+              value={draft.description}
+              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
             />
+          </FormField>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Icon Key" hint="Emoji or icon">
+              <input
+                className="input"
+                placeholder="e.g. star, trophy, thumbs-up"
+                value={draft.icon}
+                onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Badge Color">
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  className="h-10 w-16 cursor-pointer rounded-xl border border-slate-200 dark:border-slate-800 bg-white p-1"
+                  value={draft.color}
+                  onChange={(e) => setDraft({ ...draft, color: e.target.value })}
+                />
+                <span className="text-xs font-mono text-slate-500">{draft.color}</span>
+              </div>
+            </FormField>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex justify-end gap-3 pt-2">
+          {error && <p className="text-sm font-medium text-rose-600 dark:text-rose-400">{error}</p>}
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button className="btn-secondary" onClick={() => setCreating(false)}>
               {t("common.cancel")}
             </button>
@@ -399,41 +425,53 @@ function AssessTab() {
             )}
           </div>
 
-          <div className="card space-y-3 p-5">
-            <h2 className="font-semibold">Award an achievement</h2>
-            <div className="grid grid-cols-12 gap-3">
-              <select className="input col-span-4" value={awardTplId} onChange={(e) => setAwardTplId(e.target.value)}>
-                <option value="">— badge —</option>
-                {(templates.data ?? []).map((tp) => (
-                  <option key={tp.id} value={tp.id}>
-                    {tp.title}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="input col-span-3"
-                type="date"
-                value={awardDate}
-                onChange={(e) => setAwardDate(e.target.value)}
-              />
-              <input
-                className="input col-span-3"
-                placeholder="Note"
-                value={awardNote}
-                onChange={(e) => setAwardNote(e.target.value)}
-              />
-              <button
-                className="btn-primary col-span-2"
-                disabled={!awardTplId || award.isPending}
-                onClick={() => award.mutate()}
-              >
-                Award 🏆
-              </button>
+          <div className="card space-y-4 p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <div>
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Award an achievement</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Celebrate milestones and positive behaviors with badges.</p>
             </div>
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div className="sm:col-span-4">
+                <label className="label">Badge Template</label>
+                <select className="input" value={awardTplId} onChange={(e) => setAwardTplId(e.target.value)}>
+                  <option value="">— Select badge —</option>
+                  {(templates.data ?? []).map((tp) => (
+                    <option key={tp.id} value={tp.id}>
+                      {tp.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-3">
+                <label className="label">Award Date</label>
+                <DatePicker
+                  value={awardDate}
+                  onChange={setAwardDate}
+                />
+              </div>
+              <div className="sm:col-span-3">
+                <label className="label">Note (optional)</label>
+                <input
+                  className="input"
+                  placeholder="e.g. Shared toys kindly"
+                  value={awardNote}
+                  onChange={(e) => setAwardNote(e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <button
+                  className="btn-primary w-full h-[42px]"
+                  disabled={!awardTplId || award.isPending}
+                  onClick={() => award.mutate()}
+                >
+                  {award.isPending ? "Awarding..." : "Award 🏆"}
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/60">
               {(achievements.data ?? []).map((a) => (
-                <span key={a.id} className="badge bg-amber-100 text-amber-800">
-                  {a.template?.title} · {a.awarded_date}
+                <span key={a.id} className="badge bg-amber-50 text-amber-800 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60 py-1 px-3">
+                  🏆 {a.template?.title} · {a.awarded_date}
                 </span>
               ))}
             </div>

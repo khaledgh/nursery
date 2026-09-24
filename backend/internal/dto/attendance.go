@@ -9,7 +9,7 @@ type AttendanceRequest struct {
 }
 
 type CheckInOutRequest struct {
-	Action string `json:"action" validate:"required,oneof=check_in check_out"`
+	Action string `json:"action" validate:"required,oneof=check_in check_out absent"`
 }
 
 type ListAttendanceQuery struct {
