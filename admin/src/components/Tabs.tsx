@@ -44,7 +44,7 @@ export function Tabs({ tabs, base, query = false, active = "" }: TabsProps) {
   };
 
   return (
-    <div className="mb-6 flex flex-wrap gap-4 items-center">
+    <div className="mb-4 flex flex-wrap gap-3 items-center">
       <HeroTabs
         selectedKey={currentKey}
         onSelectionChange={handleSelection}
@@ -52,9 +52,9 @@ export function Tabs({ tabs, base, query = false, active = "" }: TabsProps) {
         color="primary"
         variant="underlined"
         classNames={{
-          tabList: "gap-6 w-full relative rounded-none p-0 border-b border-slate-200 dark:border-slate-800",
+          tabList: "gap-4 sm:gap-6 w-full relative rounded-none p-0 border-b border-slate-200 dark:border-slate-800",
           cursor: "w-full bg-primary",
-          tab: "max-w-fit px-2 h-11 text-sm font-semibold",
+          tab: "max-w-fit px-2 h-9 text-xs sm:text-sm font-semibold",
           tabContent: "group-data-[selected=true]:font-bold group-data-[selected=true]:text-primary text-slate-500",
         }}
       >

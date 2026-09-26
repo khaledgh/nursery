@@ -41,14 +41,14 @@ export function SuperAdminReportsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12 print:space-y-4 print:pb-0">
+    <div className="space-y-4 pb-8 print:space-y-3 print:pb-0">
       <PageHeader
         title="Platform Financial & Capacity Reports"
         subtitle="Audited financial health, subscription tiers revenue, and network-wide childcare capacity."
         actions={
           <button
             onClick={handlePrint}
-            className="btn btn-secondary text-xs sm:text-sm py-2 px-3 shadow-none border-slate-200/80 hover:border-teal-300 print:hidden"
+            className="btn btn-secondary text-xs sm:text-sm py-1.5 px-3 shadow-none border-slate-200/80 hover:border-teal-300 print:hidden"
           >
             <Printer size={14} />
             <span>Print Report</span>
@@ -57,11 +57,11 @@ export function SuperAdminReportsPage() {
       />
 
       {/* Top 4 Compact Executive Financial Metrics */}
-      <div className="grid gap-3.5 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {/* Metric 1 */}
-        <div className="card p-4 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="card p-3.5 sm:p-4 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Monthly Run Rate (MRR)
             </span>
             <div className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600">
@@ -76,12 +76,12 @@ export function SuperAdminReportsPage() {
                 <span className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                   {formatMoneyCompact(rep?.mrr_minor ?? 0)}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">/mo</span>
+                <span className="text-xs font-semibold text-slate-500">/mo</span>
               </>
             )}
           </div>
-          <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 text-[11px]">
-            <span className="text-slate-400">Annual Run Rate</span>
+          <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 text-xs">
+            <span className="text-slate-500">Annual Run Rate</span>
             <span className="font-extrabold text-teal-600 dark:text-teal-400">
               {formatMoneyCompact(rep?.arr_minor ?? (rep?.mrr_minor ?? 0) * 12)}/yr
             </span>
@@ -89,9 +89,9 @@ export function SuperAdminReportsPage() {
         </div>
 
         {/* Metric 2 */}
-        <div className="card p-4 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="card p-3.5 sm:p-4 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Network Capacity
             </span>
             <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600">
@@ -106,20 +106,20 @@ export function SuperAdminReportsPage() {
                 <span className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                   {rep?.total_children ?? 0}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">
+                <span className="text-xs font-semibold text-slate-500">
                   / {rep?.total_capacity ?? 0} seats
                 </span>
               </>
             )}
           </div>
           <div className="mt-2.5 space-y-1 border-t border-slate-100 dark:border-slate-800/60 pt-2">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-400">Seat Utilization</span>
-              <span className="font-extrabold text-slate-700 dark:text-slate-300">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-500">Seat Utilization</span>
+              <span className="font-extrabold text-slate-800 dark:text-slate-200">
                 {rep?.capacity_used_pct ? rep.capacity_used_pct.toFixed(0) : "0"}%
               </span>
             </div>
-            <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-teal-500 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(rep?.capacity_used_pct ?? 0, 100)}%` }}
@@ -129,9 +129,9 @@ export function SuperAdminReportsPage() {
         </div>
 
         {/* Metric 3 */}
-        <div className="card p-4 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="card p-3.5 sm:p-4 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Collection Health
             </span>
             <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600">
@@ -146,12 +146,12 @@ export function SuperAdminReportsPage() {
                 <span className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                   {collectionRate.toFixed(0)}%
                 </span>
-                <span className="text-xs font-semibold text-slate-400">efficiency</span>
+                <span className="text-xs font-semibold text-slate-500">efficiency</span>
               </>
             )}
           </div>
-          <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 text-[11px]">
-            <span className="text-slate-400">Overdue balance</span>
+          <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 text-xs">
+            <span className="text-slate-500">Overdue balance</span>
             <span
               className={`font-extrabold ${
                 (rep?.overdue_amount_minor ?? 0) > 0 ? "text-rose-600" : "text-teal-600"
@@ -163,9 +163,9 @@ export function SuperAdminReportsPage() {
         </div>
 
         {/* Metric 4 */}
-        <div className="card p-4 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="card p-3.5 sm:p-4 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Total Nurseries
             </span>
             <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -180,12 +180,12 @@ export function SuperAdminReportsPage() {
                 <span className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                   {rep?.total_nurseries ?? 0}
                 </span>
-                <span className="text-xs font-semibold text-slate-400">childcare centers</span>
+                <span className="text-xs font-semibold text-slate-500">childcare centers</span>
               </>
             )}
           </div>
-          <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 text-[11px]">
-            <span className="text-slate-400">Good standing</span>
+          <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 text-xs">
+            <span className="text-slate-500">Good standing</span>
             <span className="font-extrabold text-teal-600">
               {(rep?.total_nurseries ?? 0) - (rep?.past_due_nurseries ?? 0)} active
             </span>
@@ -194,7 +194,7 @@ export function SuperAdminReportsPage() {
       </div>
 
       {/* Invoicing Health Balance Bar */}
-      <div className="card p-5 sm:p-6 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+      <div className="card p-4 sm:p-5 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Receipt size={16} className="text-teal-600" />
@@ -202,7 +202,7 @@ export function SuperAdminReportsPage() {
               Platform Invoicing & Collections Balance
             </h2>
           </div>
-          <span className="text-xs font-bold text-slate-500">
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
             {rep?.total_invoices ?? 0} Total Invoices Raised
           </span>
         </div>
@@ -219,11 +219,11 @@ export function SuperAdminReportsPage() {
               style={{ width: `${Math.max(0, 100 - collectionRate)}%` }}
             />
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-teal-500 inline-block" />
               Settled Collections:{" "}
-              <strong className="text-slate-800 dark:text-slate-200">
+              <strong className="text-slate-900 dark:text-slate-100 font-bold">
                 {formatMoney(rep?.paid_amount_minor ?? 0)}
               </strong>{" "}
               ({rep?.paid_invoices ?? 0} invoices)
@@ -231,7 +231,7 @@ export function SuperAdminReportsPage() {
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-rose-500 inline-block" />
               Overdue Balance:{" "}
-              <strong className="text-rose-600">
+              <strong className="text-rose-600 font-bold">
                 {formatMoney(rep?.overdue_amount_minor ?? 0)}
               </strong>{" "}
               ({rep?.overdue_invoices ?? 0} invoices)
@@ -242,14 +242,14 @@ export function SuperAdminReportsPage() {
 
       {/* Package Tier Performance Table */}
       <div className="card overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm bg-white dark:bg-slate-900">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Layers size={16} className="text-teal-600" />
             <h2 className="text-sm font-black text-slate-900 dark:text-slate-100">
               Subscription Tiers & Revenue Breakdown
             </h2>
           </div>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs font-semibold text-slate-500">
             {rep?.tiers?.length ?? 0} capacity tiers configured
           </span>
         </div>
@@ -257,7 +257,7 @@ export function SuperAdminReportsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[10px] font-black uppercase tracking-wider text-slate-400 text-start">
+              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 text-start">
                 <th className="py-2.5 px-4 text-start">Package Tier</th>
                 <th className="py-2.5 px-3 text-start">Billing Cycle</th>
                 <th className="py-2.5 px-3 text-center">Subscribed Nurseries</th>

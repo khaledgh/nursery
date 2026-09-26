@@ -26,7 +26,7 @@ export function DatePicker({
   onChange,
   label,
   placeholder,
-  size = "md",
+  size = "sm",
   isInvalid,
   errorMessage,
   className,
@@ -98,16 +98,16 @@ export function DatePicker({
       classNames={{
         base: "w-full",
         calendarContent:
-          "bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl rounded-2xl p-2",
-        inputWrapper: `bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 data-[focus=true]:border-primary data-[focus=true]:ring-4 data-[focus=true]:ring-primary/15 shadow-sm rounded-xl transition-all ${
-          size === "sm" ? "min-h-[36px] py-1" : "min-h-[42px] py-2"
+          "bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl rounded-xl p-2",
+        inputWrapper: `bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 data-[focus=true]:border-primary data-[focus=true]:ring-2 data-[focus=true]:ring-primary/20 shadow-sm rounded-lg transition-all ${
+          size === "sm" ? "min-h-[34px] sm:min-h-[36px] py-0.5" : "min-h-[38px] py-1.5"
         }`,
-        innerWrapper: "gap-2",
-        segment: "text-slate-800 dark:text-slate-100 text-sm font-medium",
+        innerWrapper: "gap-1.5",
+        segment: "text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-medium",
         selectorButton: "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200",
-        label: "text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 select-none",
-        timeInput: "text-sm font-medium text-slate-800 dark:text-slate-100",
-        timeInputLabel: "text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400",
+        label: "text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 select-none",
+        timeInput: "text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100",
+        timeInputLabel: "text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400",
       }}
     />
   );

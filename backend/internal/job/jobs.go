@@ -112,9 +112,10 @@ func (r *Runner) eventReminders(ctx context.Context) error {
 		return err
 	}
 	for _, ev := range events {
-		r.notifier.NotifyRole(ctx, string(model.RoleParent), "events",
+		evCtx := database.WithTenant(ctx, ev.NurseryID)
+		r.notifier.NotifyRole(evCtx, string(model.RoleParent), "events",
 			"Event tomorrow 📅", ev.Title,
-			map[string]any{"screen": "events", "event_id": ev.ID})
+			map[string]any{"screen": "events", "event_id": ev.ID, "nursery_id": ev.NurseryID})
 	}
 	return nil
 }
@@ -133,7 +134,8 @@ func (r *Runner) bringReminders(ctx context.Context) error {
 	now := time.Now()
 	for i := range reminders {
 		rem := &reminders[i]
-		r.engagement.NotifyReminder(ctx, rem)
+		remCtx := database.WithTenant(ctx, rem.NurseryID)
+		r.engagement.NotifyReminder(remCtx, rem)
 		// Marked per reminder so a failure part-way through does not re-notify
 		// the ones already sent on the next run.
 		if err := r.db.WithContext(ctx).Model(rem).Update("notified_at", now).Error; err != nil {

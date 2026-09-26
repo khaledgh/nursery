@@ -157,27 +157,27 @@ export function SuperAdminDashboardPage() {
   const totalSubscribers = subscribedTiers.reduce((acc, t) => acc + t.nursery_count, 0);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-8">
       {/* Toast Alert Banner */}
       {banner && (
         <div
-          className={`flex items-center justify-between p-3.5 rounded-2xl border text-sm font-semibold shadow-sm transition-all ${
+          className={`flex items-center justify-between p-3 rounded-xl border text-xs sm:text-sm font-semibold shadow-sm transition-all ${
             banner.type === "success"
               ? "bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-200"
               : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200"
           }`}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             {banner.type === "success" ? (
-              <CheckCircle2 size={18} className="text-teal-600 shrink-0" />
+              <CheckCircle2 size={16} className="text-teal-600 shrink-0" />
             ) : (
-              <AlertTriangle size={18} className="text-rose-600 shrink-0" />
+              <AlertTriangle size={16} className="text-rose-600 shrink-0" />
             )}
             <span>{banner.text}</span>
           </div>
           <button
             onClick={() => setBanner(null)}
-            className="text-xs opacity-60 hover:opacity-100 uppercase tracking-wider font-extrabold px-2 py-1"
+            className="text-xs opacity-60 hover:opacity-100 uppercase tracking-wider font-extrabold px-2 py-0.5"
           >
             Dismiss
           </button>
@@ -185,18 +185,18 @@ export function SuperAdminDashboardPage() {
       )}
 
       {/* Header Command Strip */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               Platform Command Center
             </h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800/60">
               <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
               Live Operations
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Childcare network operations, tenant capacity monitoring, and auto-billing management.
           </p>
         </div>
@@ -431,15 +431,15 @@ export function SuperAdminDashboardPage() {
       )}
 
       {/* Main Grid: Nurseries Fleet + Invoices (Left 65%) vs System Intelligence (Right 35%) */}
-      <div className="grid gap-6 lg:grid-cols-12">
+      <div className="grid gap-4 lg:grid-cols-12">
         {/* Left Column (8 cols = 66% width) */}
-        <div className="space-y-6 lg:col-span-8">
+        <div className="space-y-4 lg:col-span-8">
           {/* Childcare Tenants Fleet Table */}
           <div className="card border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Building2 size={16} className="text-teal-600" />
-                <h2 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Childcare Tenants Fleet
                 </h2>
                 <span className="badge text-[10px] bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
@@ -679,33 +679,33 @@ export function SuperAdminDashboardPage() {
         </div>
 
         {/* Right Column (4 cols = 34% width): Modern Intelligence & Operational Widgets */}
-        <div className="space-y-5 lg:col-span-4">
+        <div className="space-y-4 lg:col-span-4">
           {/* Widget 1: Package Adoption & Revenue Share */}
-          <div className="card p-5 sm:p-6 border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+          <div className="card p-4 border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600">
                   <Layers size={15} />
                 </div>
                 <div>
-                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                     Package Share
                   </h2>
                 </div>
               </div>
               <Link
                 to="/superadmin/plans"
-                className="text-[11px] font-bold text-teal-600 hover:text-teal-700"
+                className="text-[11px] font-semibold text-teal-600 hover:text-teal-700"
               >
                 Catalog →
               </Link>
             </div>
 
             {/* Visual segmented share bar */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-slate-400">Subscribers</span>
-                <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                <span className="font-bold text-slate-800 dark:text-slate-200">
                   {totalSubscribers > 0 ? `${totalSubscribers} active` : "1 nursery active"}
                 </span>
               </div>
@@ -715,16 +715,16 @@ export function SuperAdminDashboardPage() {
             </div>
 
             {/* Tier Items */}
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2 pt-0.5">
               {subscribedTiers.length > 0 ? (
                 subscribedTiers.map((tier) => (
                   <div
                     key={tier.plan_code}
-                    className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between"
+                    className="p-2.5 rounded-lg bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between"
                   >
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                           {tier.plan_name}
                         </span>
                         <span
@@ -743,7 +743,7 @@ export function SuperAdminDashboardPage() {
                     </div>
 
                     <div className="text-end">
-                      <span className="text-xs font-black text-teal-600 dark:text-teal-400 block">
+                      <span className="text-xs font-bold text-teal-600 dark:text-teal-400 block">
                         {formatMoneyCompact(tier.revenue_minor)}
                       </span>
                       <span className="text-[9px] text-slate-400">per cycle</span>
@@ -751,9 +751,9 @@ export function SuperAdminDashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-black text-slate-800 dark:text-slate-200 block">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                       Growth (51–80)
                     </span>
                     <span className="text-[10px] text-slate-400">1 nursery on Growth plan</span>
@@ -767,13 +767,13 @@ export function SuperAdminDashboardPage() {
           </div>
 
           {/* Widget 2: Renewal Radar */}
-          <div className="card p-5 sm:p-6 border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3.5">
+          <div className="card p-4 border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600">
                   <Clock size={15} />
                 </div>
-                <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                   Renewal Radar
                 </h2>
               </div>
@@ -783,12 +783,12 @@ export function SuperAdminDashboardPage() {
             </div>
 
             {upcomingRenewal ? (
-              <div className="p-3.5 rounded-xl bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-2">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+                  <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
                     {upcomingRenewal.name}
                   </span>
-                  <span className="text-xs font-black text-teal-600">
+                  <span className="text-xs font-bold text-teal-600">
                     {upcomingRenewal.price_minor
                       ? formatMoney(upcomingRenewal.price_minor, upcomingRenewal.currency)
                       : "$80.00"}
@@ -799,24 +799,24 @@ export function SuperAdminDashboardPage() {
                     <Calendar size={12} className="text-teal-600" />
                     <span>Next Due Date:</span>
                   </span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
                     {formatDate(upcomingRenewal.next_payment_date)}
                   </span>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-slate-400 py-2">No upcoming renewal dates scheduled.</p>
+              <p className="text-xs text-slate-400 py-1.5">No upcoming renewal dates scheduled.</p>
             )}
           </div>
 
           {/* Widget 3: Platform Operations & System Health */}
-          <div className="card p-5 sm:p-6 border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+          <div className="card p-4 border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600">
                   <Server size={15} />
                 </div>
-                <h2 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                   System Health
                 </h2>
               </div>

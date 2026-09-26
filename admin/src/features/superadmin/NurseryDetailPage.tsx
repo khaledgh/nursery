@@ -76,6 +76,7 @@ export function NurseryDetailPage() {
 
   const [banner, setBanner] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [editingPlan, setEditingPlan] = useState(false);
+  const [editingConfig, setEditingConfig] = useState(false);
 
   // Filters for tabs
   const [childSearch, setChildSearch] = useState("");
@@ -361,7 +362,7 @@ export function NurseryDetailPage() {
             <button
               onClick={() => impersonate.mutate()}
               disabled={impersonate.isPending}
-              className="btn bg-[#2CAFA8] hover:bg-[#259b95] text-white text-xs py-2 px-3.5 shadow-xs font-bold flex items-center gap-2"
+              className="btn bg-[#2CAFA8] hover:bg-[#259b95] text-white text-xs py-2 px-3.5 shadow-sm font-bold flex items-center gap-2"
               title="Sign in as Administrator of this nursery"
             >
               {impersonate.isPending ? (
@@ -881,16 +882,42 @@ export function NurseryDetailPage() {
 
             {/* Nursery Technical Details */}
             <div className="card p-5 sm:p-6 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm space-y-4">
-              <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Building2 size={16} className="text-[#2CAFA8]" />
-                <span>Facility Technical Configuration</span>
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Building2 size={16} className="text-[#2CAFA8]" />
+                  <span>Facility Technical Configuration</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setEditingConfig(true)}
+                  className="btn btn-secondary text-xs py-1 px-2.5 flex items-center gap-1.5"
+                  title="Configure login range, prefix, and facility settings"
+                >
+                  <Sliders size={12} />
+                  <span>Edit Config</span>
+                </button>
+              </div>
 
               <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-500">Tenant Slug</span>
                   <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
                     {n.slug}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500">Mobile Login Range</span>
+                  <span className="font-mono font-bold text-teal-600 dark:text-teal-400">
+                    {n.login_range_start && n.login_range_end ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span>{n.login_range_start} – {n.login_range_end}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          ({n.login_range_end - n.login_range_start + 1} logins)
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-amber-500 font-normal">Not configured (uses prefix fallback)</span>
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
@@ -1432,6 +1459,20 @@ export function NurseryDetailPage() {
           }}
         />
       )}
+      {/* Edit Facility Technical Configuration Modal */}
+      {editingConfig && (
+        <EditFacilityConfigModal
+          nursery={n}
+          open={editingConfig}
+          onClose={() => setEditingConfig(false)}
+          onDone={() => {
+            setEditingConfig(false);
+            setBanner({ text: "Facility technical configuration updated successfully.", type: "success" });
+            void qc.invalidateQueries({ queryKey: ["superadmin-nursery-details", nurseryId] });
+            void qc.invalidateQueries({ queryKey: ["superadmin-nurseries"] });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1520,6 +1561,170 @@ function AssignPlanModal({
           >
             {update.isPending && <RefreshCw size={13} className="animate-spin" />}
             <span>Save Subscription</span>
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditFacilityConfigModal({
+  nursery,
+  open,
+  onClose,
+  onDone,
+}: {
+  nursery: any;
+  open: boolean;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: nursery?.name || "",
+    login_id_prefix: nursery?.login_id_prefix || "",
+    login_range_start: nursery?.login_range_start != null ? String(nursery.login_range_start) : "",
+    login_range_end: nursery?.login_range_end != null ? String(nursery.login_range_end) : "",
+    timezone: nursery?.timezone || "UTC",
+    locale: nursery?.locale || "en",
+  });
+  const [err, setErr] = useState("");
+
+  const update = useMutation({
+    mutationFn: async () => {
+      const payload: any = {
+        name: form.name.trim(),
+        login_id_prefix: form.login_id_prefix.trim().toUpperCase(),
+        timezone: form.timezone.trim(),
+        locale: form.locale.trim(),
+      };
+      if (form.login_range_start.trim()) {
+        payload.login_range_start = parseInt(form.login_range_start, 10);
+      } else {
+        payload.login_range_start = null;
+      }
+      if (form.login_range_end.trim()) {
+        payload.login_range_end = parseInt(form.login_range_end, 10);
+      } else {
+        payload.login_range_end = null;
+      }
+
+      await api.put(`/superadmin/nurseries/${nursery.id}`, payload);
+    },
+    onSuccess: () => {
+      setErr("");
+      onDone();
+    },
+    onError: (e) => setErr(errorMessage(e)),
+  });
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Edit Technical Config: ${nursery?.name}`}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          update.mutate();
+        }}
+        className="space-y-4 text-xs"
+      >
+        {err && (
+          <div className="p-3 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl">
+            {err}
+          </div>
+        )}
+
+        <FormField label="Facility Name">
+          <input
+            type="text"
+            required
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="input text-xs"
+          />
+        </FormField>
+
+        {/* Dedicated Login Range Box */}
+        <div className="p-3.5 bg-teal-500/5 dark:bg-teal-500/10 rounded-2xl border border-teal-500/20 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-teal-800 dark:text-teal-300 text-xs">
+              Dedicated Numeric Login Range
+            </span>
+            <span className="text-[10px] text-teal-600 dark:text-teal-400 font-medium">
+              Conflict-free numeric IDs
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            Specify a dedicated range of integers (e.g. 1000 to 1999). Each new user in this nursery receives a unique number within this range. Other nurseries cannot claim or overlap with this range.
+          </p>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <FormField label="Range Start">
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 1000"
+                value={form.login_range_start}
+                onChange={(e) => setForm({ ...form, login_range_start: e.target.value })}
+                className="input font-mono text-xs"
+              />
+            </FormField>
+            <FormField label="Range End">
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 1999"
+                value={form.login_range_end}
+                onChange={(e) => setForm({ ...form, login_range_end: e.target.value })}
+                className="input font-mono text-xs"
+              />
+            </FormField>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Login ID Prefix (Optional Fallback)">
+            <input
+              type="text"
+              placeholder="e.g. SUNNY"
+              value={form.login_id_prefix}
+              onChange={(e) => setForm({ ...form, login_id_prefix: e.target.value.toUpperCase() })}
+              className="input font-mono text-xs uppercase"
+            />
+          </FormField>
+
+          <FormField label="Timezone">
+            <input
+              type="text"
+              placeholder="UTC or Asia/Riyadh"
+              value={form.timezone}
+              onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+              className="input text-xs"
+            />
+          </FormField>
+        </div>
+
+        <FormField label="Default Locale">
+          <select
+            value={form.locale}
+            onChange={(e) => setForm({ ...form, locale: e.target.value })}
+            className="input text-xs"
+          >
+            <option value="en">English (en)</option>
+            <option value="ar">Arabic (ar)</option>
+            <option value="fr">French (fr)</option>
+            <option value="es">Spanish (es)</option>
+          </select>
+        </FormField>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn btn-secondary text-xs">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={update.isPending}
+            className="btn bg-[#2CAFA8] hover:bg-[#259b95] text-white text-xs flex items-center gap-1.5"
+          >
+            {update.isPending && <RefreshCw size={13} className="animate-spin" />}
+            <span>Save Configuration</span>
           </button>
         </div>
       </form>

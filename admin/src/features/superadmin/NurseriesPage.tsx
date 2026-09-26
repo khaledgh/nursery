@@ -14,8 +14,9 @@ import {
   ShieldCheck,
   Sliders,
   Users,
+  Pencil,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FormField } from "../../components/FormField";
 import { Modal } from "../../components/Modal";
@@ -44,6 +45,7 @@ export function NurseriesPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<NurseryOverview | null>(null);
+  const [editingConfig, setEditingConfig] = useState<NurseryOverview | null>(null);
   const [banner, setBanner] = useState("");
   const [search, setSearch] = useState("");
   const [periodFilter, setPeriodFilter] = useState<"all" | "monthly" | "yearly">("all");
@@ -226,7 +228,7 @@ export function NurseriesPage() {
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 card p-3 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 card p-3 border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm">
         <div className="relative w-full sm:w-72">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -246,7 +248,7 @@ export function NurseriesPage() {
               onClick={() => setPeriodFilter(p)}
               className={`text-xs font-bold px-3 py-1 rounded-xl transition-all capitalize ${
                 periodFilter === p
-                  ? "bg-teal-500 text-white shadow-xs"
+                  ? "bg-teal-500 text-white shadow-sm"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
               }`}
             >
@@ -263,6 +265,7 @@ export function NurseriesPage() {
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[10px] font-black uppercase tracking-wider text-slate-400 text-start">
                 <th className="py-3 px-4 text-start">Nursery & Tenant</th>
+                <th className="py-3 px-3 text-start">Login Range</th>
                 <th className="py-3 px-3 text-start">Primary Admin</th>
                 <th className="py-3 px-3 text-start">Package & Fee</th>
                 <th className="py-3 px-3 text-start">Student Capacity</th>
@@ -274,7 +277,7 @@ export function NurseriesPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw size={14} className="animate-spin text-teal-600" />
                       <span>Loading childcare centers…</span>
@@ -310,14 +313,49 @@ export function NurseriesPage() {
                           <span>{n.name}</span>
                           <ArrowUpRight size={12} className="text-slate-400 group-hover:text-teal-600 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                         </Link>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                           <span className="font-mono text-xs text-slate-400">/{n.slug}</span>
-                          {n.login_id_prefix && (
+                          {n.login_id_prefix && !n.login_range_start && (
                             <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                               Prefix: {n.login_id_prefix.toUpperCase()}
                             </span>
                           )}
                         </div>
+                      </td>
+
+                      {/* Login Range Column */}
+                      <td className="py-3 px-3">
+                        {n.login_range_start && n.login_range_end ? (
+                          <button
+                            type="button"
+                            onClick={() => setEditingConfig(n)}
+                            className="text-start group block"
+                            title="Click to edit login range"
+                          >
+                            <span className="font-mono font-bold text-teal-700 dark:text-teal-300 text-xs px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800/80 inline-flex items-center gap-1.5 group-hover:border-teal-400 group-hover:bg-teal-100/70 transition-all">
+                              <span>{n.login_range_start} – {n.login_range_end}</span>
+                              <Pencil size={10} className="text-teal-600 opacity-60 group-hover:opacity-100" />
+                            </span>
+                            <span className="block text-[10px] text-slate-500 font-medium mt-0.5">
+                              {n.login_range_end - n.login_range_start + 1} logins
+                            </span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setEditingConfig(n)}
+                            className="text-start group block"
+                            title="Click to configure login range"
+                          >
+                            <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold inline-flex items-center gap-1 hover:underline">
+                              <span>{n.login_id_prefix ? `Prefix: ${n.login_id_prefix.toUpperCase()}` : "Not set"}</span>
+                              <Pencil size={10} className="text-amber-500 opacity-70 group-hover:opacity-100" />
+                            </span>
+                            <span className="block text-[10px] text-slate-400 font-normal">
+                              Click to set range
+                            </span>
+                          </button>
+                        )}
                       </td>
 
                       <td className="py-3 px-3">
@@ -410,9 +448,19 @@ export function NurseriesPage() {
                             <span>Details</span>
                           </Link>
                           <button
+                            onClick={() => setEditingConfig(n)}
+                            className="rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:border-teal-400 hover:text-teal-600 transition-colors flex items-center gap-1"
+                            type="button"
+                            title="Edit nursery name, login range, prefix, and settings"
+                          >
+                            <Pencil size={11} />
+                            <span>Edit</span>
+                          </button>
+                          <button
                             onClick={() => setEditing(n)}
                             className="rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:border-teal-400 hover:text-teal-600 transition-colors flex items-center gap-1"
                             type="button"
+                            title="Edit subscription plan & student capacity"
                           >
                             <Sliders size={11} />
                             <span>Plan</span>
@@ -474,6 +522,15 @@ export function NurseriesPage() {
           refresh();
         }}
       />
+      <EditNurseryModal
+        nursery={editingConfig}
+        onClose={() => setEditingConfig(null)}
+        onDone={() => {
+          setEditingConfig(null);
+          setBanner("Nursery configuration updated successfully.");
+          refresh();
+        }}
+      />
     </div>
   );
 }
@@ -529,6 +586,8 @@ function CreateNurseryModal({
     name: "",
     slug: "",
     login_id_prefix: "",
+    login_range_start: "",
+    login_range_end: "",
     plan_code: "tier-50",
     admin_name: "",
     admin_email: "",
@@ -537,7 +596,20 @@ function CreateNurseryModal({
   const [err, setErr] = useState("");
 
   const create = useMutation({
-    mutationFn: async () => api.post("/superadmin/nurseries", form),
+    mutationFn: async () => {
+      const payload: any = { ...form };
+      if (form.login_range_start) {
+        payload.login_range_start = parseInt(form.login_range_start, 10);
+      } else {
+        delete payload.login_range_start;
+      }
+      if (form.login_range_end) {
+        payload.login_range_end = parseInt(form.login_range_end, 10);
+      } else {
+        delete payload.login_range_end;
+      }
+      return api.post("/superadmin/nurseries", payload);
+    },
     onSuccess: () => {
       setErr("");
       onDone();
@@ -583,11 +655,45 @@ function CreateNurseryModal({
           </FormField>
         </div>
 
+        {/* Nursery Exclusive Mobile Login Range */}
+        <div className="rounded-xl border border-teal-200/80 dark:border-teal-900/60 bg-teal-50/40 dark:bg-teal-950/20 p-3 space-y-2">
+          <div>
+            <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Exclusive Mobile Login ID Range (Numeric)
+            </label>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Assigns pure numbers (e.g. 1001, 1002) to parents and staff. System prevents overlap with any other nursery.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField label="Range Start">
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 1000"
+                value={form.login_range_start}
+                onChange={(e) => setForm({ ...form, login_range_start: e.target.value })}
+                className="input font-mono text-xs"
+              />
+            </FormField>
+            <FormField label="Range End">
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 1999"
+                value={form.login_range_end}
+                onChange={(e) => setForm({ ...form, login_range_end: e.target.value })}
+                className="input font-mono text-xs"
+              />
+            </FormField>
+          </div>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Login ID Prefix (Optional)">
+          <FormField label="Login ID Prefix (Optional Fallback)">
             <input
               type="text"
-              placeholder="e.g. SUNNY (Default auto-generated)"
+              placeholder="e.g. SUNNY"
               value={form.login_id_prefix}
               onChange={(e) => setForm({ ...form, login_id_prefix: e.target.value.toUpperCase() })}
               className="input font-mono text-xs uppercase"
@@ -755,6 +861,185 @@ function AssignPlanModal({
           >
             {update.isPending && <RefreshCw size={13} className="animate-spin" />}
             <span>Save Subscription</span>
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditNurseryModal({
+  nursery,
+  onClose,
+  onDone,
+}: {
+  nursery: NurseryOverview | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: nursery?.name || "",
+    login_id_prefix: nursery?.login_id_prefix || "",
+    login_range_start: nursery?.login_range_start != null ? String(nursery.login_range_start) : "",
+    login_range_end: nursery?.login_range_end != null ? String(nursery.login_range_end) : "",
+    timezone: nursery?.timezone || "UTC",
+    locale: nursery?.locale || "en",
+  });
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (nursery) {
+      setForm({
+        name: nursery.name || "",
+        login_id_prefix: nursery.login_id_prefix || "",
+        login_range_start: nursery.login_range_start != null ? String(nursery.login_range_start) : "",
+        login_range_end: nursery.login_range_end != null ? String(nursery.login_range_end) : "",
+        timezone: nursery.timezone || "UTC",
+        locale: nursery.locale || "en",
+      });
+      setErr("");
+    }
+  }, [nursery]);
+
+  const update = useMutation({
+    mutationFn: async () => {
+      if (!nursery) return;
+      const payload: any = {
+        name: form.name.trim(),
+        login_id_prefix: form.login_id_prefix.trim().toUpperCase(),
+        timezone: form.timezone.trim(),
+        locale: form.locale.trim(),
+      };
+      if (form.login_range_start.trim()) {
+        payload.login_range_start = parseInt(form.login_range_start, 10);
+      } else {
+        payload.login_range_start = null;
+      }
+      if (form.login_range_end.trim()) {
+        payload.login_range_end = parseInt(form.login_range_end, 10);
+      } else {
+        payload.login_range_end = null;
+      }
+
+      await api.put(`/superadmin/nurseries/${nursery.id}`, payload);
+    },
+    onSuccess: () => {
+      setErr("");
+      onDone();
+    },
+    onError: (e) => setErr(errorMessage(e)),
+  });
+
+  if (!nursery) return null;
+
+  return (
+    <Modal open={Boolean(nursery)} onClose={onClose} title={`Edit Nursery: ${nursery.name}`}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          update.mutate();
+        }}
+        className="space-y-4 text-xs"
+      >
+        {err && (
+          <div className="p-3 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl">
+            {err}
+          </div>
+        )}
+
+        <FormField label="Facility Name">
+          <input
+            type="text"
+            required
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="input text-xs"
+          />
+        </FormField>
+
+        {/* Dedicated Login Range Box */}
+        <div className="p-3.5 bg-teal-500/5 dark:bg-teal-500/10 rounded-2xl border border-teal-500/20 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-teal-800 dark:text-teal-300 text-xs">
+              Dedicated Numeric Login Range
+            </span>
+            <span className="text-[10px] text-teal-600 dark:text-teal-400 font-medium">
+              Conflict-free numeric IDs
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            Specify a dedicated range of integers (e.g. 1000 to 1999). Each new user in this nursery receives a unique number within this range. Other nurseries cannot claim or overlap with this range.
+          </p>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <FormField label="Range Start">
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 1000"
+                value={form.login_range_start}
+                onChange={(e) => setForm({ ...form, login_range_start: e.target.value })}
+                className="input font-mono text-xs"
+              />
+            </FormField>
+            <FormField label="Range End">
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 1999"
+                value={form.login_range_end}
+                onChange={(e) => setForm({ ...form, login_range_end: e.target.value })}
+                className="input font-mono text-xs"
+              />
+            </FormField>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Login ID Prefix (Optional Fallback)">
+            <input
+              type="text"
+              placeholder="e.g. SUNNY"
+              value={form.login_id_prefix}
+              onChange={(e) => setForm({ ...form, login_id_prefix: e.target.value.toUpperCase() })}
+              className="input font-mono text-xs uppercase"
+            />
+          </FormField>
+
+          <FormField label="Timezone">
+            <input
+              type="text"
+              placeholder="UTC or Asia/Riyadh"
+              value={form.timezone}
+              onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+              className="input text-xs"
+            />
+          </FormField>
+        </div>
+
+        <FormField label="Default Locale">
+          <select
+            value={form.locale}
+            onChange={(e) => setForm({ ...form, locale: e.target.value })}
+            className="input text-xs"
+          >
+            <option value="en">English (en)</option>
+            <option value="ar">Arabic (ar)</option>
+            <option value="fr">French (fr)</option>
+            <option value="es">Spanish (es)</option>
+          </select>
+        </FormField>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn btn-secondary text-xs">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={update.isPending}
+            className="btn btn-primary text-xs flex items-center gap-1.5"
+          >
+            {update.isPending && <RefreshCw size={13} className="animate-spin" />}
+            <span>Save Nursery</span>
           </button>
         </div>
       </form>

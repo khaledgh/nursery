@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -450,13 +451,19 @@ func (s *SuperAdminService) CreateNursery(ctx context.Context, req *dto.CreateNu
 		loginIDPrefix = slug
 	}
 
+	if err := s.validateLoginRange(ctx, 0, req.LoginRangeStart, req.LoginRangeEnd); err != nil {
+		return nil, err
+	}
+
 	nursery := &model.Nursery{
-		Name:          req.Name,
-		Slug:          slug,
-		LoginIDPrefix: loginIDPrefix,
-		Locale:        orDefault(req.Locale, "en"),
-		Timezone:      orDefault(req.Timezone, "Europe/Stockholm"),
-		Status:        model.NurseryActive,
+		Name:            req.Name,
+		Slug:            slug,
+		LoginIDPrefix:   loginIDPrefix,
+		LoginRangeStart: req.LoginRangeStart,
+		LoginRangeEnd:   req.LoginRangeEnd,
+		Locale:          orDefault(req.Locale, "en"),
+		Timezone:        orDefault(req.Timezone, "Europe/Stockholm"),
+		Status:          model.NurseryActive,
 	}
 
 	err = s.db.WithContext(c).Transaction(func(tx *gorm.DB) error {
@@ -507,6 +514,46 @@ func (s *SuperAdminService) CreateNursery(ctx context.Context, req *dto.CreateNu
 	return nursery, nil
 }
 
+func (s *SuperAdminService) validateLoginRange(ctx context.Context, nurseryID uint64, start, end *uint64) error {
+	if start == nil && end == nil {
+		return nil
+	}
+	if (start == nil && end != nil) || (start != nil && end == nil) {
+		return apperr.BadRequest("both login_range_start and login_range_end must be provided together")
+	}
+	if *start == 0 {
+		return apperr.BadRequest("login_range_start must be at least 1")
+	}
+	if *start > *end {
+		return apperr.BadRequest("login_range_start cannot be greater than login_range_end")
+	}
+
+	// Two ranges [A, B] and [C, D] overlap if and only if A <= D and C <= B
+	var conflicting model.Nursery
+	query := s.db.WithContext(s.ctx(ctx)).Model(&model.Nursery{}).
+		Where("login_range_start IS NOT NULL AND login_range_end IS NOT NULL").
+		Where("login_range_start <= ? AND login_range_end >= ?", *end, *start)
+	if nurseryID != 0 {
+		query = query.Where("id <> ?", nurseryID)
+	}
+	err := query.First(&conflicting).Error
+	if err == nil {
+		cStart := uint64(0)
+		cEnd := uint64(0)
+		if conflicting.LoginRangeStart != nil {
+			cStart = *conflicting.LoginRangeStart
+		}
+		if conflicting.LoginRangeEnd != nil {
+			cEnd = *conflicting.LoginRangeEnd
+		}
+		return apperr.Conflict(fmt.Sprintf(
+			"login range [%d - %d] conflicts with existing nursery %q (allocated range: %d - %d)",
+			*start, *end, conflicting.Name, cStart, cEnd,
+		))
+	}
+	return nil
+}
+
 func (s *SuperAdminService) UpdateNursery(ctx context.Context, id uint64, req *dto.UpdateNurseryRequest, actorID uint64, ip string) (*model.Nursery, error) {
 	n, err := s.GetNursery(ctx, id)
 	if err != nil {
@@ -514,6 +561,24 @@ func (s *SuperAdminService) UpdateNursery(ctx context.Context, id uint64, req *d
 	}
 	if req.Name != nil {
 		n.Name = *req.Name
+	}
+	if req.LoginIDPrefix != nil {
+		n.LoginIDPrefix = strings.ToLower(strings.TrimSpace(*req.LoginIDPrefix))
+	}
+	if req.LoginRangeStart != nil || req.LoginRangeEnd != nil {
+		start := req.LoginRangeStart
+		end := req.LoginRangeEnd
+		if start == nil {
+			start = n.LoginRangeStart
+		}
+		if end == nil {
+			end = n.LoginRangeEnd
+		}
+		if err := s.validateLoginRange(ctx, n.ID, start, end); err != nil {
+			return nil, err
+		}
+		n.LoginRangeStart = start
+		n.LoginRangeEnd = end
 	}
 	if req.Status != nil {
 		n.Status = model.NurseryStatus(*req.Status)
@@ -975,6 +1040,7 @@ func (s *SuperAdminService) GetReports(ctx context.Context) (*dto.PlatformReport
 func toNurseryDTO(n *model.Nursery) dto.NurseryDTO {
 	return dto.NurseryDTO{
 		ID: n.ID, Name: n.Name, Slug: n.Slug, LoginIDPrefix: n.LoginIDPrefix,
+		LoginRangeStart: n.LoginRangeStart, LoginRangeEnd: n.LoginRangeEnd,
 		Status: string(n.Status), Locale: n.Locale, Timezone: n.Timezone,
 	}
 }
@@ -984,4 +1050,99 @@ func orDefault(v, def string) string {
 		return def
 	}
 	return v
+}
+
+func (s *SuperAdminService) Search(ctx context.Context, term string) (*dto.SuperAdminSearchResults, error) {
+	term = strings.TrimSpace(term)
+	if len(term) < 2 {
+		return &dto.SuperAdminSearchResults{}, nil
+	}
+	c := s.ctx(ctx)
+	like := "%" + term + "%"
+	out := &dto.SuperAdminSearchResults{}
+
+	// 1. Nurseries: search by name, slug, login prefix, or numeric login range
+	query := s.db.WithContext(c).Model(&model.Nursery{}).
+		Where("name LIKE ? OR slug LIKE ? OR login_id_prefix LIKE ?", like, like, like)
+	if num, err := strconv.ParseUint(term, 10, 64); err == nil && num > 0 {
+		query = s.db.WithContext(c).Model(&model.Nursery{}).
+			Where("name LIKE ? OR slug LIKE ? OR login_id_prefix LIKE ? OR (login_range_start <= ? AND login_range_end >= ?)", like, like, like, num, num)
+	}
+
+	var nurseries []model.Nursery
+	if err := query.Limit(6).Find(&nurseries).Error; err == nil {
+		for _, n := range nurseries {
+			sub := "/" + n.Slug + " • Status: " + string(n.Status)
+			if n.LoginRangeStart != nil && n.LoginRangeEnd != nil {
+				sub = fmt.Sprintf("Range: %d–%d • %s", *n.LoginRangeStart, *n.LoginRangeEnd, sub)
+			} else if n.LoginIDPrefix != "" {
+				sub = "Prefix: " + strings.ToUpper(n.LoginIDPrefix) + " • " + sub
+			}
+			out.Nurseries = append(out.Nurseries, dto.SuperAdminSearchHit{
+				ID:    n.ID,
+				Label: n.Name,
+				Sub:   sub,
+				Path:  fmt.Sprintf("/superadmin/nurseries/%d", n.ID),
+			})
+		}
+	}
+
+	// 2. Subscription Plans: search by name or code
+	var plans []model.Plan
+	if err := s.db.WithContext(c).Model(&model.Plan{}).
+		Where("name LIKE ? OR code LIKE ?", like, like).
+		Limit(5).Find(&plans).Error; err == nil {
+		for _, p := range plans {
+			sub := fmt.Sprintf("Code: %s • Max Students: %d • $%d/%s", p.Code, p.MaxStudents, p.PriceMinor/100, p.BillingPeriod)
+			out.Plans = append(out.Plans, dto.SuperAdminSearchHit{
+				ID:    p.ID,
+				Label: p.Name,
+				Sub:   sub,
+				Path:  "/superadmin/plans",
+			})
+		}
+	}
+
+	// 3. Platform Invoices: search by invoice_no
+	var invoices []model.SubscriptionInvoice
+	if err := s.db.WithContext(c).Model(&model.SubscriptionInvoice{}).
+		Where("invoice_no LIKE ?", like).
+		Limit(5).Find(&invoices).Error; err == nil {
+		for _, inv := range invoices {
+			sub := fmt.Sprintf("Period: %s • Due: %s • Status: %s", inv.Period, inv.DueDate, inv.Status)
+			out.Invoices = append(out.Invoices, dto.SuperAdminSearchHit{
+				ID:    inv.NurseryID,
+				Label: inv.InvoiceNo,
+				Sub:   sub,
+				Path:  fmt.Sprintf("/superadmin/nurseries/%d", inv.NurseryID),
+			})
+		}
+	}
+
+	// 4. Quick navigation pages
+	navPages := []struct {
+		Label string
+		Sub   string
+		Path  string
+	}{
+		{"Platform Dashboard", "Executive metrics, ARR, MRR & active centers", "/superadmin/dashboard"},
+		{"Nurseries & Childcare Centers", "Tenant directory, login ranges & status", "/superadmin"},
+		{"Plans & Capacity Packages", "Subscription tiers, pricing & limits", "/superadmin/plans"},
+		{"Financial & Capacity Reports", "Audited financial health & capacity reports", "/superadmin/reports"},
+		{"Platform Reminders & Global Alerts", "Platform-wide broadcasts and cron notifications", "/superadmin/reminders"},
+		{"Platform Settings", "General settings, timezone & storage configuration", "/settings"},
+		{"Audit Logs & Security", "Platform activity trail and administrative logs", "/audit"},
+	}
+	lowerTerm := strings.ToLower(term)
+	for _, page := range navPages {
+		if strings.Contains(strings.ToLower(page.Label), lowerTerm) || strings.Contains(strings.ToLower(page.Sub), lowerTerm) {
+			out.Pages = append(out.Pages, dto.SuperAdminSearchHit{
+				Label: page.Label,
+				Sub:   page.Sub,
+				Path:  page.Path,
+			})
+		}
+	}
+
+	return out, nil
 }

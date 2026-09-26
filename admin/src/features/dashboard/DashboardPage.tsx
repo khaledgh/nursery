@@ -230,19 +230,19 @@ export function DashboardPage() {
   });
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 pb-6">
       {/* Executive Welcome & Action Ribbon */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-primary uppercase tracking-wider">Nursery Operations</span>
+            <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Nursery Operations</span>
             <span className="h-1 w-1 rounded-full bg-slate-400" />
-            <span className="text-xs font-semibold text-slate-500">{formattedToday}</span>
+            <span className="text-xs font-medium text-slate-500">{formattedToday}</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-1">
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
             {greeting}, {user?.name?.split(" ")[0] ?? "Director"}! 👋
           </h1>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5">
             {checkedIn} of {totalChildren} children currently checked in · All systems operational
           </p>
         </div>
@@ -256,7 +256,7 @@ export function DashboardPage() {
             color="primary"
             variant="solid"
             startContent={<ClipboardCheck size={14} />}
-            className="font-bold text-xs shadow-sm shadow-primary/25"
+            className="h-8 font-semibold text-xs shadow-sm shadow-primary/25"
           >
             Attendance
           </Button>
@@ -267,7 +267,7 @@ export function DashboardPage() {
             size="sm"
             variant="flat"
             startContent={<UserPlus size={14} />}
-            className="font-bold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+            className="h-8 font-semibold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
           >
             Enrol Child
           </Button>
@@ -278,7 +278,7 @@ export function DashboardPage() {
             size="sm"
             variant="flat"
             startContent={<CreditCard size={14} />}
-            className="font-bold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+            className="h-8 font-semibold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
           >
             New Invoice
           </Button>
@@ -289,7 +289,7 @@ export function DashboardPage() {
             size="sm"
             variant="flat"
             startContent={<Calendar size={14} />}
-            className="font-bold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+            className="h-8 font-semibold text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
           >
             Schedule
           </Button>
@@ -297,24 +297,24 @@ export function DashboardPage() {
       </div>
 
       {/* 5-Card Operational & Financial Executive KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {/* Attendance Today */}
-        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-          <CardBody className="p-4 flex flex-col justify-between">
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+          <CardBody className="p-3 sm:p-3.5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Today's Presence
               </span>
-              <div className="h-7 w-7 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 size={15} />
+              <div className="h-6 w-6 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 size={13} />
               </div>
             </div>
-            <div className="mt-2">
+            <div className="mt-1.5">
               <div className="flex items-baseline justify-between">
-                <span className="text-xl font-black text-slate-900 dark:text-slate-100">
+                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {attendanceRate}%
                 </span>
-                <span className="text-xs font-bold text-slate-500">
+                <span className="text-[11px] font-semibold text-slate-500">
                   {checkedIn}/{totalChildren}
                 </span>
               </div>
@@ -322,10 +322,10 @@ export function DashboardPage() {
                 value={attendanceRate}
                 color={attendanceRate > 80 ? "success" : "warning"}
                 size="sm"
-                className="mt-2"
+                className="mt-1.5"
               />
-              <div className="mt-1 flex items-center justify-between text-[10px] font-semibold text-slate-400">
-                <span className="text-rose-500">{absent} absent</span>
+              <div className="mt-1 flex items-center justify-between text-[10px] font-medium text-slate-400">
+                <span className="text-rose-500 font-semibold">{absent} absent</span>
                 <span>{checkedOut} checked out</span>
               </div>
             </div>
@@ -333,52 +333,52 @@ export function DashboardPage() {
         </Card>
 
         {/* Month-to-Date Revenue */}
-        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-          <CardBody className="p-4 flex flex-col justify-between">
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+          <CardBody className="p-3 sm:p-3.5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 MTD Collections ({currency})
               </span>
-              <div className="h-7 w-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <TrendingUp size={15} />
+              <div className="h-6 w-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <TrendingUp size={13} />
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block truncate">
+            <div className="mt-1.5">
+              <span className="text-lg font-bold text-slate-900 dark:text-slate-100 block truncate">
                 {formatMoneyCompact(mtdCollected)}
               </span>
               <div className="mt-1 flex items-center gap-1.5">
-                <Chip size="sm" variant="flat" color="primary" className="h-4 text-[9px] font-extrabold px-1">
+                <Chip size="sm" variant="flat" color="primary" className="h-4 text-[9px] font-bold px-1">
                   {mtdBilled > 0 ? `${Math.round((mtdCollected / mtdBilled) * 100)}%` : "100%"} of billed
                 </Chip>
-                <span className="text-[10px] text-slate-400 font-medium">this month</span>
+                <span className="text-[10px] text-slate-400 font-normal">this month</span>
               </div>
             </div>
           </CardBody>
         </Card>
 
         {/* Outstanding Receivables */}
-        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-          <CardBody className="p-4 flex flex-col justify-between">
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+          <CardBody className="p-3 sm:p-3.5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Unpaid Invoices
               </span>
-              <div className="h-7 w-7 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                <Wallet size={15} />
+              <div className="h-6 w-6 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <Wallet size={13} />
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100 block truncate">
+            <div className="mt-1.5">
+              <span className="text-lg font-bold text-slate-900 dark:text-slate-100 block truncate">
                 {formatMoneyCompact(totalOutstanding)}
               </span>
               <div className="mt-1 flex items-center gap-1.5">
                 {overdueInvoices.length > 0 ? (
-                  <Chip size="sm" variant="flat" color="danger" className="h-4 text-[9px] font-extrabold px-1">
+                  <Chip size="sm" variant="flat" color="danger" className="h-4 text-[9px] font-bold px-1">
                     {overdueInvoices.length} overdue
                   </Chip>
                 ) : (
-                  <span className="text-[10px] text-emerald-600 font-bold">All current</span>
+                  <span className="text-[10px] text-emerald-600 font-semibold">All current</span>
                 )}
                 <Link to="/invoices" className="text-[10px] text-primary hover:underline font-bold ml-auto">
                   View →
@@ -389,18 +389,18 @@ export function DashboardPage() {
         </Card>
 
         {/* Active Classrooms */}
-        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-          <CardBody className="p-4 flex flex-col justify-between">
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+          <CardBody className="p-3 sm:p-3.5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Active Classrooms
               </span>
-              <div className="h-7 w-7 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center">
-                <School size={15} />
+              <div className="h-6 w-6 rounded-lg bg-sky-500/10 text-sky-600 flex items-center justify-center">
+                <School size={13} />
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100">
+            <div className="mt-1.5">
+              <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 {classroomsList.length} rooms
               </span>
               <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400 font-medium">
@@ -414,25 +414,25 @@ export function DashboardPage() {
         </Card>
 
         {/* Subscription Seats */}
-        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-          <CardBody className="p-4 flex flex-col justify-between">
+        <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+          <CardBody className="p-3 sm:p-3.5 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Plan Seats
               </span>
-              <div className="h-7 w-7 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center">
-                <ShieldCheck size={15} />
+              <div className="h-6 w-6 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center">
+                <ShieldCheck size={13} />
               </div>
             </div>
-            <div className="mt-2">
+            <div className="mt-1.5">
               <div className="flex items-baseline justify-between">
-                <span className="text-xl font-black text-slate-900 dark:text-slate-100">
+                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {seats?.students_used ?? totalChildren}
-                  <span className="text-xs text-slate-400 font-bold">
+                  <span className="text-[11px] text-slate-400 font-semibold">
                     /{seats?.students_max ?? "—"}
                   </span>
                 </span>
-                <span className="text-[10px] font-extrabold text-purple-600 uppercase">
+                <span className="text-[10px] font-bold text-purple-600 uppercase">
                   {seats?.plan_name ?? "Standard"}
                 </span>
               </div>
@@ -444,7 +444,7 @@ export function DashboardPage() {
                 }
                 color="secondary"
                 size="sm"
-                className="mt-2"
+                className="mt-1.5"
               />
               <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400 font-medium">
                 <span>{seats?.students_remaining ?? 0} seats left</span>
@@ -458,17 +458,17 @@ export function DashboardPage() {
       </div>
 
       {/* Main 2-Column Responsive Operational Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left 2 Cols: Classroom Live Hub & Financial Trend */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           {/* Classrooms Live Status Hub */}
-          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+            <CardHeader className="flex justify-between items-center px-4 pt-3.5 pb-1.5">
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Classroom Live Operations
                 </h3>
-                <p className="text-xs font-medium text-slate-400 mt-0.5">
+                <p className="text-xs font-normal text-slate-400 mt-0.5">
                   Real-time occupancy and attendance status across rooms
                 </p>
               </div>
@@ -477,31 +477,31 @@ export function DashboardPage() {
                 to="/classrooms"
                 size="sm"
                 variant="flat"
-                className="font-bold text-xs"
+                className="h-7 text-xs font-semibold px-2.5"
               >
                 All Classrooms →
               </Button>
             </CardHeader>
 
-            <CardBody className="px-6 pb-6 pt-3">
+            <CardBody className="px-4 pb-4 pt-1.5">
               {roomStats.length === 0 ? (
-                <div className="py-8 text-center text-xs font-semibold text-slate-400">
+                <div className="py-6 text-center text-xs font-semibold text-slate-400">
                   No classrooms configured yet.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {roomStats.map((room) => (
                     <Link
                       key={room.id}
                       to={`/classrooms/${room.id}`}
-                      className="group p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:border-primary/40 transition-all flex flex-col justify-between"
+                      className="group p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:border-primary/40 transition-all flex flex-col justify-between"
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
                             {room.name}
                           </h4>
-                          <span className="text-[10px] font-semibold text-slate-400">
+                          <span className="text-[10px] font-medium text-slate-400">
                             {room.ageGroup}
                           </span>
                         </div>
@@ -509,15 +509,15 @@ export function DashboardPage() {
                           size="sm"
                           variant="flat"
                           color={room.checkedIn > 0 ? "success" : "default"}
-                          className="h-5 text-[10px] font-black"
+                          className="h-4.5 text-[9px] font-bold"
                         >
                           {room.checkedIn} Present
                         </Chip>
                       </div>
 
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs font-bold mb-1">
-                          <span className="text-slate-600 dark:text-slate-300">
+                      <div className="mt-2.5">
+                        <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                          <span className="text-slate-600 dark:text-slate-300 text-[11px]">
                             Capacity: {room.enrolled}/{room.capacity}
                           </span>
                           <span className="text-slate-400 text-[10px]">
@@ -531,11 +531,11 @@ export function DashboardPage() {
                         />
                       </div>
 
-                      <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between text-[11px] font-semibold">
-                        <span className="text-rose-500 font-bold">
+                      <div className="mt-2 pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between text-[11px] font-medium">
+                        <span className="text-rose-500 font-semibold text-[10px]">
                           {room.absent} absent
                         </span>
-                        <span className="text-primary font-bold group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
+                        <span className="text-primary font-bold group-hover:translate-x-1 transition-transform flex items-center gap-0.5 text-[10px]">
                           Open Room →
                         </span>
                       </div>
@@ -547,17 +547,17 @@ export function DashboardPage() {
           </Card>
 
           {/* Monthly Revenue & Billing Trend Chart */}
-          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+            <CardHeader className="flex justify-between items-center px-4 pt-3.5 pb-1.5">
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Billing & Collections Trend ({currency})
                 </h3>
-                <p className="text-xs font-medium text-slate-400 mt-0.5">
+                <p className="text-xs font-normal text-slate-400 mt-0.5">
                   Monthly cash flow over the last 6 months
                 </p>
               </div>
-              <div className="flex items-center gap-3 text-xs font-bold">
+              <div className="flex items-center gap-3 text-xs font-semibold">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-primary" />
                   <span className="text-slate-500 text-[11px]">Billed</span>
@@ -569,8 +569,8 @@ export function DashboardPage() {
               </div>
             </CardHeader>
 
-            <CardBody className="px-6 pb-6 pt-2">
-              <div className="h-56">
+            <CardBody className="px-4 pb-4 pt-1">
+              <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={revenueTrendData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                     <defs>
@@ -595,7 +595,7 @@ export function DashboardPage() {
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "#fff",
-                        borderRadius: "12px",
+                        borderRadius: "10px",
                         border: "1px solid #e2e8f0",
                         fontSize: "12px",
                         fontWeight: "bold",
@@ -626,43 +626,43 @@ export function DashboardPage() {
         </div>
 
         {/* Right 1 Col: Urgent Tasks, Events & Recent Activity */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Actionable Reminders / Checklist */}
-          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl flex flex-col justify-between">
-            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl flex flex-col justify-between">
+            <CardHeader className="flex justify-between items-center px-4 pt-3.5 pb-1.5">
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Tasks & Daily Alerts
                 </h3>
-                <p className="text-xs font-medium text-slate-400 mt-0.5">Nursery action checklist</p>
+                <p className="text-xs font-normal text-slate-400 mt-0.5">Nursery action checklist</p>
               </div>
-              <Link to="/reminders" className="text-xs font-bold text-primary hover:underline">
+              <Link to="/reminders" className="text-xs font-semibold text-primary hover:underline">
                 View all →
               </Link>
             </CardHeader>
 
-            <CardBody className="px-6 py-2">
-              <ul className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <CardBody className="px-4 py-2">
+              <ul className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
                 {(remindersQuery.data ?? []).slice(0, 4).map((task) => (
                   <li
                     key={task.id}
-                    className="flex items-start justify-between gap-2.5 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors group"
+                    className="flex items-start justify-between gap-2 p-2 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/70 transition-colors group"
                   >
                     <button
                       onClick={() => deleteReminder.mutate(task.id)}
                       className="text-slate-400 hover:text-primary shrink-0 mt-0.5"
                       title="Mark as completed"
                     >
-                      <Square size={15} className="group-hover:hidden" />
-                      <CheckSquare size={15} className="hidden group-hover:block text-primary" />
+                      <Square size={14} className="group-hover:hidden" />
+                      <CheckSquare size={14} className="hidden group-hover:block text-primary" />
                     </button>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                         {task.title}
                       </p>
                       {task.date && (
-                        <span className="text-[10px] font-semibold text-amber-600 block mt-0.5">
+                        <span className="text-[10px] font-medium text-amber-600 block mt-0.5">
                           Due: {task.date.slice(0, 10)}
                         </span>
                       )}
@@ -672,19 +672,19 @@ export function DashboardPage() {
                       onClick={() => deleteReminder.mutate(task.id)}
                       className="text-slate-300 hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={12} />
                     </button>
                   </li>
                 ))}
                 {(remindersQuery.data ?? []).length === 0 && (
-                  <li className="py-6 text-center text-xs font-bold text-slate-400">
+                  <li className="py-5 text-center text-xs font-medium text-slate-400">
                     All caught up! No pending alerts.
                   </li>
                 )}
               </ul>
 
               {/* Quick Add Inline */}
-              <form onSubmit={handleAddTask} className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <form onSubmit={handleAddTask} className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800">
                 <Input
                   size="sm"
                   variant="bordered"
@@ -693,7 +693,7 @@ export function DashboardPage() {
                   value={newTaskTitle}
                   onValueChange={setNewTaskTitle}
                   classNames={{
-                    inputWrapper: "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-8",
+                    inputWrapper: "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-7.5 min-h-[30px] text-xs",
                   }}
                 />
                 <Button
@@ -703,35 +703,35 @@ export function DashboardPage() {
                   color="primary"
                   radius="lg"
                   isDisabled={!newTaskTitle.trim() || addReminder.isPending}
-                  className="h-8 w-8 min-w-8 shrink-0"
+                  className="h-7.5 w-7.5 min-w-7.5 shrink-0"
                 >
-                  <Plus size={14} />
+                  <Plus size={13} />
                 </Button>
               </form>
             </CardBody>
           </Card>
 
           {/* Upcoming Events Agenda */}
-          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+            <CardHeader className="flex justify-between items-center px-4 pt-3.5 pb-1.5">
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Upcoming Agenda
                 </h3>
-                <p className="text-xs font-medium text-slate-400 mt-0.5">Events & calendar milestones</p>
+                <p className="text-xs font-normal text-slate-400 mt-0.5">Events & calendar milestones</p>
               </div>
-              <Link to="/events" className="text-xs font-bold text-primary hover:underline">
+              <Link to="/events" className="text-xs font-semibold text-primary hover:underline">
                 Calendar →
               </Link>
             </CardHeader>
 
-            <CardBody className="px-6 pb-5 pt-2">
+            <CardBody className="px-4 pb-3.5 pt-1.5">
               {(eventsQuery.data ?? []).length === 0 ? (
-                <div className="py-6 text-center text-xs font-medium text-slate-400">
+                <div className="py-5 text-center text-xs font-medium text-slate-400">
                   No upcoming events scheduled.
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {(eventsQuery.data ?? []).slice(0, 3).map((ev) => {
                     const d = new Date(ev.starts_at);
                     const monthStr = d.toLocaleDateString("en-US", { month: "short" });
@@ -739,17 +739,17 @@ export function DashboardPage() {
                     return (
                       <div
                         key={ev.id}
-                        className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40"
+                        className="flex items-center gap-2.5 p-2 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40"
                       >
-                        <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex flex-col items-center justify-center shrink-0">
+                        <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex flex-col items-center justify-center shrink-0">
                           <span className="text-[9px] font-black uppercase leading-none">{monthStr}</span>
-                          <span className="text-sm font-black leading-none mt-0.5">{dayStr}</span>
+                          <span className="text-xs font-black leading-none mt-0.5">{dayStr}</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h5 className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+                          <h5 className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
                             {ev.title}
                           </h5>
-                          <p className="text-[10px] font-semibold text-slate-400 truncate mt-0.5">
+                          <p className="text-[10px] font-normal text-slate-400 truncate mt-0.5">
                             {ev.location || "Nursery Main Hall"}
                           </p>
                         </div>
@@ -762,21 +762,21 @@ export function DashboardPage() {
           </Card>
 
           {/* Recent Live Operations Feed */}
-          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl">
-            <CardHeader className="flex justify-between items-center px-6 pt-5 pb-2">
+          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+            <CardHeader className="flex justify-between items-center px-4 pt-3.5 pb-1.5">
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Live Activity Feed
                 </h3>
-                <p className="text-xs font-medium text-slate-400 mt-0.5">Recent system actions</p>
+                <p className="text-xs font-normal text-slate-400 mt-0.5">Recent system actions</p>
               </div>
-              <Link to="/settings" className="text-xs font-bold text-primary hover:underline">
+              <Link to="/settings" className="text-xs font-semibold text-primary hover:underline">
                 Audit logs →
               </Link>
             </CardHeader>
 
-            <CardBody className="px-6 pb-5 pt-2">
-              <div className="space-y-2">
+            <CardBody className="px-4 pb-3.5 pt-1">
+              <div className="space-y-1.5">
                 {(auditQuery.data ?? []).slice(0, 4).map((log) => {
                   const dateStr = new Date(log.created_at).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -785,17 +785,17 @@ export function DashboardPage() {
                   return (
                     <div
                       key={log.id}
-                      className="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0"
+                      className="flex items-center justify-between text-xs py-1 border-b border-slate-100 dark:border-slate-800 last:border-0"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                           {log.action}
                         </span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate text-[11px]">
                           {log.entity} #{log.entity_id}
                         </span>
                       </div>
-                      <span className="text-[10px] font-semibold text-slate-400 shrink-0 ml-2">
+                      <span className="text-[10px] font-normal text-slate-400 shrink-0 ml-2">
                         {dateStr}
                       </span>
                     </div>

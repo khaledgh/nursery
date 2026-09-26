@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "61818b12-0e7c-4495-b6d8-3e6ce2851119"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.kgh.nurseeplus",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

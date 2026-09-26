@@ -198,28 +198,28 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-slate-50/70 dark:bg-slate-950">
-      {/* Redesigned HeroUI Sticky Sidebar */}
+      {/* Sleek HeroUI Sticky Sidebar */}
       <aside
         className={`sticky top-0 h-screen flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 shrink-0 z-40 overflow-hidden ${
-          collapsed ? "w-20" : "w-72"
+          collapsed ? "w-16" : "w-56 sm:w-60"
         } shadow-sm`}
       >
         {/* Brand Header */}
         <div
-          className={`shrink-0 flex items-center gap-3 py-4 px-4 border-b border-slate-100 dark:border-slate-800 transition-all ${
+          className={`shrink-0 h-12 sm:h-13 flex items-center border-b border-slate-100 dark:border-slate-800 transition-all px-3 ${
             collapsed ? "justify-center" : "justify-between"
           }`}
         >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200/60 dark:border-slate-700/60 p-1">
-              <img src="/logo.png" alt="Nursee+" className="h-full w-full object-contain" />
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="relative flex h-8 w-8 min-w-[32px] min-h-[32px] max-w-[32px] max-h-[32px] shrink-0 items-center justify-center rounded-xl bg-white dark:bg-slate-800 shadow-xs border border-slate-200/80 dark:border-slate-700 p-0.5 overflow-hidden">
+              <img src="/logo.png" alt="Nursee+" className="h-full w-full object-contain block max-h-full max-w-full" />
             </div>
             {!collapsed && (
               <div className="min-w-0 truncate">
-                <span className="block text-base font-black text-slate-900 dark:text-slate-100 truncate leading-snug">
+                <span className="block text-sm font-black text-slate-900 dark:text-slate-100 truncate leading-tight tracking-tight">
                   {t("app.name")}
                 </span>
-                <span className="inline-block text-[10px] font-extrabold uppercase tracking-widest text-brand-600 dark:text-brand-400">
+                <span className="inline-block text-[9.5px] font-extrabold uppercase tracking-wider text-teal-600 dark:text-teal-400">
                   {isSuperAdmin ? "Platform Console" : "Admin Portal"}
                 </span>
               </div>
@@ -231,10 +231,10 @@ export function Layout() {
               isIconOnly
               size="sm"
               variant="light"
-              radius="lg"
+              radius="md"
               onPress={() => setCollapsed(true)}
               aria-label="Collapse sidebar"
-              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              className="h-7 w-7 min-w-7 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             >
               <Menu size={16} />
             </Button>
@@ -242,11 +242,11 @@ export function Layout() {
         </div>
 
         {/* Navigation list - smooth internal scroll */}
-        <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-6 px-3 py-4">
+        <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-3 px-2.5 py-2.5">
           {visible.map((section) => (
-            <div key={section.label} className="space-y-1">
+            <div key={section.label} className="space-y-0.5">
               {!collapsed && (
-                <p className="px-3 pb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <p className="px-3 pb-1 pt-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   {section.label}
                 </p>
               )}
@@ -256,16 +256,16 @@ export function Layout() {
                     to={to}
                     end={end}
                     className={({ isActive }) =>
-                      `flex items-center rounded-2xl transition-all duration-200 ${
-                        collapsed ? "justify-center p-3" : "gap-3.5 px-3.5 py-2.5"
+                      `flex items-center rounded-xl transition-all duration-150 ${
+                        collapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2"
                       } ${
                         isActive
-                          ? "bg-brand-600 text-white shadow-lg shadow-brand-500/25 font-bold"
-                          : "text-slate-600 dark:text-slate-400 hover:bg-brand-50/70 dark:hover:bg-slate-800/80 hover:text-brand-700 dark:hover:text-brand-300 font-semibold"
-                      } text-sm`
+                          ? "bg-[#2CAFA8] text-white shadow-sm font-bold"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-950 dark:hover:text-white font-semibold"
+                      } text-xs sm:text-[13px]`
                     }
                   >
-                    <Icon size={19} className="shrink-0" />
+                    <Icon size={17} className="shrink-0" />
                     {!collapsed && <span className="truncate">{t(key)}</span>}
                   </NavLink>
                 );
@@ -287,22 +287,22 @@ export function Layout() {
         </nav>
 
         {/* Sidebar Footer: User Card & Sign Out */}
-        <div className="shrink-0 p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60">
+        <div className="shrink-0 p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60">
           {!collapsed ? (
-            <div className="flex items-center justify-between gap-3 p-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 shadow-sm">
-              <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-xs">
+              <div className="flex items-center gap-2 min-w-0">
                 <Avatar
                   size="sm"
                   name={userInitials}
                   classNames={{
-                    base: "bg-brand-600 text-white font-bold text-xs shrink-0 shadow-sm",
+                    base: "w-7 h-7 bg-[#2CAFA8] text-white font-bold text-[10px] shrink-0 shadow-xs",
                   }}
                 />
                 <div className="min-w-0">
-                  <div className="font-extrabold text-slate-800 dark:text-slate-200 text-xs truncate">
+                  <div className="font-bold text-slate-900 dark:text-slate-100 text-xs truncate leading-tight">
                     {user?.name}
                   </div>
-                  <Chip size="sm" color="primary" variant="flat" className="h-4 text-[9px] font-bold px-1 uppercase">
+                  <Chip size="sm" color="primary" variant="flat" className="h-3.5 text-[8px] font-black px-1 uppercase leading-none mt-0.5">
                     {user?.role}
                   </Chip>
                 </div>
@@ -314,12 +314,12 @@ export function Layout() {
                   size="sm"
                   variant="light"
                   color="danger"
-                  radius="lg"
+                  radius="md"
                   onPress={signOut}
                   aria-label={t("nav.logout")}
-                  className="text-danger hover:bg-danger/10"
+                  className="h-7 w-7 min-w-7 text-danger hover:bg-danger/10"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={14} />
                 </Button>
               </Tooltip>
             </div>
@@ -327,15 +327,15 @@ export function Layout() {
             <Tooltip content={t("nav.logout")} placement="right">
               <Button
                 isIconOnly
-                size="md"
+                size="sm"
                 variant="light"
                 color="danger"
-                radius="lg"
+                radius="md"
                 onPress={signOut}
                 aria-label={t("nav.logout")}
-                className="w-full text-danger hover:bg-danger/10"
+                className="w-full h-9 text-danger hover:bg-danger/10"
               >
-                <LogOut size={18} />
+                <LogOut size={16} />
               </Button>
             </Tooltip>
           )}
@@ -343,34 +343,34 @@ export function Layout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-x-hidden">
+      <div className="flex flex-1 flex-col overflow-x-hidden min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-8 py-3.5 shadow-sm">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 h-12 sm:h-13 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 sm:px-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {collapsed && (
               <Button
                 isIconOnly
                 variant="light"
-                radius="lg"
+                radius="md"
                 size="sm"
                 onPress={() => setCollapsed(false)}
                 aria-label="Expand sidebar"
-                className="text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                className="h-8 w-8 min-w-8 text-slate-500 hover:text-slate-800 dark:text-slate-400"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </Button>
             )}
             <GlobalSearch />
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-5">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Locale Switcher */}
-            <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/60 dark:border-slate-700">
+            <div className="flex items-center rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/60 dark:border-slate-700">
               {LOCALES.map(({ code, label }) => (
                 <button
                   key={code}
                   onClick={() => switchLocale(code)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                  className={`rounded-md px-2 py-0.5 text-[11px] font-bold transition-all ${
                     locale === code
                       ? "bg-brand-600 text-white shadow-sm"
                       : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
@@ -382,16 +382,16 @@ export function Layout() {
             </div>
 
             {/* Notification Popover Dropdown */}
-            <Popover placement="bottom-end" showArrow offset={10}>
+            <Popover placement="bottom-end" showArrow offset={8}>
               <PopoverTrigger>
                 <button
                   type="button"
-                  className="relative flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors focus:outline-none"
+                  className="relative flex items-center justify-center h-7 w-7 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors focus:outline-none"
                   aria-label="Notifications"
                 >
-                  <Bell size={20} />
+                  <Bell size={16} />
                   {unread > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
+                    <span className="absolute -top-0.5 -right-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-rose-500 px-1 text-[8.5px] font-black text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
                       {unread > 9 ? "9+" : unread}
                     </span>
                   )}
@@ -483,29 +483,29 @@ export function Layout() {
               </PopoverContent>
             </Popover>
 
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+            <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
 
             {/* User Profile Dropdown */}
             <Dropdown
               placement="bottom-end"
               classNames={{
-                content: "p-2 min-w-[240px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xl rounded-2xl",
+                content: "p-2 min-w-[220px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl rounded-xl",
               }}
             >
               <DropdownTrigger>
-                <button className="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-800 focus:outline-none">
+                <button className="flex items-center gap-2 rounded-lg px-1.5 py-0.5 transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-800 focus:outline-none">
                   <Avatar
                     size="sm"
                     name={userInitials}
                     classNames={{
-                      base: "bg-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/25",
+                      base: "w-6.5 h-6.5 bg-brand-600 text-white font-bold text-[10px] shadow-sm",
                     }}
                   />
                   <div className="text-start hidden sm:block">
                     <div className="font-bold text-slate-800 dark:text-slate-200 text-xs leading-tight">
                       {user?.name}
                     </div>
-                    <div className="text-[10px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-wider mt-0.5">
+                    <div className="text-[9px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-wider leading-none mt-0.5">
                       {user?.role}
                     </div>
                   </div>
@@ -555,7 +555,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-3 sm:p-3.5 lg:p-4 w-full max-w-[1600px] mx-auto min-w-0">
           <BillingBanner />
           <Outlet />
         </main>

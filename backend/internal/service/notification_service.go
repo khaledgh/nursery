@@ -30,12 +30,16 @@ func NewNotificationService(db *gorm.DB, onesignal *notification.OneSignalClient
 const sendTimeout = 15 * time.Second
 
 func (s *NotificationService) NotifyGuardians(ctx context.Context, childID uint64, category, title, body string, data map[string]any) {
+	nurseryID, _ := database.TenantFrom(ctx)
 	go s.deliver(ctx, func(ctx context.Context) ([]uint64, error) {
 		var ids []uint64
-		err := s.db.WithContext(ctx).Model(&model.Guardian{}).
+		q := s.db.WithContext(ctx).Model(&model.Guardian{}).
 			Joins("JOIN users ON users.id = guardians.parent_user_id AND users.status = 'active'").
-			Where("guardians.child_id = ?", childID).
-			Distinct().Pluck("guardians.parent_user_id", &ids).Error
+			Where("guardians.child_id = ?", childID)
+		if nurseryID != 0 {
+			q = q.Where("users.nursery_id = ?", nurseryID)
+		}
+		err := q.Distinct().Pluck("guardians.parent_user_id", &ids).Error
 		return ids, err
 	}, category, title, body, data)
 }
@@ -44,13 +48,17 @@ func (s *NotificationService) NotifyGuardians(ctx context.Context, childID uint6
 // per-child loop it replaces sent one HTTP request per child and notified a
 // parent once for each of their children in the room.
 func (s *NotificationService) NotifyClassroomGuardians(ctx context.Context, classroomID uint64, category, title, body string, data map[string]any) {
+	nurseryID, _ := database.TenantFrom(ctx)
 	go s.deliver(ctx, func(ctx context.Context) ([]uint64, error) {
 		var ids []uint64
-		err := s.db.WithContext(ctx).Model(&model.Guardian{}).
+		q := s.db.WithContext(ctx).Model(&model.Guardian{}).
 			Joins("JOIN children ON children.id = guardians.child_id").
 			Joins("JOIN users ON users.id = guardians.parent_user_id AND users.status = 'active'").
-			Where("children.classroom_id = ?", classroomID).
-			Distinct().Pluck("guardians.parent_user_id", &ids).Error
+			Where("children.classroom_id = ?", classroomID)
+		if nurseryID != 0 {
+			q = q.Where("users.nursery_id = ?", nurseryID)
+		}
+		err := q.Distinct().Pluck("guardians.parent_user_id", &ids).Error
 		return ids, err
 	}, category, title, body, data)
 }
@@ -62,9 +70,28 @@ func (s *NotificationService) NotifyUser(ctx context.Context, userID uint64, cat
 }
 
 func (s *NotificationService) NotifyRole(ctx context.Context, role string, category, title, body string, data map[string]any) {
+	nurseryID, _ := database.TenantFrom(ctx)
+	if nurseryID == 0 && data != nil {
+		if nidRaw, ok := data["nursery_id"]; ok {
+			if nid, ok := nidRaw.(uint64); ok && nid != 0 {
+				nurseryID = nid
+				ctx = database.WithTenant(ctx, nid)
+			}
+		}
+	}
+
 	go s.deliver(ctx, func(ctx context.Context) ([]uint64, error) {
 		var ids []uint64
 		q := s.db.WithContext(ctx).Model(&model.User{}).Where("status = 'active'")
+		if nurseryID != 0 {
+			q = q.Where("nursery_id = ?", nurseryID)
+		} else {
+			// CRITICAL SAFETY GUARD: If there is no nursery scope at all, do NOT broadcast
+			// across all nurseries. Refuse to leak notifications cross-tenant.
+			s.log.Warn().Str("category", category).Str("title", title).
+				Msg("NotifyRole called without a nursery scope; dropping broadcast to prevent cross-tenant notification leak")
+			return nil, nil
+		}
 		if role != "" {
 			q = q.Where("role = ?", role)
 		}
@@ -103,11 +130,35 @@ func (s *NotificationService) deliver(caller context.Context, recipients func(co
 		return
 	}
 
+	nurseryID, _ := database.TenantFrom(ctx)
 	now := time.Now()
 	dataJSON, _ := json.Marshal(data)
+
+	// Build map of userID -> NurseryID to guarantee exact tenant stamping
+	userNurseryMap := make(map[uint64]uint64, len(userIDs))
+	if nurseryID != 0 {
+		for _, uid := range userIDs {
+			userNurseryMap[uid] = nurseryID
+		}
+	} else {
+		type userNursery struct {
+			ID        uint64
+			NurseryID uint64
+		}
+		var unList []userNursery
+		_ = s.db.WithContext(database.WithCrossTenant(ctx)).
+			Model(&model.User{}).Where("id IN ?", userIDs).
+			Select("id, nursery_id").Find(&unList).Error
+		for _, un := range unList {
+			userNurseryMap[un.ID] = un.NurseryID
+		}
+	}
+
 	rows := make([]model.Notification, 0, len(userIDs))
 	for _, uid := range userIDs {
+		targetNurseryID := userNurseryMap[uid]
 		rows = append(rows, model.Notification{
+			TenantBase: model.TenantBase{NurseryID: targetNurseryID},
 			UserID: uid, Category: category, Title: title, Body: body,
 			DataJSON: dataJSON, SentAt: &now,
 		})

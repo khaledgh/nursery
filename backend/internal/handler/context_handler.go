@@ -68,6 +68,8 @@ func (h *ContextHandler) MeContext(c echo.Context) error {
 		out.Nursery = dto.NurseryDTO{
 			ID: nursery.ID, Name: nursery.Name, Slug: nursery.Slug,
 			LoginIDPrefix: nursery.LoginIDPrefix,
+			LoginRangeStart: nursery.LoginRangeStart,
+			LoginRangeEnd: nursery.LoginRangeEnd,
 			Status: string(nursery.Status), Locale: nursery.Locale, Timezone: nursery.Timezone,
 		}
 	}

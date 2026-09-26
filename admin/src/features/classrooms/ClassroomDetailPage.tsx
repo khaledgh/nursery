@@ -497,7 +497,7 @@ function RosterAttendanceTab({
                       className="rounded h-4 w-4 mt-1 accent-primary cursor-pointer"
                     />
 
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-100 to-brand-200 dark:from-brand-900/50 dark:to-brand-800/40 text-sm font-black text-brand-800 dark:text-brand-200 shadow-xs border border-brand-300/40">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-100 to-brand-200 dark:from-brand-900/50 dark:to-brand-800/40 text-sm font-black text-brand-800 dark:text-brand-200 shadow-sm border border-brand-300/40">
                       {child.first_name[0]}
                       {child.last_name[0]}
                     </div>

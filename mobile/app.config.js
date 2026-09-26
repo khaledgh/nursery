@@ -14,10 +14,11 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.nurseeplus",
-      buildNumber: "2",
+      buildNumber: "3",
       infoPlist: {
         // Lets a push wake the app to fetch before the notification is shown.
         UIBackgroundModes: ["remote-notification"],
+        ITSAppUsesNonExemptEncryption: false,
       },
       entitlements: {
         // Switched to "production" by the plugin's production mode at build time.
@@ -26,7 +27,7 @@ module.exports = {
     },
     android: {
       package: "com.nurseeplus",
-      versionCode: 2,
+      versionCode: 3,
       adaptiveIcon: {
         // White to match the logo artwork, which is drawn for a white ground.
         backgroundColor: "#ffffff",
@@ -100,8 +101,8 @@ module.exports = {
       ],
     ],
     extra: {
-      apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "",
-      oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID ?? "",
+      apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "https://nurseeplus.gonext.tech/api",
+      oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID ?? "f04b30a6-6386-41a4-9a50-05f846e2574b",
       eas: {
         projectId: "61818b12-0e7c-4495-b6d8-3e6ce2851119",
       },

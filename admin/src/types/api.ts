@@ -95,6 +95,8 @@ export interface Nursery {
   name: string;
   slug: string;
   login_id_prefix?: string;
+  login_range_start?: number;
+  login_range_end?: number;
   status: "active" | "suspended" | "cancelled";
   locale: string;
   timezone: string;
@@ -602,6 +604,20 @@ export interface SearchResults {
   staff?: SearchHit[];
   classrooms?: SearchHit[];
   invoices?: SearchHit[];
+}
+
+export interface SuperAdminSearchHit {
+  id: number;
+  label: string;
+  sub: string;
+  path?: string;
+}
+
+export interface SuperAdminSearchResults {
+  nurseries?: SuperAdminSearchHit[];
+  plans?: SuperAdminSearchHit[];
+  invoices?: SuperAdminSearchHit[];
+  pages?: SuperAdminSearchHit[];
 }
 
 export interface CommunityBannedUser {

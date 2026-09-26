@@ -49,6 +49,15 @@ func (h *SuperAdminHandler) Register(protected *echo.Group) {
 
 	g.GET("/reminders", h.Reminders)
 	g.GET("/reports", h.Reports)
+	g.GET("/search", h.Search)
+}
+
+func (h *SuperAdminHandler) Search(c echo.Context) error {
+	results, err := h.super.Search(c.Request().Context(), c.QueryParam("q"))
+	if err != nil {
+		return err
+	}
+	return response.OK(c, results)
 }
 
 func (h *SuperAdminHandler) Stats(c echo.Context) error {

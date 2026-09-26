@@ -27,24 +27,28 @@ type MeContext struct {
 }
 
 type NurseryDTO struct {
-	ID            uint64 `json:"id"`
-	Name          string `json:"name"`
-	Slug          string `json:"slug"`
-	LoginIDPrefix string `json:"login_id_prefix,omitempty"`
-	Status        string `json:"status"`
-	Locale        string `json:"locale"`
-	Timezone      string `json:"timezone"`
+	ID              uint64  `json:"id"`
+	Name            string  `json:"name"`
+	Slug            string  `json:"slug"`
+	LoginIDPrefix   string  `json:"login_id_prefix,omitempty"`
+	LoginRangeStart *uint64 `json:"login_range_start,omitempty"`
+	LoginRangeEnd   *uint64 `json:"login_range_end,omitempty"`
+	Status          string  `json:"status"`
+	Locale          string  `json:"locale"`
+	Timezone        string  `json:"timezone"`
 }
 
 // --- superadmin console ---
 
 type CreateNurseryRequest struct {
-	Name          string `json:"name" validate:"required,min=2,max=191"`
-	Slug          string `json:"slug" validate:"required,min=2,max=64,alphanum|containsany=-"`
-	LoginIDPrefix string `json:"login_id_prefix" validate:"omitempty,max=32"`
-	Locale        string `json:"locale" validate:"omitempty,max=10"`
-	Timezone      string `json:"timezone" validate:"omitempty,max=64"`
-	PlanCode      string `json:"plan_code" validate:"omitempty,max=32"`
+	Name            string  `json:"name" validate:"required,min=2,max=191"`
+	Slug            string  `json:"slug" validate:"required,min=2,max=64,alphanum|containsany=-"`
+	LoginIDPrefix   string  `json:"login_id_prefix" validate:"omitempty,max=32"`
+	LoginRangeStart *uint64 `json:"login_range_start" validate:"omitempty,min=1"`
+	LoginRangeEnd   *uint64 `json:"login_range_end" validate:"omitempty,min=1"`
+	Locale          string  `json:"locale" validate:"omitempty,max=10"`
+	Timezone        string  `json:"timezone" validate:"omitempty,max=64"`
+	PlanCode        string  `json:"plan_code" validate:"omitempty,max=32"`
 
 	// The nursery's first admin, created in the same transaction so a new
 	// tenant is never left without a way in.
@@ -54,10 +58,13 @@ type CreateNurseryRequest struct {
 }
 
 type UpdateNurseryRequest struct {
-	Name     *string `json:"name" validate:"omitempty,min=2,max=191"`
-	Status   *string `json:"status" validate:"omitempty,oneof=active suspended cancelled"`
-	Locale   *string `json:"locale" validate:"omitempty,max=10"`
-	Timezone *string `json:"timezone" validate:"omitempty,max=64"`
+	Name            *string `json:"name" validate:"omitempty,min=2,max=191"`
+	LoginIDPrefix   *string `json:"login_id_prefix" validate:"omitempty,max=32"`
+	LoginRangeStart *uint64 `json:"login_range_start" validate:"omitempty,min=1"`
+	LoginRangeEnd   *uint64 `json:"login_range_end" validate:"omitempty,min=1"`
+	Status          *string `json:"status" validate:"omitempty,oneof=active suspended cancelled"`
+	Locale          *string `json:"locale" validate:"omitempty,max=10"`
+	Timezone        *string `json:"timezone" validate:"omitempty,max=64"`
 }
 
 type AssignSubscriptionRequest struct {
@@ -177,6 +184,20 @@ type SearchResults struct {
 	Staff      []SearchHit `json:"staff"`
 	Classrooms []SearchHit `json:"classrooms"`
 	Invoices   []SearchHit `json:"invoices"`
+}
+
+type SuperAdminSearchHit struct {
+	ID    uint64 `json:"id"`
+	Label string `json:"label"`
+	Sub   string `json:"sub"`
+	Path  string `json:"path,omitempty"`
+}
+
+type SuperAdminSearchResults struct {
+	Nurseries []SuperAdminSearchHit `json:"nurseries"`
+	Plans     []SuperAdminSearchHit `json:"plans"`
+	Invoices  []SuperAdminSearchHit `json:"invoices"`
+	Pages     []SuperAdminSearchHit `json:"pages"`
 }
 
 // --- Nursery Detail Hub DTOs ---

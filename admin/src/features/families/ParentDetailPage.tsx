@@ -322,7 +322,7 @@ export function ParentDetailPage() {
                   Mobile App Login ID
                 </span>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-lg bg-white dark:bg-slate-900 px-3 py-1.5 font-mono text-sm font-bold text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-xs">
+                  <code className="flex-1 rounded-lg bg-white dark:bg-slate-900 px-3 py-1.5 font-mono text-sm font-bold text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-sm">
                     {parent.login_id}
                   </code>
                   <button

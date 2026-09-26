@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -22,12 +23,27 @@ func NewNotificationCenterService(db *gorm.DB) *NotificationCenterService {
 	return &NotificationCenterService{db: db}
 }
 
+func (s *NotificationCenterService) userNurseryID(ctx context.Context, userID uint64) uint64 {
+	if tid, ok := database.TenantFrom(ctx); ok && tid != 0 {
+		return tid
+	}
+	var u model.User
+	if err := s.db.WithContext(database.WithCrossTenant(ctx)).
+		Select("id, nursery_id").First(&u, userID).Error; err == nil {
+		return u.NurseryID
+	}
+	return 0
+}
+
 func (s *NotificationCenterService) List(ctx context.Context, userID uint64, category string, q dto.PageQuery) ([]model.Notification, int64, error) {
 	var (
 		items []model.Notification
 		total int64
 	)
 	tx := s.db.WithContext(ctx).Model(&model.Notification{}).Where("user_id = ?", userID)
+	if nid := s.userNurseryID(ctx, userID); nid != 0 {
+		tx = tx.Where("nursery_id = ?", nid)
+	}
 	if category != "" {
 		tx = tx.Where("category = ?", category)
 	}
@@ -42,9 +58,12 @@ func (s *NotificationCenterService) List(ctx context.Context, userID uint64, cat
 
 func (s *NotificationCenterService) UnreadCount(ctx context.Context, userID uint64) (int64, error) {
 	var n int64
-	err := s.db.WithContext(ctx).Model(&model.Notification{}).
-		Where("user_id = ? AND read_at IS NULL", userID).Count(&n).Error
-	if err != nil {
+	tx := s.db.WithContext(ctx).Model(&model.Notification{}).
+		Where("user_id = ? AND read_at IS NULL", userID)
+	if nid := s.userNurseryID(ctx, userID); nid != 0 {
+		tx = tx.Where("nursery_id = ?", nid)
+	}
+	if err := tx.Count(&n).Error; err != nil {
 		return 0, apperr.Internal(err)
 	}
 	return n, nil
@@ -52,9 +71,12 @@ func (s *NotificationCenterService) UnreadCount(ctx context.Context, userID uint
 
 func (s *NotificationCenterService) MarkAllRead(ctx context.Context, userID uint64) error {
 	now := time.Now()
-	err := s.db.WithContext(ctx).Model(&model.Notification{}).
-		Where("user_id = ? AND read_at IS NULL", userID).Update("read_at", now).Error
-	if err != nil {
+	tx := s.db.WithContext(ctx).Model(&model.Notification{}).
+		Where("user_id = ? AND read_at IS NULL", userID)
+	if nid := s.userNurseryID(ctx, userID); nid != 0 {
+		tx = tx.Where("nursery_id = ?", nid)
+	}
+	if err := tx.Update("read_at", now).Error; err != nil {
 		return apperr.Internal(err)
 	}
 	return nil
@@ -62,8 +84,12 @@ func (s *NotificationCenterService) MarkAllRead(ctx context.Context, userID uint
 
 func (s *NotificationCenterService) MarkRead(ctx context.Context, userID, id uint64) error {
 	now := time.Now()
-	res := s.db.WithContext(ctx).Model(&model.Notification{}).
-		Where("id = ? AND user_id = ?", id, userID).Update("read_at", now)
+	tx := s.db.WithContext(ctx).Model(&model.Notification{}).
+		Where("id = ? AND user_id = ?", id, userID)
+	if nid := s.userNurseryID(ctx, userID); nid != 0 {
+		tx = tx.Where("nursery_id = ?", nid)
+	}
+	res := tx.Update("read_at", now)
 	if res.Error != nil {
 		return apperr.Internal(res.Error)
 	}

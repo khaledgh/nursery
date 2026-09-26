@@ -10,7 +10,13 @@ import type { ItemResponse, Media } from "./types";
 // extra.apiUrl (production builds) always wins.
 function resolveBaseURL(): string {
   const configured = Constants.expoConfig?.extra?.apiUrl as string | undefined;
-  if (configured) return configured;
+  if (configured) {
+    let url = configured.replace(/\/+$/, "");
+    if (url.endsWith("/api")) {
+      url = `${url}/v1`;
+    }
+    return url;
+  }
   const devHost = Constants.expoConfig?.hostUri?.split(":")[0];
   if (devHost) return `http://${devHost}:8080/api/v1`;
   return "http://localhost:8080/api/v1";

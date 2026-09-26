@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -168,8 +169,12 @@ func (s *EngagementService) CreateEvent(ctx context.Context, req *dto.CreateEven
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, actorID, "create", "event", ev.ID, map[string]any{"title": ev.Title}, ip)
-	s.notifier.NotifyRole(ctx, string(model.RoleParent), "events", "New event 📅", ev.Title,
-		map[string]any{"screen": "events", "event_id": ev.ID})
+	evCtx := ctx
+	if ev.NurseryID != 0 {
+		evCtx = database.WithTenant(ctx, ev.NurseryID)
+	}
+	s.notifier.NotifyRole(evCtx, string(model.RoleParent), "events", "New event 📅", ev.Title,
+		map[string]any{"screen": "events", "event_id": ev.ID, "nursery_id": ev.NurseryID})
 	return ev, nil
 }
 
@@ -186,9 +191,13 @@ func (s *EngagementService) UpdateEventStatus(ctx context.Context, id uint64, st
 	// Cancellation is the one status change parents must not miss; "completed"
 	// is bookkeeping and would only add noise.
 	if status == "cancelled" {
-		s.notifier.NotifyRole(ctx, string(model.RoleParent), model.CategoryEvents,
+		evCtx := ctx
+		if ev.NurseryID != 0 {
+			evCtx = database.WithTenant(ctx, ev.NurseryID)
+		}
+		s.notifier.NotifyRole(evCtx, string(model.RoleParent), model.CategoryEvents,
 			"Event cancelled", ev.Title,
-			map[string]any{"screen": "events", "event_id": ev.ID})
+			map[string]any{"screen": "events", "event_id": ev.ID, "nursery_id": ev.NurseryID})
 	}
 	return ev, nil
 }
@@ -433,9 +442,13 @@ func (s *EngagementService) Publish(ctx context.Context, id, actorID uint64, ip 
 // announceToParents targets parents only. Addressing every active user meant
 // admins and teachers were pushed the announcements they had just written.
 func (s *EngagementService) announceToParents(ctx context.Context, ann *model.Announcement) {
-	s.notifier.NotifyRole(ctx, string(model.RoleParent),
+	annCtx := ctx
+	if ann.NurseryID != 0 {
+		annCtx = database.WithTenant(ctx, ann.NurseryID)
+	}
+	s.notifier.NotifyRole(annCtx, string(model.RoleParent),
 		model.NotificationCategory(ann.Category), ann.Title, truncate(ann.Body, 120),
-		map[string]any{"screen": "announcements", "announcement_id": ann.ID})
+		map[string]any{"screen": "announcements", "announcement_id": ann.ID, "nursery_id": ann.NurseryID})
 }
 
 // ---------- community ----------
@@ -931,19 +944,23 @@ func (s *EngagementService) CreateReminder(ctx context.Context, req *dto.CreateR
 // NotifyReminder fans a reminder out to its scope. Shared with the cron so the
 // two paths cannot drift apart.
 func (s *EngagementService) NotifyReminder(ctx context.Context, r *model.Reminder) {
-	data := map[string]any{"screen": "reminders", "reminder_id": r.ID, "url": "/reminders"}
+	remCtx := ctx
+	if r.NurseryID != 0 {
+		remCtx = database.WithTenant(ctx, r.NurseryID)
+	}
+	data := map[string]any{"screen": "reminders", "reminder_id": r.ID, "url": "/reminders", "nursery_id": r.NurseryID}
 	switch r.Scope {
 	case "global":
-		s.notifier.NotifyRole(ctx, string(model.RoleParent), model.CategoryReminders,
+		s.notifier.NotifyRole(remCtx, string(model.RoleParent), model.CategoryReminders,
 			r.Title, r.Description, data)
 	case "child":
 		if r.ScopeID != nil {
-			s.notifier.NotifyGuardians(ctx, *r.ScopeID, model.CategoryReminders,
+			s.notifier.NotifyGuardians(remCtx, *r.ScopeID, model.CategoryReminders,
 				r.Title, r.Description, data)
 		}
 	case "classroom":
 		if r.ScopeID != nil {
-			s.notifier.NotifyClassroomGuardians(ctx, *r.ScopeID, model.CategoryReminders,
+			s.notifier.NotifyClassroomGuardians(remCtx, *r.ScopeID, model.CategoryReminders,
 				r.Title, r.Description, data)
 		}
 	}

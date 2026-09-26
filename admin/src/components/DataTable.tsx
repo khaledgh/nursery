@@ -106,9 +106,9 @@ export function DataTable<T>({
       onSortChange={(desc) => onSortChange?.(desc as any)}
       classNames={{
         base: "max-w-full overflow-hidden",
-        wrapper: "border border-slate-200/70 dark:border-slate-800 bg-white/95 dark:bg-slate-900/90 rounded-2xl shadow-sm p-4",
-        th: "bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 uppercase text-[11px] font-bold tracking-wider py-3.5",
-        td: "py-3.5 text-slate-600 dark:text-slate-300 text-sm border-b border-slate-100 dark:border-slate-800/60",
+        wrapper: "border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-sm p-2 sm:p-3",
+        th: "bg-slate-50/90 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 uppercase text-[11px] font-bold tracking-wider py-2.5 px-3",
+        td: "py-2 px-3 text-slate-600 dark:text-slate-300 text-xs sm:text-sm border-b border-slate-100 dark:border-slate-800/60",
       }}
     >
       <TableHeader>

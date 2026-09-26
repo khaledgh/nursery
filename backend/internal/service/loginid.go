@@ -20,15 +20,59 @@ import (
 // guard in case a slug change makes two nurseries collide.
 func GenerateLoginID(ctx context.Context, db *gorm.DB, nurseryID, userID uint64) (string, error) {
 	var n struct {
-		Slug          string
-		LoginIDPrefix string
+		Slug            string
+		LoginIDPrefix   string
+		LoginRangeStart *uint64
+		LoginRangeEnd   *uint64
 	}
 	err := db.WithContext(database.WithCrossTenant(ctx)).
-		Model(&model.Nursery{}).Select("slug, login_id_prefix").
+		Model(&model.Nursery{}).Select("slug, login_id_prefix, login_range_start, login_range_end").
 		Where("id = ?", nurseryID).Scan(&n).Error
 	if err != nil {
 		return "", err
 	}
+
+	// If numeric range is configured for this nursery, allocate a pure numeric login ID
+	if n.LoginRangeStart != nil && n.LoginRangeEnd != nil && *n.LoginRangeStart > 0 && *n.LoginRangeStart <= *n.LoginRangeEnd {
+		start := *n.LoginRangeStart
+		end := *n.LoginRangeEnd
+
+		var existingIDs []string
+		if err := db.WithContext(database.WithCrossTenant(ctx)).
+			Model(&model.User{}).Unscoped().
+			Where("nursery_id = ? AND login_id IS NOT NULL", nurseryID).
+			Pluck("login_id", &existingIDs).Error; err != nil {
+			return "", err
+		}
+
+		usedMap := make(map[uint64]bool, len(existingIDs))
+		for _, raw := range existingIDs {
+			var num uint64
+			if _, err := fmt.Sscanf(raw, "%d", &num); err == nil {
+				usedMap[num] = true
+			}
+		}
+
+		for candidateNum := start; candidateNum <= end; candidateNum++ {
+			if usedMap[candidateNum] {
+				continue
+			}
+			candidateStr := fmt.Sprintf("%d", candidateNum)
+			var count int64
+			if err := db.WithContext(database.WithCrossTenant(ctx)).
+				Model(&model.User{}).Unscoped().
+				Where("login_id = ?", candidateStr).Count(&count).Error; err != nil {
+				return "", err
+			}
+			if count == 0 {
+				return candidateStr, nil
+			}
+			usedMap[candidateNum] = true
+		}
+
+		return "", fmt.Errorf("nursery login range [%d - %d] is exhausted; please increase range in SuperAdmin", start, end)
+	}
+
 	prefix := strings.TrimSpace(n.LoginIDPrefix)
 	if prefix == "" {
 		prefix = strings.TrimSpace(n.Slug)

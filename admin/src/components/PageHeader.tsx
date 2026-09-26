@@ -24,19 +24,19 @@ interface Props {
  */
 export function PageHeader({ title, subtitle, actions, breadcrumbs, backTo }: Props) {
   return (
-    <header className="mb-6 space-y-2">
+    <header className="mb-3 sm:mb-4 space-y-0.5">
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <Breadcrumbs size="sm" variant="light" color="primary">
+        <Breadcrumbs size="sm" variant="light" color="primary" className="mb-0.5">
           {breadcrumbs.map((c, i) => (
-            <BreadcrumbItem key={`${c.label}-${i}`} href={c.to}>
+            <BreadcrumbItem key={`${c.label}-${i}`} href={c.to} className="text-xs font-semibold text-slate-600 dark:text-slate-400">
               {c.label}
             </BreadcrumbItem>
           ))}
         </Breadcrumbs>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
           {backTo && (
             <Button
               as={Link}
@@ -46,24 +46,24 @@ export function PageHeader({ title, subtitle, actions, breadcrumbs, backTo }: Pr
               variant="flat"
               radius="lg"
               aria-label="Back"
-              className="text-slate-500 hover:text-slate-900 dark:text-slate-300"
+              className="h-8 w-8 min-w-8 text-slate-600 hover:text-slate-900 dark:text-slate-300"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </Button>
           )}
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight truncate">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-1 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
+              <p className="mt-0.5 text-xs sm:text-[13px] text-slate-600 dark:text-slate-300 font-medium">
                 {subtitle}
               </p>
             )}
           </div>
         </div>
 
-        {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
     </header>
   );
