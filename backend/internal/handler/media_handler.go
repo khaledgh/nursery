@@ -42,7 +42,15 @@ func (h *MediaHandler) Upload(c echo.Context) error {
 	if err != nil {
 		return apperr.BadRequest("multipart field 'file' is required")
 	}
-	media, err := h.media.Upload(c.Request().Context(), mw.UserID(c), fh)
+	folder := c.FormValue("folder")
+	if folder == "" {
+		folder = c.QueryParam("folder")
+	}
+	entityID := c.FormValue("entity_id")
+	if entityID == "" {
+		entityID = c.QueryParam("entity_id")
+	}
+	media, err := h.media.Upload(c.Request().Context(), mw.UserID(c), fh, folder, entityID)
 	if err != nil {
 		return err
 	}
@@ -56,7 +64,15 @@ func (h *MediaHandler) PresignUpload(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	media, uploadURL, err := h.media.PresignUpload(c.Request().Context(), mw.UserID(c), req.Mime, req.Size)
+	folder := req.Folder
+	if folder == "" {
+		folder = c.QueryParam("folder")
+	}
+	entityID := req.EntityID
+	if entityID == "" {
+		entityID = c.QueryParam("entity_id")
+	}
+	media, uploadURL, err := h.media.PresignUpload(c.Request().Context(), mw.UserID(c), req.Mime, req.Size, folder, entityID)
 	if err != nil {
 		return err
 	}

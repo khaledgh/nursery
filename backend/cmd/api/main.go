@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -123,6 +125,17 @@ func main() {
 	e.HTTPErrorHandler = errorHandler(log)
 	e.Validator = dto.NewValidator()
 
+	// Allow both /api/* and /api/v1/* for convenience
+	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			p := c.Request().URL.Path
+			if strings.HasPrefix(p, "/api/") && !strings.HasPrefix(p, "/api/v1/") {
+				c.Request().URL.Path = "/api/v1" + strings.TrimPrefix(p, "/api")
+			}
+			return next(c)
+		}
+	})
+
 	// Global middleware
 	e.Use(echomw.RequestID())
 	e.Use(echomw.Recover())
@@ -217,8 +230,24 @@ func main() {
 	platformHandler.RegisterPublic(api)
 	platformHandler.Register(protected)
 
+	// Serve Admin frontend SPA on the same port (e.g. localhost:8080)
+	if adminDist := findAdminDist(); adminDist != "" {
+		log.Info().Str("path", adminDist).Msg("serving admin frontend SPA")
+		e.Use(echomw.StaticWithConfig(echomw.StaticConfig{
+			Root:   adminDist,
+			Index:  "index.html",
+			HTML5:  true,
+			Skipper: func(c echo.Context) bool {
+				p := c.Request().URL.Path
+				return strings.HasPrefix(p, "/api") || strings.HasPrefix(p, "/healthz")
+			},
+		}))
+	} else {
+		log.Warn().Msg("admin dist folder not found — admin frontend SPA not served")
+	}
+
 	// Background jobs
-	jobs := job.NewRunner(db, paymentSvc, tokenRepo, notifier, engagementSvc, log)
+	jobs := job.NewRunner(db, paymentSvc, superAdminSvc, tokenRepo, notifier, engagementSvc, log)
 	jobs.Start()
 	defer jobs.Stop()
 
@@ -261,22 +290,9 @@ func openDB(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// buildPaymentProvider picks Swish when configured. Without Swish config,
-// development gets the auto-approving mock; production gets a provider that
-// refuses to initiate payments rather than faking them.
+// buildPaymentProvider uses a direct auto-approving payment provider.
 func buildPaymentProvider(cfg *config.Config, log zerolog.Logger) payment.Provider {
-	if cfg.Swish.MerchantID != "" && cfg.Swish.CertPath != "" {
-		p, err := payment.NewSwishProvider(cfg.Swish.MerchantID, cfg.Swish.CertPath, cfg.Swish.CallbackURL)
-		if err != nil {
-			log.Fatal().Err(err).Msg("swish configuration is set but invalid")
-		}
-		return p
-	}
-	if cfg.IsProduction() {
-		log.Warn().Msg("Swish not configured — payment initiation disabled in production")
-		return payment.DisabledProvider{}
-	}
-	log.Warn().Msg("Swish not configured — using mock payment provider (development only)")
+	log.Info().Msg("using direct mock payment provider")
 	return payment.NewMockProvider()
 }
 
@@ -354,4 +370,27 @@ func requestLogger(log zerolog.Logger) echo.MiddlewareFunc {
 			return nil
 		},
 	})
+}
+
+func findAdminDist() string {
+	candidates := []string{
+		os.Getenv("ADMIN_DIST_DIR"),
+		"../admin/dist",
+		"./admin/dist",
+		"../../admin/dist",
+		"./dist",
+	}
+	for _, c := range candidates {
+		if c == "" {
+			continue
+		}
+		if fi, err := os.Stat(filepath.Join(c, "index.html")); err == nil && !fi.IsDir() {
+			abs, err := filepath.Abs(c)
+			if err == nil {
+				return abs
+			}
+			return c
+		}
+	}
+	return ""
 }

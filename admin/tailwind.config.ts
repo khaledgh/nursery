@@ -7,8 +7,6 @@ export default {
     "./src/**/*.{ts,tsx}",
     "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
-  // Class-based so the panel follows an explicit user choice rather than only
-  // the OS setting.
   darkMode: "class",
   theme: {
     extend: {
@@ -16,12 +14,10 @@ export default {
         sans: ["Nunito", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
-        // Semantic aliases, so a status colour is named by meaning rather than
-        // by hue at each call site. These previously lived as literal
-        // `bg-emerald-100 text-emerald-700` strings copy-pasted across pages.
+        // Semantic aliases
         success: {
-          bg: "#d1fae5",
-          fg: "#047857",
+          bg: "#ccfbf1",
+          fg: "#0f766e",
         },
         warning: {
           bg: "#fef3c7",
@@ -35,20 +31,85 @@ export default {
           bg: "#e0f2fe",
           fg: "#0369a1",
         },
-        // Green scale sampled from the Little Talent Childcare logo. Every
-        // `brand-*` utility across the admin resolves through here, so the
-        // whole panel rebrands from this one ramp.
+        // Official Nursee+ brand colors sampled from the logo:
+        // 1. Signature Turquoise Teal (#2CAFA8 - second color of the app)
         brand: {
-          50: "#f4f9ef",
-          100: "#e8f4dd",
-          200: "#d1e8bc",
-          300: "#b3d894",
-          400: "#8fc464",
-          500: "#7cb342",
-          600: "#5b9c34",
-          700: "#4a8a2a",
-          800: "#3f7222",
-          900: "#2f551a",
+          50: "#eefbf9",
+          100: "#d4f6f3",
+          200: "#aceee7",
+          300: "#73ded5",
+          400: "#3ec7be",
+          500: "#2CAFA8",
+          600: "#2CAFA8",
+          700: "#23928c",
+          800: "#1f7571",
+          900: "#1e5d5a",
+          950: "#0b2e2d",
+          DEFAULT: "#2CAFA8",
+        },
+        primary: {
+          50: "#eefbf9",
+          100: "#d4f6f3",
+          200: "#aceee7",
+          300: "#73ded5",
+          400: "#3ec7be",
+          500: "#2CAFA8",
+          600: "#2CAFA8",
+          700: "#23928c",
+          800: "#1f7571",
+          900: "#1e5d5a",
+          950: "#0b2e2d",
+          DEFAULT: "#2CAFA8",
+          foreground: "#ffffff",
+        },
+        // 2. Royal Violet / Indigo (left curve of the N)
+        violet: {
+          50: "#f5f3ff",
+          100: "#ede9fe",
+          200: "#ddd6fe",
+          300: "#c4b5fd",
+          400: "#a78bfa",
+          500: "#8b5cf6",
+          600: "#6c5ce7",
+          700: "#5b4cdb",
+          800: "#4d3ec2",
+          900: "#3d2fa3",
+          950: "#241a70",
+          DEFAULT: "#6c5ce7",
+        },
+        // 3. Vibrant Cyan / Turquoise Teal (alias)
+        teal: {
+          50: "#eefbf9",
+          100: "#d4f6f3",
+          200: "#aceee7",
+          300: "#73ded5",
+          400: "#3ec7be",
+          500: "#2CAFA8",
+          600: "#2CAFA8",
+          700: "#23928c",
+          800: "#1f7571",
+          900: "#1e5d5a",
+          950: "#0b2e2d",
+          DEFAULT: "#2CAFA8",
+        },
+        // 4. Sunny Warm Marigold (the + sign and stars)
+        marigold: {
+          50: "#fffbeb",
+          100: "#fef3c7",
+          200: "#fde68a",
+          300: "#fcd34d",
+          400: "#fbbf24",
+          500: "#f59e0b",
+          DEFAULT: "#ffb142",
+        },
+        // 5. Playful Coral Pink & Sky Blue dots
+        coral: {
+          500: "#ff5e7e",
+          DEFAULT: "#ff5e7e",
+        },
+        sky: {
+          500: "#00a8ff",
+          DEFAULT: "#00a8ff",
         },
       },
     },
@@ -59,39 +120,39 @@ export default {
         light: {
           colors: {
             primary: {
-              50: "#f0fdf4",
-              100: "#dcfce7",
-              200: "#bbf7d0",
-              300: "#86efac",
-              400: "#4ade80",
-              500: "#22c55e",
-              600: "#16a34a",
-              700: "#15803d",
-              800: "#166534",
-              900: "#14532d",
-              DEFAULT: "#16a34a",
+              50: "#eefbf9",
+              100: "#d4f6f3",
+              200: "#aceee7",
+              300: "#73ded5",
+              400: "#3ec7be",
+              500: "#2CAFA8",
+              600: "#2CAFA8",
+              700: "#23928c",
+              800: "#1f7571",
+              900: "#1e5d5a",
+              DEFAULT: "#2CAFA8",
               foreground: "#ffffff",
             },
-            focus: "#16a34a",
+            focus: "#2CAFA8",
           },
         },
         dark: {
           colors: {
             primary: {
-              50: "#f0fdf4",
-              100: "#dcfce7",
-              200: "#bbf7d0",
-              300: "#86efac",
-              400: "#4ade80",
-              500: "#22c55e",
-              600: "#16a34a",
-              700: "#15803d",
-              800: "#166534",
-              900: "#14532d",
-              DEFAULT: "#22c55e",
+              50: "#eefbf9",
+              100: "#d4f6f3",
+              200: "#aceee7",
+              300: "#73ded5",
+              400: "#3ec7be",
+              500: "#2CAFA8",
+              600: "#2CAFA8",
+              700: "#23928c",
+              800: "#1f7571",
+              900: "#1e5d5a",
+              DEFAULT: "#2CAFA8",
               foreground: "#ffffff",
             },
-            focus: "#22c55e",
+            focus: "#2CAFA8",
           },
         },
       },

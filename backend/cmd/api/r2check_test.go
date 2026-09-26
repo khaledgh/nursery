@@ -14,7 +14,7 @@ import (
 // this driver now, but an UNSIGNED bucket URL must never reach a client, since
 // that would let anyone with the link read a private child photo forever.
 func TestS3MediaRowGetsPresignedNotBareBucketURL(t *testing.T) {
-	store := storage.NewS3StorageWithPresignForTest("little-talent-media",
+	store := storage.NewS3StorageWithPresignForTest("nurseeplus-media",
 		"https://acct.r2.cloudflarestorage.com", "auto", time.Hour)
 
 	old := model.MediaURLBuilder
@@ -26,7 +26,7 @@ func TestS3MediaRowGetsPresignedNotBareBucketURL(t *testing.T) {
 		Disk:   "s3",
 		Path:   "2026/07/secret-child-photo.jpg",
 		Status: model.MediaReady,
-		URL:    "https://acct.r2.cloudflarestorage.com/little-talent-media/2026/07/secret-child-photo.jpg",
+		URL:    "https://acct.r2.cloudflarestorage.com/nurseeplus-media/2026/07/secret-child-photo.jpg",
 	}
 	if err := m.AfterFind(nil); err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ func TestS3MediaRowGetsPresignedNotBareBucketURL(t *testing.T) {
 // a URL at all — the object may not exist yet, or worse, could be whatever a
 // third party raced to PUT to the reserved key before confirmation ran.
 func TestS3MediaRowPendingGetsNoURL(t *testing.T) {
-	store := storage.NewS3StorageWithPresignForTest("little-talent-media",
+	store := storage.NewS3StorageWithPresignForTest("nurseeplus-media",
 		"https://acct.r2.cloudflarestorage.com", "auto", time.Hour)
 
 	old := model.MediaURLBuilder

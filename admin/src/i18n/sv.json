@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Little Talent Childcare"
+    "name": "Nursee+"
   },
   "nav": {
     "dashboard": "Översikt",
@@ -29,7 +29,7 @@
     "analytics": "Analys"
   },
   "auth": {
-    "title": "Logga in på Little Talent Childcare",
+    "title": "Logga in på Nursee+",
     "email": "E-post",
     "password": "Lösenord",
     "submit": "Logga in",

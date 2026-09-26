@@ -29,6 +29,7 @@ func (h *SuperAdminHandler) Register(protected *echo.Group) {
 	g.GET("/nurseries", h.ListNurseries)
 	g.POST("/nurseries", h.CreateNursery)
 	g.GET("/nurseries/:id", h.GetNursery)
+	g.GET("/nurseries/:id/details", h.GetNurseryDetails)
 	g.PUT("/nurseries/:id", h.UpdateNursery)
 	g.POST("/nurseries/:id/suspend", h.Suspend)
 	g.POST("/nurseries/:id/activate", h.Activate)
@@ -43,7 +44,11 @@ func (h *SuperAdminHandler) Register(protected *echo.Group) {
 
 	g.GET("/subscription-invoices", h.ListInvoices)
 	g.POST("/subscription-invoices/generate", h.GenerateInvoices)
+	g.POST("/subscription-invoices/auto-run", h.AutoRunBilling)
 	g.POST("/subscription-invoices/:id/mark-paid", h.MarkInvoicePaid)
+
+	g.GET("/reminders", h.Reminders)
+	g.GET("/reports", h.Reports)
 }
 
 func (h *SuperAdminHandler) Stats(c echo.Context) error {
@@ -77,6 +82,18 @@ func (h *SuperAdminHandler) GetNursery(c echo.Context) error {
 		return err
 	}
 	return response.OK(c, n)
+}
+
+func (h *SuperAdminHandler) GetNurseryDetails(c echo.Context) error {
+	id, err := paramID(c)
+	if err != nil {
+		return err
+	}
+	details, err := h.super.GetNurseryDetails(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+	return response.OK(c, details)
 }
 
 func (h *SuperAdminHandler) CreateNursery(c echo.Context) error {
@@ -246,3 +263,28 @@ func (h *SuperAdminHandler) MarkInvoicePaid(c echo.Context) error {
 	}
 	return response.NoContent(c)
 }
+
+func (h *SuperAdminHandler) AutoRunBilling(c echo.Context) error {
+	res, err := h.super.AutoRunBilling(c.Request().Context(), mw.AuditActor(c), c.RealIP())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, res)
+}
+
+func (h *SuperAdminHandler) Reminders(c echo.Context) error {
+	reminders, err := h.super.GetReminders(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, reminders)
+}
+
+func (h *SuperAdminHandler) Reports(c echo.Context) error {
+	rep, err := h.super.GetReports(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, rep)
+}
+

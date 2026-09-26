@@ -31,7 +31,7 @@
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97] shadow-sm select-none focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
   .btn-primary {
-    @apply btn bg-primary text-white shadow-md shadow-primary/25 hover:bg-primary-600 focus:ring-primary/30;
+    @apply btn bg-brand-600 text-white shadow-md shadow-brand-500/25 hover:bg-brand-700 focus:ring-brand-500/30;
   }
   .btn-secondary {
     @apply btn bg-slate-100/90 text-slate-700 hover:bg-slate-200/90 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border border-slate-200/70 dark:border-slate-700 focus:ring-slate-300;
@@ -40,7 +40,7 @@
     @apply btn bg-danger text-white shadow-md shadow-danger/25 hover:bg-danger-600 focus:ring-danger/30;
   }
   .btn-flat {
-    @apply btn bg-primary/10 text-primary-700 hover:bg-primary/20 dark:text-primary-300;
+    @apply btn bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-brand-950/40 dark:text-brand-300;
   }
   .input {
     @apply w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/15 transition-all duration-150 shadow-sm disabled:bg-slate-50 dark:disabled:bg-slate-800/60 disabled:text-slate-400 disabled:cursor-not-allowed;
@@ -70,10 +70,10 @@
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide border transition-all;
   }
   .badge-primary {
-    @apply badge bg-primary/10 text-primary-700 dark:text-primary-300 border-primary/20;
+    @apply badge bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 border-brand-200/60 dark:border-brand-800/60;
   }
   .badge-success {
-    @apply badge bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60;
+    @apply badge bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200/60 dark:border-teal-800/60;
   }
   .badge-danger {
     @apply badge bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60;

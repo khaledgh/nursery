@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Little Talent Childcare"
+    "name": "Nursee+"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
@@ -26,7 +26,10 @@
     "billing": "الاشتراك",
     "nurseries": "الحضانات",
     "plans_admin": "الخطط والفوترة",
-    "analytics": "التحليلات"
+    "analytics": "التحليلات",
+    "superadmin_dashboard": "لوحة المنصة",
+    "superadmin_reports": "تقارير المنصة",
+    "superadmin_reminders": "التنبيهات والمواعيد"
   },
   "auth": {
     "title": "تسجيل الدخول",

@@ -19,6 +19,8 @@ import {
   BarChart3,
   CheckCheck,
   ChevronRight,
+  LayoutDashboard,
+  BellRing,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -110,7 +112,6 @@ const NAV: NavSection[] = [
 
 const LOCALES = [
   { code: "en", label: "EN" },
-  { code: "sv", label: "SV" },
   { code: "ar", label: "ع" },
 ];
 
@@ -143,14 +144,38 @@ export function Layout() {
 
   const notifications = notificationsData ?? [];
 
-  const visible = NAV.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => {
-      if (item.roles && !item.roles.includes(user?.role ?? "")) return false;
-      if (item.capability && ctx && !ctx.capabilities.includes(item.capability)) return false;
-      return true;
-    }),
-  })).filter((section) => section.items.length > 0);
+  const isSuperAdmin = user?.role === "superadmin";
+
+  const visible: NavSection[] = isSuperAdmin
+    ? [
+        {
+          label: "Platform",
+          items: [
+            { to: "/superadmin/dashboard", icon: LayoutDashboard, key: "nav.superadmin_dashboard", end: true },
+            { to: "/superadmin", icon: Building2, key: "nav.nurseries", end: true },
+            { to: "/superadmin/plans", icon: Layers, key: "nav.plans_admin" },
+            { to: "/superadmin/reports", icon: BarChart3, key: "nav.superadmin_reports" },
+            { to: "/superadmin/reminders", icon: BellRing, key: "nav.superadmin_reminders" },
+          ],
+        },
+        {
+          label: "System",
+          items: [
+            { to: "/settings", icon: Settings, key: "nav.settings" },
+            { to: "/audit", icon: ScrollText, key: "nav.audit" },
+          ],
+        },
+      ]
+    : NAV.filter((s) => s.label !== "Platform")
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item) => {
+            if (item.roles && !item.roles.includes(user?.role ?? "")) return false;
+            if (item.capability && ctx && !ctx.capabilities.includes(item.capability)) return false;
+            return true;
+          }),
+        }))
+        .filter((section) => section.items.length > 0);
 
   const signOut = async () => {
     try {
@@ -186,16 +211,16 @@ export function Layout() {
           }`}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary/25 p-1.5">
-              <img src="/logo.png" alt="Logo" className="h-full w-full object-contain filter brightness-0 invert" />
+            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200/60 dark:border-slate-700/60 p-1">
+              <img src="/logo.png" alt="Nursee+" className="h-full w-full object-contain" />
             </div>
             {!collapsed && (
               <div className="min-w-0 truncate">
                 <span className="block text-base font-black text-slate-900 dark:text-slate-100 truncate leading-snug">
                   {t("app.name")}
                 </span>
-                <span className="inline-block text-[10px] font-extrabold uppercase tracking-widest text-primary">
-                  Admin Portal
+                <span className="inline-block text-[10px] font-extrabold uppercase tracking-widest text-brand-600 dark:text-brand-400">
+                  {isSuperAdmin ? "Platform Console" : "Admin Portal"}
                 </span>
               </div>
             )}
@@ -235,8 +260,8 @@ export function Layout() {
                         collapsed ? "justify-center p-3" : "gap-3.5 px-3.5 py-2.5"
                       } ${
                         isActive
-                          ? "bg-primary text-white shadow-lg shadow-primary/25 font-bold"
-                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-100 font-semibold"
+                          ? "bg-brand-600 text-white shadow-lg shadow-brand-500/25 font-bold"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-brand-50/70 dark:hover:bg-slate-800/80 hover:text-brand-700 dark:hover:text-brand-300 font-semibold"
                       } text-sm`
                     }
                   >
@@ -270,7 +295,7 @@ export function Layout() {
                   size="sm"
                   name={userInitials}
                   classNames={{
-                    base: "bg-primary text-white font-bold text-xs shrink-0 shadow-sm",
+                    base: "bg-brand-600 text-white font-bold text-xs shrink-0 shadow-sm",
                   }}
                 />
                 <div className="min-w-0">
@@ -347,7 +372,7 @@ export function Layout() {
                   onClick={() => switchLocale(code)}
                   className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
                     locale === code
-                      ? "bg-primary text-white shadow-sm"
+                      ? "bg-brand-600 text-white shadow-sm"
                       : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                   }`}
                 >
@@ -473,14 +498,14 @@ export function Layout() {
                     size="sm"
                     name={userInitials}
                     classNames={{
-                      base: "bg-primary text-white font-bold text-xs shadow-md shadow-primary/25",
+                      base: "bg-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/25",
                     }}
                   />
                   <div className="text-start hidden sm:block">
                     <div className="font-bold text-slate-800 dark:text-slate-200 text-xs leading-tight">
                       {user?.name}
                     </div>
-                    <div className="text-[10px] font-extrabold text-primary uppercase tracking-wider mt-0.5">
+                    <div className="text-[10px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-wider mt-0.5">
                       {user?.role}
                     </div>
                   </div>

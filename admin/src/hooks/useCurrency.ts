@@ -15,21 +15,38 @@ export function useNurserySettings() {
 
 export function useCurrency() {
   const { data } = useNurserySettings();
-  const currency = (typeof data?.currency === "string" && data.currency.trim()) ? data.currency.trim().toUpperCase() : "SEK";
+  const currency = typeof data?.currency === "string" && data.currency.trim() ? data.currency.trim().toUpperCase() : "USD";
+
+  const getSymbol = (curr: string) => {
+    switch (curr) {
+      case "USD":
+        return "$";
+      case "EUR":
+        return "€";
+      case "GBP":
+        return "£";
+      default:
+        return null;
+    }
+  };
 
   const formatMoney = (minor: number, overrideCurrency?: string) => {
-    const curr = (overrideCurrency && (currency === "SEK" || overrideCurrency !== "SEK")) ? overrideCurrency : currency;
-    return `${(minor / 100).toLocaleString(undefined, {
+    const curr = (overrideCurrency && overrideCurrency.trim()) ? overrideCurrency.trim().toUpperCase() : currency;
+    const sym = getSymbol(curr);
+    const formatted = (minor / 100).toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    })} ${curr}`;
+    });
+    return sym ? `${sym}${formatted}` : `${formatted} ${curr}`;
   };
 
   const formatMoneyCompact = (minor: number, overrideCurrency?: string) => {
-    const curr = (overrideCurrency && (currency === "SEK" || overrideCurrency !== "SEK")) ? overrideCurrency : currency;
-    return `${(minor / 100).toLocaleString(undefined, {
+    const curr = (overrideCurrency && overrideCurrency.trim()) ? overrideCurrency.trim().toUpperCase() : currency;
+    const sym = getSymbol(curr);
+    const formatted = (minor / 100).toLocaleString(undefined, {
       maximumFractionDigits: 0,
-    })} ${curr}`;
+    });
+    return sym ? `${sym}${formatted}` : `${formatted} ${curr}`;
   };
 
   return { currency, formatMoney, formatMoneyCompact };

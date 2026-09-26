@@ -70,15 +70,15 @@ export function LoginPage() {
         className="w-full max-w-md border border-white/20 bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl shadow-2xl rounded-3xl p-3 sm:p-5"
       >
         <CardHeader className="flex flex-col items-center gap-3 pt-6 pb-2 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 shadow-md shadow-primary/10">
-            <img src="/logo.png" alt="Logo" className="h-10 w-10 object-contain" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-lg shadow-slate-200/50 p-2">
+            <img src="/logo.png" alt="Nursee+" className="h-full w-full object-contain" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
               {t("auth.title")}
             </h1>
-            <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-widest">
-              Little Talent Childcare
+            <p className="text-xs font-bold text-primary mt-1 uppercase tracking-widest">
+              Nursee+ Platform
             </p>
           </div>
         </CardHeader>

@@ -3,16 +3,17 @@
 // back to the Metro dev-server host (see resolveBaseURL).
 module.exports = {
   expo: {
-    name: "Little Talent Childcare",
-    slug: "little-talent-childcare",
-    scheme: "littletalentchildcare",
+    name: "Nursee+",
+    slug: "nursee-plus",
+    scheme: "nurseeplus",
     version: "1.0.1",
     orientation: "portrait",
     icon: "./assets/icon.png",
+    primaryColor: "#2CAFA8",
     userInterfaceStyle: "light",
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.littletalentchildcare",
+      bundleIdentifier: "com.nurseeplus",
       buildNumber: "2",
       infoPlist: {
         // Lets a push wake the app to fetch before the notification is shown.
@@ -24,7 +25,7 @@ module.exports = {
       },
     },
     android: {
-      package: "com.littletalentchildcare",
+      package: "com.nurseeplus",
       versionCode: 2,
       adaptiveIcon: {
         // White to match the logo artwork, which is drawn for a white ground.
@@ -102,8 +103,8 @@ module.exports = {
       apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "",
       oneSignalAppId: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID ?? "",
       eas: {
-        projectId: "823db919-bdf6-4630-a788-d2506f124fbc"
-      }
+        projectId: "61818b12-0e7c-4495-b6d8-3e6ce2851119",
+      },
     },
   },
 };

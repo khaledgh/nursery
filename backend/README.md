@@ -1,4 +1,4 @@
-# Little Talent Childcare API (Go)
+# Nursee+ API (Go)
 
 Backend for the nursery/childcare platform — Echo v4 + GORM + MySQL 8.
 Layering rule: `handler → service → repository → model`. Handlers never touch

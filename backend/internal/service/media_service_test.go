@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,7 +82,7 @@ func TestPresignUploadRejectsUnsupportedMime(t *testing.T) {
 	db, _ := testDB(t)
 	svc := NewMediaService(db, &fakeStorage{})
 
-	_, _, err := svc.PresignUpload(context.Background(), 1, "application/zip", 1024)
+	_, _, err := svc.PresignUpload(context.Background(), 1, "application/zip", 1024, "", "")
 	var ae *apperr.Error
 	if !errors.As(err, &ae) || ae.Code != apperr.CodeBadRequest {
 		t.Fatalf("expected bad_request for unsupported mime, got %v", err)
@@ -92,7 +93,7 @@ func TestPresignUploadRejectsOversizedFile(t *testing.T) {
 	db, _ := testDB(t)
 	svc := NewMediaService(db, &fakeStorage{})
 
-	_, _, err := svc.PresignUpload(context.Background(), 1, "image/jpeg", maxUploadBytes+1)
+	_, _, err := svc.PresignUpload(context.Background(), 1, "image/jpeg", maxUploadBytes+1, "", "")
 	var ae *apperr.Error
 	if !errors.As(err, &ae) || ae.Code != apperr.CodeBadRequest {
 		t.Fatalf("expected bad_request for oversized file, got %v", err)
@@ -112,7 +113,7 @@ func TestPresignUploadCreatesPendingRow(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	media, uploadURL, err := svc.PresignUpload(context.Background(), 7, "image/jpeg", 2048)
+	media, uploadURL, err := svc.PresignUpload(context.Background(), 7, "image/jpeg", 2048, "children", "42")
 	if err != nil {
 		t.Fatalf("PresignUpload: %v", err)
 	}
@@ -169,5 +170,34 @@ func TestConfirmUploadRejectsWrongOwner(t *testing.T) {
 	var ae *apperr.Error
 	if !errors.As(err, &ae) || ae.Code != apperr.CodeForbidden {
 		t.Fatalf("expected forbidden for wrong owner, got %v", err)
+	}
+}
+
+func TestBuildStorageKey(t *testing.T) {
+	// Child folder
+	key, err := buildStorageKey(5, "children", "42", ".jpg")
+	if err != nil {
+		t.Fatalf("buildStorageKey: %v", err)
+	}
+	if !strings.HasPrefix(key, "nursery_5/children/42/") || !strings.HasSuffix(key, ".jpg") {
+		t.Fatalf("unexpected key format: %s", key)
+	}
+
+	// Classroom folder
+	classKey, err := buildStorageKey(3, "classrooms", "8", ".png")
+	if err != nil {
+		t.Fatalf("buildStorageKey: %v", err)
+	}
+	if !strings.HasPrefix(classKey, "nursery_3/classrooms/8/") || !strings.HasSuffix(classKey, ".png") {
+		t.Fatalf("unexpected classKey format: %s", classKey)
+	}
+
+	// General folder without entityID
+	genKey, err := buildStorageKey(2, "", "", ".pdf")
+	if err != nil {
+		t.Fatalf("buildStorageKey: %v", err)
+	}
+	if !strings.HasPrefix(genKey, "nursery_2/general/") || !strings.HasSuffix(genKey, ".pdf") {
+		t.Fatalf("unexpected genKey format: %s", genKey)
 	}
 }

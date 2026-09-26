@@ -27,11 +27,10 @@ import type { AuditLog, ItemResponse } from "../../types/api";
 type SettingsMap = Record<string, any>;
 
 const CURRENCY_PRESETS = [
-  { code: "SEK", symbol: "kr", label: "Swedish Krona (SEK)" },
+  { code: "USD", symbol: "$", label: "US Dollar (USD)" },
   { code: "SAR", symbol: "﷼", label: "Saudi Riyal (SAR)" },
   { code: "AED", symbol: "د.إ", label: "UAE Dirham (AED)" },
   { code: "KWD", symbol: "د.ك", label: "Kuwaiti Dinar (KWD)" },
-  { code: "USD", symbol: "$", label: "US Dollar (USD)" },
   { code: "EUR", symbol: "€", label: "Euro (EUR)" },
   { code: "GBP", symbol: "£", label: "British Pound (GBP)" },
   { code: "QAR", symbol: "﷼", label: "Qatari Riyal (QAR)" },
@@ -41,7 +40,6 @@ const CURRENCY_PRESETS = [
 const LOCALES = [
   { code: "en", name: "English", dir: "ltr", flag: "🇬🇧" },
   { code: "ar", name: "العربية (Arabic)", dir: "rtl", flag: "🇸🇦" },
-  { code: "sv", name: "Svenska (Swedish)", dir: "ltr", flag: "🇸🇪" },
 ];
 
 export function SettingsPage() {
@@ -52,8 +50,8 @@ export function SettingsPage() {
   const [error, setError] = useState("");
 
   // Form States
-  const [nurseryName, setNurseryName] = useState("Sunny Stars Childcare");
-  const [currency, setCurrency] = useState("SEK");
+  const [nurseryName, setNurseryName] = useState("Nursee+ Childcare");
+  const [currency, setCurrency] = useState("USD");
   const [customCurrency, setCustomCurrency] = useState("");
   const [defaultLocale, setDefaultLocale] = useState("en");
   const [featureCommunity, setFeatureCommunity] = useState(true);
@@ -119,7 +117,7 @@ export function SettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const effectiveCurrency = (customCurrency || currency || "SEK").trim().toUpperCase();
+      const effectiveCurrency = (customCurrency || currency || "USD").trim().toUpperCase();
       const payload: Record<string, any> = {
         nursery_name: nurseryName,
         currency: effectiveCurrency,
@@ -321,7 +319,7 @@ export function SettingsPage() {
                   className="input"
                   value={nurseryName}
                   onChange={(e) => setNurseryName(e.target.value)}
-                  placeholder="e.g. Sunny Stars Childcare"
+                  placeholder="e.g. Nursee+ Childcare"
                 />
               </div>
             </div>
@@ -591,7 +589,7 @@ export function SettingsPage() {
                     </label>
                     <input
                       className="input font-mono text-xs"
-                      placeholder="e.g. littletalentchildcare"
+                      placeholder="e.g. nurseeplus-media"
                       value={s3Bucket}
                       onChange={(e) => setS3Bucket(e.target.value)}
                     />

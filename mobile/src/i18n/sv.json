@@ -7,7 +7,7 @@
     "more": "Mer"
   },
   "auth": {
-    "title": "Little Talent Childcare",
+    "title": "Nursee+",
     "subtitle": "Logga in för att följa ditt barns dag",
     "email": "E-post",
     "loginId": "Inloggnings-ID",
@@ -273,11 +273,11 @@
   "payments": {
     "title": "Betalningar",
     "secure": "Säkra & enkla betalningar",
-    "secureSub": "Se fakturor, betalningshistorik och betala säkert med Swish.",
+    "secureSub": "Se fakturor, betalningshistorik och betala säkert.",
     "amountDue": "Att betala",
     "dueDate": "Förfallodatum: {{date}}",
     "paymentDue": "Betalning förfaller",
-    "payNow": "Betala nu med Swish",
+    "payNow": "Betala nu",
     "redirect": "Du omdirigeras för att slutföra din betalning säkert.",
     "invoiceSummary": "Fakturasammanfattning",
     "invoiceNo": "Faktura #{{no}}",

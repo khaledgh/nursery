@@ -197,6 +197,14 @@ func (s *PaymentService) Pay(ctx context.Context, role model.Role, userID, invoi
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, userID, "initiate", "payment", p.ID, map[string]any{"invoice_id": inv.ID}, ip)
+
+	if s.provider.Name() == "mock" {
+		status, _ := s.provider.VerifyPayment(ctx, p.ProviderRef)
+		if status != nil && status.Paid {
+			_ = s.settle(ctx, p, status)
+		}
+	}
+
 	return map[string]any{
 		"payment_id":   p.ID,
 		"provider":     p.Provider,

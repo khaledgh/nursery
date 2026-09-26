@@ -94,6 +94,7 @@ export interface Nursery {
   id: number;
   name: string;
   slug: string;
+  login_id_prefix?: string;
   status: "active" | "suspended" | "cancelled";
   locale: string;
   timezone: string;
@@ -121,9 +122,19 @@ export interface Plan {
 
 export interface NurseryOverview extends Nursery {
   plan_code: string;
+  plan_name?: string;
+  price_minor?: number;
+  currency?: string;
+  billing_period?: "monthly" | "yearly";
+  next_payment_date?: string | null;
   subscription_status: SubscriptionStatus;
+  allows_writes?: boolean;
   students_used: number;
   students_max: number;
+  staff_used?: number;
+  staff_max?: number;
+  admin_email?: string;
+  admin_name?: string;
   created_at: string;
 }
 
@@ -147,6 +158,44 @@ export interface SubscriptionInvoice {
   due_date: string;
   status: "due" | "paid" | "overdue" | "cancelled";
   paid_at: string | null;
+}
+
+export interface PlatformReminder {
+  id: string;
+  type: "overdue" | "capacity" | "renewal" | "grace";
+  severity: "high" | "medium" | "info";
+  nursery_id: number;
+  nursery_name: string;
+  title: string;
+  description: string;
+  action_type: "mark_paid" | "upgrade_plan" | "contact";
+  action_id?: number;
+  due_date?: string;
+}
+
+export interface TierBreakdown {
+  plan_code: string;
+  plan_name: string;
+  billing_period: string;
+  nursery_count: number;
+  revenue_minor: number;
+}
+
+export interface PlatformReport {
+  total_nurseries: number;
+  active_nurseries: number;
+  past_due_nurseries: number;
+  total_children: number;
+  total_capacity: number;
+  capacity_used_pct: number;
+  mrr_minor: number;
+  arr_minor: number;
+  total_invoices: number;
+  paid_invoices: number;
+  overdue_invoices: number;
+  paid_amount_minor: number;
+  overdue_amount_minor: number;
+  tiers: TierBreakdown[];
 }
 
 // --- chat ---
@@ -570,4 +619,94 @@ export interface CommunityModerationStatus {
   hours_end: string;
   is_open: boolean;
   banned_users: CommunityBannedUser[];
+}
+
+// --- Nursery Detail Hub DTOs ---
+
+export interface AgeBucket {
+  label: string;
+  min_months: number;
+  max_months: number;
+  count: number;
+  percentage: number;
+}
+
+export interface NurseryClassroomOverview {
+  id: number;
+  name: string;
+  room_location: string;
+  age_group: string;
+  capacity: number;
+  children_count: number;
+  average_age_months: number;
+  lead_teacher_name: string;
+  opens_at: string;
+  closes_at: string;
+}
+
+export interface NurseryChildRegistrant {
+  id: number;
+  first_name: string;
+  last_name: string;
+  dob: string;
+  age_years: number;
+  age_months: number;
+  age_formatted: string;
+  gender: string;
+  blood_type: string;
+  classroom_id?: number | null;
+  classroom_name?: string;
+  status: string;
+  present_status: string;
+  primary_guardian_name?: string;
+  primary_guardian_phone?: string;
+  relationship?: string;
+}
+
+export interface NurseryEmployee {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+  classrooms: string[];
+  last_login_at?: string | null;
+}
+
+export interface NurseryParentContact {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  status: string;
+  children_names: string[];
+  last_login_at?: string | null;
+}
+
+export interface NurseryInvoiceItem {
+  id: number;
+  invoice_no: string;
+  amount_minor: number;
+  currency: string;
+  period: string;
+  due_date: string;
+  status: string;
+  paid_at?: string | null;
+}
+
+export interface NurseryDetailsReport {
+  nursery: NurseryOverview;
+  total_children: number;
+  total_staff: number;
+  total_parents: number;
+  total_classrooms: number;
+  average_age_months: number;
+  average_age_years: number;
+  age_distribution: AgeBucket[];
+  classrooms: NurseryClassroomOverview[];
+  children: NurseryChildRegistrant[];
+  staff: NurseryEmployee[];
+  parents: NurseryParentContact[];
+  invoices: NurseryInvoiceItem[];
 }

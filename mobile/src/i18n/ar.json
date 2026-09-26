@@ -7,7 +7,7 @@
     "more": "المزيد"
   },
   "auth": {
-    "title": "Little Talent Childcare",
+    "title": "Nursee+",
     "subtitle": "سجّل الدخول لمتابعة يوم طفلك",
     "email": "البريد الإلكتروني",
     "loginId": "معرّف الدخول",
@@ -282,11 +282,11 @@
   "payments": {
     "title": "المدفوعات",
     "secure": "مدفوعات آمنة وسهلة",
-    "secureSub": "اطّلع على الفواتير وسجل المدفوعات وادفع بأمان عبر Swish.",
+    "secureSub": "اطّلع على الفواتير وسجل المدفوعات وادفع بأمان.",
     "amountDue": "المبلغ المستحق",
     "dueDate": "تاريخ الاستحقاق: {{date}}",
     "paymentDue": "دفعة مستحقة",
-    "payNow": "ادفع الآن عبر Swish",
+    "payNow": "ادفع الآن",
     "redirect": "سيتم تحويلك لإتمام الدفع بأمان.",
     "invoiceSummary": "ملخص الفاتورة",
     "invoiceNo": "فاتورة رقم {{no}}",

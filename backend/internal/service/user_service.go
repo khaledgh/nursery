@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -33,6 +34,21 @@ func (s *UserService) Get(ctx context.Context, id uint64) (*model.User, error) {
 }
 
 func (s *UserService) Create(ctx context.Context, req *dto.CreateUserRequest, actorID uint64, ip string) (*model.User, error) {
+	if nid, ok := database.TenantFrom(ctx); ok && nid != 0 {
+		var nursery model.Nursery
+		if err := s.users.DB().WithContext(database.WithCrossTenant(ctx)).First(&nursery, nid).Error; err == nil {
+			if nursery.Status == model.NurserySuspended {
+				return nil, apperr.SubscriptionInactive("nursery is suspended; registering new users is disabled")
+			}
+		}
+		var sub model.Subscription
+		if err := s.users.DB().WithContext(database.WithCrossTenant(ctx)).Where("nursery_id = ?", nid).First(&sub).Error; err == nil {
+			if !sub.AllowsWrites() {
+				return nil, apperr.SubscriptionInactive("subscription is suspended; registering new users is disabled")
+			}
+		}
+	}
+
 	exists, err := s.users.EmailExists(ctx, req.Email, 0)
 	if err != nil {
 		return nil, apperr.Internal(err)

@@ -42,3 +42,7 @@ export function useWritesBlocked(): boolean {
   const seats = useSeats();
   return seats ? !seats.allows_writes : false;
 }
+
+export function useNursery() {
+  return useMeContext().data?.nursery;
+}

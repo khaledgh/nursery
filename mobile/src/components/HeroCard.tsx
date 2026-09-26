@@ -39,7 +39,7 @@ export function HeroCard({ variant = "gradient", photoUrl, name, title, subtitle
             pct={ring.pct}
             size={76}
             color={dark ? "#fff" : colors.primary}
-            trackColor={dark ? "rgba(255,255,255,0.25)" : "rgba(124,58,237,0.15)"}
+            trackColor={dark ? "rgba(255,255,255,0.25)" : "rgba(44,175,168,0.15)"}
             labelColor={dark ? "#fff" : colors.text}
           />
           <Text style={[styles.ringLabel, { color: dark ? "rgba(255,255,255,0.85)" : colors.textMuted }]}>{ring.label}</Text>

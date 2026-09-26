@@ -67,6 +67,7 @@ func (h *ContextHandler) MeContext(c echo.Context) error {
 	if err := h.db.WithContext(database.WithCrossTenant(ctx)).First(&nursery, nurseryID).Error; err == nil {
 		out.Nursery = dto.NurseryDTO{
 			ID: nursery.ID, Name: nursery.Name, Slug: nursery.Slug,
+			LoginIDPrefix: nursery.LoginIDPrefix,
 			Status: string(nursery.Status), Locale: nursery.Locale, Timezone: nursery.Timezone,
 		}
 	}

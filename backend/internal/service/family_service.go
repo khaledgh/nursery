@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -118,7 +119,7 @@ func (s *FamilyService) resolveParent(ctx context.Context, tx *gorm.DB, req *dto
 
 	var clash int64
 	if err := tx.WithContext(ctx).Model(&model.User{}).
-		Where("email = ?", req.Parent.Email).Count(&clash).Error; err != nil {
+		Where("nursery_id = ? AND email = ?", nurseryID, strings.TrimSpace(req.Parent.Email)).Count(&clash).Error; err != nil {
 		return nil, err
 	}
 	if clash > 0 {

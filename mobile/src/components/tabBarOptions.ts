@@ -22,7 +22,7 @@ export const tabScreenOptions = {
     height: 64,
     paddingTop: 6,
     position: "absolute",
-    shadowColor: "#3f7222",
+    shadowColor: "#0f172a",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -4 },

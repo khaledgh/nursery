@@ -28,6 +28,6 @@ export const useAuthStore = create<AuthState>()(
       setLocale: (locale) => set({ locale }),
       logout: () => set({ user: null, accessToken: null, refreshToken: null }),
     }),
-    { name: "sunnystars-admin-auth" },
+    { name: "nursee-plus-admin-auth" },
   ),
 );

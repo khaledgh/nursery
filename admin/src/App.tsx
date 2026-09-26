@@ -31,7 +31,21 @@ import { ClassroomDetailPage } from "./features/classrooms/ClassroomDetailPage";
 import { MessagesPage } from "./features/messages/MessagesPage";
 import { BillingPage } from "./features/billing/BillingPage";
 import { NurseriesPage } from "./features/superadmin/NurseriesPage";
+import { NurseryDetailPage } from "./features/superadmin/NurseryDetailPage";
 import { PlansPage } from "./features/superadmin/PlansPage";
+import { SuperAdminDashboardPage } from "./features/superadmin/SuperAdminDashboardPage";
+import { SuperAdminReportsPage } from "./features/superadmin/SuperAdminReportsPage";
+import { SuperAdminRemindersPage } from "./features/superadmin/SuperAdminRemindersPage";
+
+import { useAuthStore } from "./store/auth";
+
+function RootPage() {
+  const user = useAuthStore((s) => s.user);
+  if (user?.role === "superadmin") {
+    return <SuperAdminDashboardPage />;
+  }
+  return <DashboardPage />;
+}
 
 function AppContent() {
   const navigate = useNavigate();
@@ -42,7 +56,7 @@ function AppContent() {
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
-            <Route index element={<DashboardPage />} />
+            <Route index element={<RootPage />} />
             <Route path="users" element={<UsersPage />} />
             {/* Real routes, so a family is linkable and survives a refresh. */}
             <Route path="families/new" element={<NewFamilyPage />} />
@@ -52,7 +66,11 @@ function AppContent() {
             <Route path="messages" element={<MessagesPage />} />
             <Route path="billing" element={<BillingPage />} />
             <Route path="superadmin" element={<NurseriesPage />} />
+            <Route path="superadmin/nurseries/:id" element={<NurseryDetailPage />} />
+            <Route path="superadmin/dashboard" element={<SuperAdminDashboardPage />} />
             <Route path="superadmin/plans" element={<PlansPage />} />
+            <Route path="superadmin/reports" element={<SuperAdminReportsPage />} />
+            <Route path="superadmin/reminders" element={<SuperAdminRemindersPage />} />
             <Route path="classrooms" element={<ClassroomsPage />} />
             <Route path="classrooms/:id" element={<ClassroomDetailPage />} />
             <Route path="attendance" element={<AttendancePage />} />

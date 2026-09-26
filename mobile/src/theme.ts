@@ -1,17 +1,23 @@
 import type { TextStyle, ViewStyle } from "react-native";
 
-// Brand palette sampled from the Little Talent Childcare logo: the green of the
-// arc under the wordmark, with the mark's blue as the secondary tone.
+// Official Nursee+ brand palette sampled from the logo:
+// Turquoise Teal (#2CAFA8), Royal Violet (#6c5ce7), Warm Marigold (#ffb142), Coral Pink (#ff5e7e), Sky Blue (#00a8ff).
 export const colors = {
-  primary: "#5b9c34",
-  primaryDark: "#3f7222",
-  primaryLight: "#e8f4dd",
-  secondary: "#4070a0",
-  bg: "#f4f9ef",
+  primary: "#2CAFA8",
+  primaryDark: "#1f7571",
+  primaryLight: "#eefbf9",
+  secondary: "#6c5ce7",
+  secondaryDark: "#4d3ec2",
+  secondaryLight: "#ede9fe",
+  marigold: "#ffb142",
+  marigoldLight: "#fffbeb",
+  coral: "#ff5e7e",
+  sky: "#00a8ff",
+  bg: "#f8fafc",
   card: "#ffffff",
-  text: "#1f2a17",
-  textMuted: "#6b7280",
-  border: "#e2ecd8",
+  text: "#1e293b",
+  textMuted: "#64748b",
+  border: "#e2e8f0",
   success: "#10b981",
   warning: "#f59e0b",
   danger: "#ef4444",
@@ -26,9 +32,14 @@ export interface Accent {
 
 /** Per-feature pastel accents: icon color (main), circle fill (tint), text on tint (dark). */
 export const accents = {
-  // Only `primary` follows the brand; the rest encode feature meaning (meals,
-  // sleep, diaper, health...) and drive the enum→visual maps, so they stay put.
-  primary: { main: "#5b9c34", tint: "#e8f4dd", dark: "#3f7222" },
+  // Brand accents matching the Nursee+ logo
+  primary: { main: "#2CAFA8", tint: "#eefbf9", dark: "#1f7571" },
+  secondary: { main: "#6c5ce7", tint: "#ede9fe", dark: "#4d3ec2" },
+  marigold: { main: "#ffb142", tint: "#fffbeb", dark: "#b45309" },
+  coral: { main: "#ff5e7e", tint: "#ffe4e6", dark: "#be123c" },
+  sky: { main: "#00a8ff", tint: "#e0f2fe", dark: "#0369a1" },
+
+  // Feature specific accents:
   meals: { main: "#f59e0b", tint: "#fef3c7", dark: "#b45309" },
   sleep: { main: "#6366f1", tint: "#e0e7ff", dark: "#4338ca" },
   activity: { main: "#10b981", tint: "#d1fae5", dark: "#047857" },
@@ -44,8 +55,10 @@ export const accents = {
 export type AccentName = keyof typeof accents;
 
 export const gradients = {
-  hero: ["#7cb342", "#4a8a2a"] as const,
-  lavender: ["#f1f8e9", "#e8f4dd"] as const,
+  hero: ["#2CAFA8", "#6c5ce7"] as const,
+  lavender: ["#f5f3ff", "#eefbf9"] as const,
+  teal: ["#3ec7be", "#2CAFA8"] as const,
+  violet: ["#8b5cf6", "#6c5ce7"] as const,
 };
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
@@ -71,8 +84,8 @@ export const type = {
 
 export const shadows = {
   card: {
-    shadowColor: "#3f7222",
-    shadowOpacity: 0.06,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.05,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,

@@ -55,5 +55,40 @@ func EnsureDefaultAdmin(db *gorm.DB) error {
 		"status":        model.UserActive,
 		"role":          model.RoleAdmin,
 	}
-	return db.WithContext(ctx).Model(&user).Updates(updates).Error
+	if err := db.WithContext(ctx).Model(&user).Updates(updates).Error; err != nil {
+		return err
+	}
+
+	// Guarantee default superadmin exists
+	var superUser model.User
+	superLoginID := "superadmin"
+	errSuper := db.WithContext(ctx).
+		Where("login_id = ? OR email = ? OR role = ?", "superadmin", "superadmin@nurseeplus.com", model.RoleSuperAdmin).
+		First(&superUser).Error
+
+	if errSuper != nil {
+		if strings.Contains(errSuper.Error(), "record not found") || errSuper == gorm.ErrRecordNotFound {
+			newSuper := model.User{
+				NurseryID:    1,
+				Name:         "Super Administrator",
+				Email:        "superadmin@nurseeplus.com",
+				LoginID:      &superLoginID,
+				PasswordHash: pwHash,
+				Role:         model.RoleSuperAdmin,
+				Locale:       "en",
+				Status:       model.UserActive,
+			}
+			return db.WithContext(ctx).Create(&newSuper).Error
+		}
+		return errSuper
+	}
+
+	superUpdates := map[string]any{
+		"email":         "superadmin@nurseeplus.com",
+		"login_id":      superLoginID,
+		"password_hash": pwHash,
+		"status":        model.UserActive,
+		"role":          model.RoleSuperAdmin,
+	}
+	return db.WithContext(ctx).Model(&superUser).Updates(superUpdates).Error
 }

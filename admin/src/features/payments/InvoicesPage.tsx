@@ -221,7 +221,7 @@ export function InvoicesPage() {
             <div>
               <label className="label">Currency</label>
               <select className="input" value={activeCurrency} onChange={(e) => setCurrency(e.target.value)}>
-                {Array.from(new Set([defaultCurrency, "SEK", "EUR", "USD", "GBP", "AED", "SAR"])).map((c) => (
+                {Array.from(new Set([defaultCurrency, "USD", "SAR", "AED", "KWD", "EUR", "GBP", "QAR", "BHD", "SEK"])).map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>

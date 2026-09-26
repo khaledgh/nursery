@@ -16,6 +16,7 @@ type Nursery struct {
 	Base
 	Name         string        `gorm:"size:191;not null" json:"name"`
 	Slug         string        `gorm:"size:64;not null;uniqueIndex" json:"slug"`
+	LoginIDPrefix string       `gorm:"size:32" json:"login_id_prefix,omitempty"`
 	ContactEmail string        `gorm:"size:191" json:"contact_email"`
 	ContactPhone string        `gorm:"size:32" json:"contact_phone"`
 	Locale       string        `gorm:"size:10;not null;default:'en'" json:"locale"`

@@ -20,17 +20,19 @@ type Runner struct {
 	cron       *cron.Cron
 	db         *gorm.DB
 	payments   *service.PaymentService
+	superadmin *service.SuperAdminService
 	tokens     *repository.TokenRepo
 	notifier   service.Notifier
 	engagement *service.EngagementService
 	log        zerolog.Logger
 }
 
-func NewRunner(db *gorm.DB, payments *service.PaymentService, tokens *repository.TokenRepo, notifier service.Notifier, engagement *service.EngagementService, log zerolog.Logger) *Runner {
+func NewRunner(db *gorm.DB, payments *service.PaymentService, superadmin *service.SuperAdminService, tokens *repository.TokenRepo, notifier service.Notifier, engagement *service.EngagementService, log zerolog.Logger) *Runner {
 	return &Runner{
 		cron:       cron.New(),
 		db:         db,
 		payments:   payments,
+		superadmin: superadmin,
 		tokens:     tokens,
 		notifier:   notifier,
 		engagement: engagement,
@@ -41,6 +43,8 @@ func NewRunner(db *gorm.DB, payments *service.PaymentService, tokens *repository
 func (r *Runner) Start() {
 	r.add("0 6 * * *", "mark-overdue-invoices", r.markOverdueInvoices)
 	r.add("0 0 1 * *", "generate-monthly-invoices", r.generateMonthlyInvoices)
+	r.add("0 1 1 * *", "generate-subscription-invoices", r.generateSubscriptionInvoices)
+	r.add("15 6 * * *", "mark-overdue-subscription-invoices", r.markOverdueSubscriptionInvoices)
 	r.add("30 3 * * *", "cleanup-expired-tokens", r.cleanupTokens)
 	r.add("0 17 * * *", "event-reminders", r.eventReminders)
 	r.add("0 7 * * *", "what-to-bring-today", r.bringReminders)
@@ -74,6 +78,22 @@ func (r *Runner) markOverdueInvoices(ctx context.Context) error {
 
 func (r *Runner) generateMonthlyInvoices(ctx context.Context) error {
 	return r.payments.GenerateMonthlyInvoices(ctx)
+}
+
+func (r *Runner) generateSubscriptionInvoices(ctx context.Context) error {
+	if r.superadmin == nil {
+		return nil
+	}
+	_, err := r.superadmin.GenerateSubscriptionInvoices(ctx, 0, "system-cron")
+	return err
+}
+
+func (r *Runner) markOverdueSubscriptionInvoices(ctx context.Context) error {
+	if r.superadmin == nil {
+		return nil
+	}
+	_, err := r.superadmin.MarkOverdueSubscriptionInvoices(ctx)
+	return err
 }
 
 func (r *Runner) cleanupTokens(ctx context.Context) error {

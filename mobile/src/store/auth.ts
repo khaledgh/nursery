@@ -61,7 +61,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ user: null, accessToken: null, refreshToken: null }),
     }),
     {
-      name: "sunnystars-auth",
+      name: "nursee-plus-auth",
       storage: createJSONStorage(() => secureStorage),
     },
   ),

@@ -19,18 +19,25 @@ import (
 // it is unique by construction, with a numeric suffix as a belt-and-braces
 // guard in case a slug change makes two nurseries collide.
 func GenerateLoginID(ctx context.Context, db *gorm.DB, nurseryID, userID uint64) (string, error) {
-	var slug string
+	var n struct {
+		Slug          string
+		LoginIDPrefix string
+	}
 	err := db.WithContext(database.WithCrossTenant(ctx)).
-		Model(&model.Nursery{}).Select("slug").
-		Where("id = ?", nurseryID).Scan(&slug).Error
+		Model(&model.Nursery{}).Select("slug, login_id_prefix").
+		Where("id = ?", nurseryID).Scan(&n).Error
 	if err != nil {
 		return "", err
 	}
-	if slug == "" {
-		slug = "n" + fmt.Sprint(nurseryID)
+	prefix := strings.TrimSpace(n.LoginIDPrefix)
+	if prefix == "" {
+		prefix = strings.TrimSpace(n.Slug)
+	}
+	if prefix == "" {
+		prefix = "n" + fmt.Sprint(nurseryID)
 	}
 
-	base := fmt.Sprintf("%s-%d", strings.ToLower(slug), userID)
+	base := fmt.Sprintf("%s-%d", strings.ToLower(prefix), userID)
 	candidate := base
 	for attempt := 2; attempt < 100; attempt++ {
 		var count int64

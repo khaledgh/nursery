@@ -1,6 +1,6 @@
 import { AlertTriangle, CreditCard } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useSeats } from "../hooks/useMeContext";
+import { useNursery, useSeats } from "../hooks/useMeContext";
 import type { SeatUsage } from "../types/api";
 
 /**
@@ -59,45 +59,60 @@ export function SeatMeter({ seats, compact = false }: { seats?: SeatUsage; compa
 }
 
 /**
- * Billing state banner.
+ * Billing & Account State Banner.
  *
- * Shown while a subscription is past due or suspended. Writes may already be
- * blocked server-side, so this explains a failure the admin would otherwise
- * meet with no context.
+ * Shown while a nursery is suspended, past due, or writes are locked.
  */
 export function BillingBanner() {
   const seats = useSeats();
-  if (!seats?.payment_due) return null;
+  const nursery = useNursery();
 
-  const locked = !seats.allows_writes;
+  const isSuspended =
+    nursery?.status === "suspended" ||
+    seats?.status === "suspended" ||
+    (seats !== undefined && !seats.allows_writes);
+
+  if (!isSuspended && !seats?.payment_due) return null;
+
+  const locked = isSuspended || (seats ? !seats.allows_writes : false);
+
   return (
     <div
       role="status"
-      className={`mb-6 flex flex-wrap items-center gap-3 rounded-2xl border px-5 py-4 ${
-        locked ? "border-rose-200 bg-rose-50" : "border-amber-200 bg-amber-50"
+      className={`mb-6 flex flex-wrap items-center gap-3.5 rounded-2xl border px-5 py-4 shadow-sm ${
+        locked
+          ? "border-rose-300 bg-rose-50/90 text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+          : "border-amber-300 bg-amber-50/90 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
       }`}
     >
       {locked ? (
-        <AlertTriangle size={18} className="shrink-0 text-rose-600" />
+        <AlertTriangle size={22} className="shrink-0 text-rose-600 dark:text-rose-400" />
       ) : (
-        <CreditCard size={18} className="shrink-0 text-amber-600" />
+        <CreditCard size={22} className="shrink-0 text-amber-600 dark:text-amber-400" />
       )}
       <div className="min-w-0 flex-1">
-        <p className={`text-sm font-bold ${locked ? "text-rose-800" : "text-amber-800"}`}>
+        <p className="text-sm font-black tracking-tight">
           {locked
-            ? "Subscription inactive — new records cannot be added"
-            : "Subscription payment is overdue"}
+            ? "⚠️ Nursery Account Suspended — User Registrations & Modifications Frozen"
+            : "Subscription Payment Overdue"}
         </p>
-        <p className={`text-xs font-semibold ${locked ? "text-rose-600" : "text-amber-700"}`}>
+        <p className={`text-xs mt-0.5 font-medium ${locked ? "text-rose-700 dark:text-rose-300" : "text-amber-700 dark:text-amber-300"}`}>
           {locked
-            ? "Your existing records stay available to read. Settle the invoice to restore full access."
-            : seats.grace_until
-              ? `Settle before ${seats.grace_until} to keep adding records.`
-              : "Settle the invoice to avoid interruption."}
+            ? "This nursery account has been suspended by the platform administrator. Adding new children, teachers, or modifying records is temporarily disabled. Please contact platform support or settle outstanding subscription invoices to restore full access."
+            : seats?.grace_until
+              ? `Settle your balance before ${seats.grace_until} to keep registering users without interruption.`
+              : "Please settle your subscription invoice to avoid service interruption."}
         </p>
       </div>
-      <Link to="/billing" className="btn btn-secondary shrink-0 text-xs">
-        View billing
+      <Link
+        to="/billing"
+        className={`btn shrink-0 text-xs font-bold ${
+          locked
+            ? "bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+            : "btn-secondary"
+        }`}
+      >
+        View Billing
       </Link>
     </div>
   );

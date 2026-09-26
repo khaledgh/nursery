@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     height: itemSize,
     borderRadius: radius.md,
     overflow: "hidden",
-    backgroundColor: "#e2ecd8",
+    backgroundColor: colors.border,
   },
   thumbnail: {
     width: "100%",

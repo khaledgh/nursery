@@ -55,7 +55,7 @@ func (s *SuperAdminService) Stats(ctx context.Context) (*dto.PlatformStats, erro
 	s.db.WithContext(c).Model(&model.Subscription{}).
 		Joins("JOIN plans ON plans.id = subscriptions.plan_id").
 		Where("subscriptions.status IN ?", []model.SubscriptionStatus{model.SubActive, model.SubPastDue}).
-		Select("COALESCE(SUM(CASE WHEN plans.billing_period = 'yearly' THEN plans.price_minor / 12 ELSE plans.price_minor END), 0)").
+		Select("COALESCE(CAST(SUM(CASE WHEN plans.billing_period = 'yearly' THEN plans.price_minor / 12 ELSE plans.price_minor END) AS SIGNED), 0)").
 		Scan(&out.MRRMinor)
 
 	return &out, nil
@@ -87,10 +87,34 @@ func (s *SuperAdminService) ListNurseries(ctx context.Context, q dto.PageQuery) 
 		}
 		if usage, err := s.subs.Usage(ctx, n.ID); err == nil {
 			row.PlanCode = usage.PlanCode
+			row.PlanName = usage.PlanName
 			row.Status = usage.Status
+			row.AllowsWrites = usage.AllowsWrites
 			row.StudentsUsed = usage.StudentsUsed
 			row.StudentsMax = usage.StudentsMax
+			row.StaffUsed = usage.StaffUsed
+			row.StaffMax = usage.StaffMax
+			row.NextPaymentDate = usage.PeriodEnd
 		}
+
+		var sub model.Subscription
+		if err := s.db.WithContext(c).Preload("Plan").Where("nursery_id = ?", n.ID).First(&sub).Error; err == nil && sub.Plan != nil {
+			row.PriceMinor = sub.Plan.PriceMinor
+			row.Currency = sub.Plan.Currency
+			row.BillingPeriod = string(sub.Plan.BillingPeriod)
+			if row.PlanName == "" {
+				row.PlanName = sub.Plan.Name
+			}
+		}
+
+		var admin model.User
+		if err := s.db.WithContext(database.WithCrossTenant(ctx)).
+			Where("nursery_id = ? AND role = ?", n.ID, model.RoleAdmin).
+			Order("id ASC").First(&admin).Error; err == nil {
+			row.AdminEmail = admin.Email
+			row.AdminName = admin.Name
+		}
+
 		out = append(out, row)
 	}
 	return out, total, nil
@@ -102,6 +126,293 @@ func (s *SuperAdminService) GetNursery(ctx context.Context, id uint64) (*model.N
 		return nil, apperr.NotFound("nursery not found")
 	}
 	return &n, nil
+}
+
+func (s *SuperAdminService) GetNurseryDetails(ctx context.Context, id uint64) (*dto.NurseryDetailsReport, error) {
+	c := s.ctx(ctx)
+
+	var n model.Nursery
+	if err := s.db.WithContext(c).First(&n, id).Error; err != nil {
+		return nil, apperr.NotFound("nursery not found")
+	}
+
+	overview := dto.NurseryOverview{
+		NurseryDTO: toNurseryDTO(&n),
+		CreatedAt:  n.CreatedAt.Format(time.RFC3339),
+	}
+
+	if usage, err := s.subs.Usage(ctx, n.ID); err == nil && usage != nil {
+		overview.PlanCode = usage.PlanCode
+		overview.PlanName = usage.PlanName
+		overview.Status = usage.Status
+		overview.AllowsWrites = usage.AllowsWrites
+		overview.StudentsUsed = usage.StudentsUsed
+		overview.StudentsMax = usage.StudentsMax
+		overview.StaffUsed = usage.StaffUsed
+		overview.StaffMax = usage.StaffMax
+		overview.NextPaymentDate = usage.PeriodEnd
+	}
+
+	var sub model.Subscription
+	if err := s.db.WithContext(c).Preload("Plan").Where("nursery_id = ?", n.ID).First(&sub).Error; err == nil && sub.Plan != nil {
+		overview.PriceMinor = sub.Plan.PriceMinor
+		overview.Currency = sub.Plan.Currency
+		overview.BillingPeriod = string(sub.Plan.BillingPeriod)
+		if overview.PlanName == "" {
+			overview.PlanName = sub.Plan.Name
+		}
+	}
+
+	var admin model.User
+	if err := s.db.WithContext(c).
+		Where("nursery_id = ? AND role = ?", n.ID, model.RoleAdmin).
+		Order("id ASC").First(&admin).Error; err == nil {
+		overview.AdminEmail = admin.Email
+		overview.AdminName = admin.Name
+	}
+
+	rep := &dto.NurseryDetailsReport{
+		Nursery: overview,
+	}
+
+	// 1. Children and Age Statistics
+	var children []model.Child
+	s.db.WithContext(c).
+		Preload("Classroom").
+		Preload("Guardians.Parent").
+		Where("nursery_id = ?", n.ID).
+		Order("first_name ASC").
+		Find(&children)
+
+	rep.TotalChildren = len(children)
+
+	now := time.Now()
+	var totalMonths float64
+
+	bucketDefs := []struct {
+		Label string
+		Min   int
+		Max   int
+	}{
+		{"0–1 yr (Infants)", 0, 12},
+		{"1–2 yrs (Toddlers)", 13, 24},
+		{"2–3 yrs (Preschool)", 25, 36},
+		{"3–5 yrs (Pre-K)", 37, 60},
+		{"5+ yrs (Kindergarten)", 61, 9999},
+	}
+	bucketCounts := make([]int, len(bucketDefs))
+
+	classroomAges := make(map[uint64][]float64)
+
+	for _, ch := range children {
+		diffDays := now.Sub(ch.DOB).Hours() / 24
+		months := int(diffDays / 30.4375)
+		if months < 0 {
+			months = 0
+		}
+		years := float64(months) / 12.0
+		totalMonths += float64(months)
+
+		var formatted string
+		if months < 12 {
+			formatted = fmt.Sprintf("%d mos", months)
+		} else {
+			y := months / 12
+			m := months % 12
+			if m > 0 {
+				formatted = fmt.Sprintf("%dy %dm", y, m)
+			} else {
+				formatted = fmt.Sprintf("%dy", y)
+			}
+		}
+
+		for idx, b := range bucketDefs {
+			if months >= b.Min && months <= b.Max {
+				bucketCounts[idx]++
+				break
+			}
+		}
+
+		reg := dto.NurseryChildRegistrant{
+			ID:            ch.ID,
+			FirstName:     ch.FirstName,
+			LastName:      ch.LastName,
+			DOB:           ch.DOB.Format("2006-01-02"),
+			AgeYears:      years,
+			AgeMonths:     months,
+			AgeFormatted:  formatted,
+			Gender:        ch.Gender,
+			BloodType:     ch.BloodType,
+			ClassroomID:   ch.ClassroomID,
+			Status:        ch.Status,
+			PresentStatus: string(ch.PresentStatus),
+		}
+		if ch.Classroom != nil {
+			reg.ClassroomName = ch.Classroom.Name
+			classroomAges[ch.Classroom.ID] = append(classroomAges[ch.Classroom.ID], float64(months))
+		}
+		for _, g := range ch.Guardians {
+			if g.IsPrimary || reg.PrimaryGuardianName == "" {
+				if g.Parent != nil {
+					reg.PrimaryGuardianName = g.Parent.Name
+					reg.PrimaryGuardianPhone = g.Parent.Phone
+				}
+				reg.Relationship = g.Relationship
+			}
+		}
+		rep.Children = append(rep.Children, reg)
+	}
+
+	if rep.TotalChildren > 0 {
+		rep.AverageAgeMonths = totalMonths / float64(rep.TotalChildren)
+		rep.AverageAgeYears = rep.AverageAgeMonths / 12.0
+		for idx, b := range bucketDefs {
+			pct := (float64(bucketCounts[idx]) / float64(rep.TotalChildren)) * 100.0
+			rep.AgeDistribution = append(rep.AgeDistribution, dto.AgeBucket{
+				Label:      b.Label,
+				MinMonths:  b.Min,
+				MaxMonths:  b.Max,
+				Count:      bucketCounts[idx],
+				Percentage: pct,
+			})
+		}
+	} else {
+		for _, b := range bucketDefs {
+			rep.AgeDistribution = append(rep.AgeDistribution, dto.AgeBucket{
+				Label:      b.Label,
+				MinMonths:  b.Min,
+				MaxMonths:  b.Max,
+				Count:      0,
+				Percentage: 0,
+			})
+		}
+	}
+
+	// 2. Classrooms
+	var classrooms []model.Classroom
+	s.db.WithContext(c).
+		Preload("Teachers.Teacher").
+		Where("nursery_id = ?", n.ID).
+		Order("name ASC").
+		Find(&classrooms)
+
+	rep.TotalClassrooms = len(classrooms)
+	teacherClassroomMap := make(map[uint64][]string)
+
+	for _, cr := range classrooms {
+		crOverview := dto.NurseryClassroomOverview{
+			ID:           cr.ID,
+			Name:         cr.Name,
+			RoomLocation: cr.RoomLocation,
+			AgeGroup:     cr.AgeGroup,
+			Capacity:     cr.Capacity,
+			OpensAt:      cr.OpensAt,
+			ClosesAt:     cr.ClosesAt,
+		}
+
+		if ages, ok := classroomAges[cr.ID]; ok && len(ages) > 0 {
+			crOverview.ChildrenCount = len(ages)
+			var sum float64
+			for _, a := range ages {
+				sum += a
+			}
+			crOverview.AverageAgeMonths = sum / float64(len(ages))
+		}
+
+		for _, t := range cr.Teachers {
+			if t.Teacher != nil {
+				teacherClassroomMap[t.TeacherUserID] = append(teacherClassroomMap[t.TeacherUserID], cr.Name)
+				if t.Role == "lead" || crOverview.LeadTeacherName == "" {
+					crOverview.LeadTeacherName = t.Teacher.Name
+				}
+			}
+		}
+		rep.Classrooms = append(rep.Classrooms, crOverview)
+	}
+
+	// 3. Staff / Employees
+	var staffUsers []model.User
+	s.db.WithContext(c).
+		Where("nursery_id = ? AND role IN (?, ?)", n.ID, model.RoleAdmin, model.RoleTeacher).
+		Order("role ASC, name ASC").
+		Find(&staffUsers)
+
+	rep.TotalStaff = len(staffUsers)
+	for _, u := range staffUsers {
+		emp := dto.NurseryEmployee{
+			ID:         u.ID,
+			Name:       u.Name,
+			Email:      u.Email,
+			Phone:      u.Phone,
+			Role:       string(u.Role),
+			Status:     string(u.Status),
+			Classrooms: teacherClassroomMap[u.ID],
+		}
+		if u.LastLoginAt != nil {
+			ll := u.LastLoginAt.Format(time.RFC3339)
+			emp.LastLoginAt = &ll
+		}
+		rep.Staff = append(rep.Staff, emp)
+	}
+
+	// 4. Parents
+	var parentUsers []model.User
+	s.db.WithContext(c).
+		Where("nursery_id = ? AND role = ?", n.ID, model.RoleParent).
+		Order("name ASC").
+		Find(&parentUsers)
+
+	rep.TotalParents = len(parentUsers)
+
+	// Map guardians to parents
+	parentChildMap := make(map[uint64][]string)
+	for _, ch := range children {
+		for _, g := range ch.Guardians {
+			parentChildMap[g.ParentUserID] = append(parentChildMap[g.ParentUserID], ch.FirstName+" "+ch.LastName)
+		}
+	}
+
+	for _, u := range parentUsers {
+		p := dto.NurseryParentContact{
+			ID:            u.ID,
+			Name:          u.Name,
+			Email:         u.Email,
+			Phone:         u.Phone,
+			Status:        string(u.Status),
+			ChildrenNames: parentChildMap[u.ID],
+		}
+		if u.LastLoginAt != nil {
+			ll := u.LastLoginAt.Format(time.RFC3339)
+			p.LastLoginAt = &ll
+		}
+		rep.Parents = append(rep.Parents, p)
+	}
+
+	// 5. Invoices
+	var invoices []model.SubscriptionInvoice
+	s.db.WithContext(c).
+		Where("nursery_id = ?", n.ID).
+		Order("id DESC").
+		Find(&invoices)
+
+	for _, inv := range invoices {
+		item := dto.NurseryInvoiceItem{
+			ID:          inv.ID,
+			InvoiceNo:   inv.InvoiceNo,
+			AmountMinor: inv.AmountMinor,
+			Currency:    inv.Currency,
+			Period:      inv.Period,
+			DueDate:     inv.DueDate,
+			Status:      string(inv.Status),
+		}
+		if inv.PaidAt != nil {
+			pa := inv.PaidAt.Format(time.RFC3339)
+			item.PaidAt = &pa
+		}
+		rep.Invoices = append(rep.Invoices, item)
+	}
+
+	return rep, nil
 }
 
 // CreateNursery provisions a tenant, its subscription, its capabilities, and
@@ -124,19 +435,28 @@ func (s *SuperAdminService) CreateNursery(ctx context.Context, req *dto.CreateNu
 
 	planCode := req.PlanCode
 	if planCode == "" {
-		planCode = "starter"
+		planCode = "tier-50"
 	}
 	var plan model.Plan
 	if err := s.db.WithContext(c).Where("code = ?", planCode).First(&plan).Error; err != nil {
-		return nil, apperr.BadRequest("unknown plan code")
+		// Fallback to starter if tier not found
+		if err := s.db.WithContext(c).Where("code = ?", "starter").First(&plan).Error; err != nil {
+			return nil, apperr.BadRequest("unknown plan code")
+		}
+	}
+
+	loginIDPrefix := strings.ToLower(strings.TrimSpace(req.LoginIDPrefix))
+	if loginIDPrefix == "" {
+		loginIDPrefix = slug
 	}
 
 	nursery := &model.Nursery{
-		Name:     req.Name,
-		Slug:     slug,
-		Locale:   orDefault(req.Locale, "en"),
-		Timezone: orDefault(req.Timezone, "Europe/Stockholm"),
-		Status:   model.NurseryActive,
+		Name:          req.Name,
+		Slug:          slug,
+		LoginIDPrefix: loginIDPrefix,
+		Locale:        orDefault(req.Locale, "en"),
+		Timezone:      orDefault(req.Timezone, "Europe/Stockholm"),
+		Status:        model.NurseryActive,
 	}
 
 	err = s.db.WithContext(c).Transaction(func(tx *gorm.DB) error {
@@ -351,7 +671,7 @@ func (s *SuperAdminService) SavePlan(ctx context.Context, id uint64, req *dto.Pl
 	plan.MaxStudents = req.MaxStudents
 	plan.MaxStaff = req.MaxStaff
 	plan.PriceMinor = req.PriceMinor
-	plan.Currency = orDefault(req.Currency, "SEK")
+	plan.Currency = orDefault(req.Currency, "USD")
 	plan.BillingPeriod = model.BillingPeriod(orDefault(req.BillingPeriod, string(model.BillingMonthly)))
 	if req.IsActive != nil {
 		plan.IsActive = *req.IsActive
@@ -429,10 +749,11 @@ func (s *SuperAdminService) MarkInvoicePaid(ctx context.Context, invoiceID, acto
 }
 
 // GenerateSubscriptionInvoices raises this period's invoice for every billing
-// nursery. Idempotent per (nursery, period).
+// nursery. Idempotent per (nursery, period). Handles both monthly and yearly plans.
 func (s *SuperAdminService) GenerateSubscriptionInvoices(ctx context.Context, actorID uint64, ip string) (int, error) {
 	c := s.ctx(ctx)
-	period := time.Now().Format("2006-01")
+	monthlyPeriod := time.Now().Format("2006-01")
+	yearlyPeriod := time.Now().Format("2006")
 	due := time.Now().AddDate(0, 0, 14).Format("2006-01-02")
 
 	var subs []model.Subscription
@@ -447,6 +768,11 @@ func (s *SuperAdminService) GenerateSubscriptionInvoices(ctx context.Context, ac
 		if sub.Plan == nil {
 			continue
 		}
+		period := monthlyPeriod
+		if sub.Plan.BillingPeriod == model.BillingYearly {
+			period = yearlyPeriod
+		}
+
 		var exists int64
 		s.db.WithContext(c).Model(&model.SubscriptionInvoice{}).
 			Where("nursery_id = ? AND period = ?", sub.NurseryID, period).Count(&exists)
@@ -468,16 +794,187 @@ func (s *SuperAdminService) GenerateSubscriptionInvoices(ctx context.Context, ac
 		}
 		created++
 	}
-	if created > 0 {
+	if created > 0 && actorID > 0 {
 		s.audit.Record(ctx, actorID, "create", "subscription_invoice", 0,
-			map[string]any{"period": period, "count": created}, ip)
+			map[string]any{"period": monthlyPeriod, "count": created}, ip)
 	}
 	return created, nil
 }
 
+// MarkOverdueSubscriptionInvoices flags unpaid invoices past their due date as overdue,
+// and flips active subscriptions to past_due with a grace period.
+func (s *SuperAdminService) MarkOverdueSubscriptionInvoices(ctx context.Context) (int, error) {
+	c := s.ctx(ctx)
+	today := time.Now().Format("2006-01-02")
+
+	var overdueInvoices []model.SubscriptionInvoice
+	if err := s.db.WithContext(c).
+		Where("status = ? AND due_date < ?", model.InvoiceDue, today).
+		Find(&overdueInvoices).Error; err != nil {
+		return 0, apperr.Internal(err)
+	}
+
+	marked := 0
+	for _, inv := range overdueInvoices {
+		err := s.db.WithContext(c).Transaction(func(tx *gorm.DB) error {
+			if err := tx.Model(&inv).Update("status", model.InvoiceOverdue).Error; err != nil {
+				return err
+			}
+			grace := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
+			return tx.Model(&model.Subscription{}).
+				Where("nursery_id = ? AND status = ?", inv.NurseryID, model.SubActive).
+				Updates(map[string]any{
+					"status":      model.SubPastDue,
+					"grace_until": grace,
+				}).Error
+		})
+		if err == nil {
+			marked++
+		}
+	}
+	return marked, nil
+}
+
+// AutoRunBilling handles both generating current invoices and checking for overdue ones.
+func (s *SuperAdminService) AutoRunBilling(ctx context.Context, actorID uint64, ip string) (*dto.AutoRunResult, error) {
+	gen, err := s.GenerateSubscriptionInvoices(ctx, actorID, ip)
+	if err != nil {
+		return nil, err
+	}
+	overdue, err := s.MarkOverdueSubscriptionInvoices(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.AutoRunResult{
+		GeneratedInvoices: gen,
+		OverdueMarked:     overdue,
+	}, nil
+}
+
+// GetReminders returns intelligent operational and billing reminders for the superadmin.
+func (s *SuperAdminService) GetReminders(ctx context.Context) ([]dto.PlatformReminder, error) {
+	c := s.ctx(ctx)
+	var reminders []dto.PlatformReminder
+
+	// 1. Overdue invoices
+	var overdueInvs []model.SubscriptionInvoice
+	if err := s.db.WithContext(c).
+		Where("status = ?", model.InvoiceOverdue).
+		Order("due_date ASC").Limit(20).Find(&overdueInvs).Error; err == nil {
+		for _, inv := range overdueInvs {
+			var n model.Nursery
+			s.db.WithContext(c).Select("name").First(&n, inv.NurseryID)
+			reminders = append(reminders, dto.PlatformReminder{
+				ID:          fmt.Sprintf("inv-%d", inv.ID),
+				Type:        "overdue",
+				Severity:    "high",
+				NurseryID:   inv.NurseryID,
+				NurseryName: n.Name,
+				Title:       fmt.Sprintf("Payment Overdue: %s (%s)", inv.InvoiceNo, inv.Period),
+				Description: fmt.Sprintf("Nursery has an outstanding invoice of %0.2f %s due on %s.", float64(inv.AmountMinor)/100, inv.Currency, inv.DueDate),
+				ActionType:  "mark_paid",
+				ActionID:    inv.ID,
+				DueDate:     inv.DueDate,
+			})
+		}
+	}
+
+	// 2. Capacity warnings (> 85% enrollment)
+	var subs []model.Subscription
+	if err := s.db.WithContext(c).Preload("Plan").Find(&subs).Error; err == nil {
+		for _, sub := range subs {
+			if sub.MaxStudents <= 0 {
+				continue
+			}
+			var childCount int64
+			s.db.WithContext(database.WithCrossTenant(ctx)).Model(&model.Child{}).
+				Where("nursery_id = ? AND deleted_at IS NULL", sub.NurseryID).
+				Count(&childCount)
+
+			pct := float64(childCount) / float64(sub.MaxStudents) * 100
+			if pct >= 85 {
+				var n model.Nursery
+				s.db.WithContext(c).Select("name").First(&n, sub.NurseryID)
+				reminders = append(reminders, dto.PlatformReminder{
+					ID:          fmt.Sprintf("cap-%d", sub.NurseryID),
+					Type:        "capacity",
+					Severity:    "medium",
+					NurseryID:   sub.NurseryID,
+					NurseryName: n.Name,
+					Title:       fmt.Sprintf("High Capacity: %d / %d students (%.0f%%)", childCount, sub.MaxStudents, pct),
+					Description: fmt.Sprintf("%s is close to its student limit. Recommend upgrading to a higher tier.", n.Name),
+					ActionType:  "upgrade_plan",
+					ActionID:    sub.NurseryID,
+				})
+			}
+		}
+	}
+
+	return reminders, nil
+}
+
+// GetReports computes platform metrics and tier breakdowns for the superadmin.
+func (s *SuperAdminService) GetReports(ctx context.Context) (*dto.PlatformReport, error) {
+	c := s.ctx(ctx)
+	var rep dto.PlatformReport
+
+	s.db.WithContext(c).Model(&model.Nursery{}).Count(&rep.TotalNurseries)
+	s.db.WithContext(c).Model(&model.Nursery{}).Where("status = ?", model.NurseryActive).Count(&rep.ActiveNurseries)
+	s.db.WithContext(c).Model(&model.Subscription{}).Where("status = ?", model.SubPastDue).Count(&rep.PastDueNurseries)
+
+	s.db.WithContext(database.WithCrossTenant(ctx)).Model(&model.Child{}).
+		Where("deleted_at IS NULL").Count(&rep.TotalChildren)
+
+	// Total capacity
+	s.db.WithContext(c).Model(&model.Subscription{}).
+		Select("COALESCE(SUM(max_students), 0)").Scan(&rep.TotalCapacity)
+	if rep.TotalCapacity > 0 {
+		rep.CapacityUsedPct = float64(rep.TotalChildren) / float64(rep.TotalCapacity) * 100
+	}
+
+	// MRR & ARR
+	s.db.WithContext(c).Model(&model.Subscription{}).
+		Joins("JOIN plans ON plans.id = subscriptions.plan_id").
+		Where("subscriptions.status IN ?", []model.SubscriptionStatus{model.SubActive, model.SubPastDue}).
+		Select("COALESCE(CAST(SUM(CASE WHEN plans.billing_period = 'yearly' THEN plans.price_minor / 12 ELSE plans.price_minor END) AS SIGNED), 0)").
+		Scan(&rep.MRRMinor)
+	rep.ARRMinor = rep.MRRMinor * 12
+
+	// Invoice totals
+	s.db.WithContext(c).Model(&model.SubscriptionInvoice{}).Count(&rep.TotalInvoices)
+	s.db.WithContext(c).Model(&model.SubscriptionInvoice{}).Where("status = ?", model.InvoicePaid).Count(&rep.PaidInvoices)
+	s.db.WithContext(c).Model(&model.SubscriptionInvoice{}).Where("status = ?", model.InvoiceOverdue).Count(&rep.OverdueInvoices)
+
+	s.db.WithContext(c).Model(&model.SubscriptionInvoice{}).
+		Where("status = ?", model.InvoicePaid).
+		Select("COALESCE(SUM(amount_minor), 0)").Scan(&rep.PaidAmountMinor)
+	s.db.WithContext(c).Model(&model.SubscriptionInvoice{}).
+		Where("status = ?", model.InvoiceOverdue).
+		Select("COALESCE(SUM(amount_minor), 0)").Scan(&rep.OverdueAmountMinor)
+
+	// Tier breakdown
+	var plans []model.Plan
+	if err := s.db.WithContext(c).Where("is_active = ?", true).Order("price_minor ASC").Find(&plans).Error; err == nil {
+		for _, p := range plans {
+			var cnt int64
+			s.db.WithContext(c).Model(&model.Subscription{}).Where("plan_id = ?", p.ID).Count(&cnt)
+			rep.Tiers = append(rep.Tiers, dto.TierBreakdown{
+				PlanCode:      p.Code,
+				PlanName:      p.Name,
+				BillingPeriod: string(p.BillingPeriod),
+				NurseryCount:  int(cnt),
+				RevenueMinor:  int64(cnt) * p.PriceMinor,
+			})
+		}
+	}
+
+	return &rep, nil
+}
+
+
 func toNurseryDTO(n *model.Nursery) dto.NurseryDTO {
 	return dto.NurseryDTO{
-		ID: n.ID, Name: n.Name, Slug: n.Slug,
+		ID: n.ID, Name: n.Name, Slug: n.Slug, LoginIDPrefix: n.LoginIDPrefix,
 		Status: string(n.Status), Locale: n.Locale, Timezone: n.Timezone,
 	}
 }

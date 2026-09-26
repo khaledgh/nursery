@@ -7,12 +7,12 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
 	"gorm.io/gorm"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
 	"github.com/sunnystars/backend/internal/pkg/hash"
@@ -46,7 +46,18 @@ func NewMediaService(db *gorm.DB, store storage.Storage) *MediaService {
 	return &MediaService{db: db, store: store}
 }
 
-func (s *MediaService) Upload(ctx context.Context, userID uint64, fh *multipart.FileHeader) (*model.Media, error) {
+func (s *MediaService) resolveNurseryID(ctx context.Context, userID uint64) uint64 {
+	if nid, ok := database.TenantFrom(ctx); ok && nid != 0 {
+		return nid
+	}
+	var u model.User
+	if err := s.db.WithContext(database.WithCrossTenant(ctx)).Select("nursery_id").First(&u, userID).Error; err == nil && u.NurseryID != 0 {
+		return u.NurseryID
+	}
+	return 1
+}
+
+func (s *MediaService) Upload(ctx context.Context, userID uint64, fh *multipart.FileHeader, folder, entityID string) (*model.Media, error) {
 	if fh.Size <= 0 || fh.Size > maxUploadBytes {
 		return nil, apperr.BadRequest(fmt.Sprintf("file must be between 1 byte and %d MB", maxUploadBytes>>20))
 	}
@@ -71,7 +82,8 @@ func (s *MediaService) Upload(ctx context.Context, userID uint64, fh *multipart.
 		return nil, apperr.Internal(err)
 	}
 
-	key, err := randomKey(ext)
+	nurseryID := s.resolveNurseryID(ctx, userID)
+	key, err := buildStorageKey(nurseryID, folder, entityID, ext)
 	if err != nil {
 		return nil, apperr.Internal(err)
 	}
@@ -96,23 +108,42 @@ func (s *MediaService) Upload(ctx context.Context, userID uint64, fh *multipart.
 	return media, nil
 }
 
-// randomKey builds a server-generated storage key — client filenames never
-// reach the filesystem or bucket, and the client cannot influence where its
-// own upload lands.
-func randomKey(ext string) (string, error) {
+// buildStorageKey builds a structured, tenant-partitioned storage key:
+// nursery_{nursery_id}/{folder}/{entity_id}/{token}{ext}
+// e.g.:
+// - nursery_1/children/42/ab12cd.jpg
+// - nursery_1/classrooms/5/ef34gh.png
+// - nursery_1/community/post_12/ij56kl.webp
+// - nursery_1/general/mn78op.pdf
+func buildStorageKey(nurseryID uint64, folder, entityID, ext string) (string, error) {
 	token, err := hash.RandomToken()
 	if err != nil {
 		return "", err
 	}
-	return path.Join(time.Now().Format("2006/01"), token+ext), nil
+	folder = strings.ToLower(strings.TrimSpace(folder))
+	if folder == "" {
+		folder = "general"
+	}
+	folder = strings.ReplaceAll(folder, "/", "_")
+	folder = strings.ReplaceAll(folder, "..", "")
+
+	entityID = strings.TrimSpace(entityID)
+	entityID = strings.ReplaceAll(entityID, "/", "_")
+	entityID = strings.ReplaceAll(entityID, "..", "")
+
+	if nurseryID == 0 {
+		nurseryID = 1
+	}
+
+	if entityID != "" {
+		return fmt.Sprintf("nursery_%d/%s/%s/%s%s", nurseryID, folder, entityID, token, ext), nil
+	}
+	return fmt.Sprintf("nursery_%d/%s/%s%s", nurseryID, folder, token, ext), nil
 }
 
 // PresignUpload reserves a key and hands back a URL the client PUTs bytes to
-// directly, so the request body never passes through this server. The Media
-// row is created immediately in "pending" status: it exists so the key is
-// tracked (and can be swept up if the upload never happens), but AfterFind
-// withholds a URL for it until ConfirmUpload verifies the object landed.
-func (s *MediaService) PresignUpload(ctx context.Context, userID uint64, mime string, size int64) (*model.Media, string, error) {
+// directly, so the request body never passes through this server.
+func (s *MediaService) PresignUpload(ctx context.Context, userID uint64, mime string, size int64, folder, entityID string) (*model.Media, string, error) {
 	if size <= 0 || size > maxUploadBytes {
 		return nil, "", apperr.BadRequest(fmt.Sprintf("file must be between 1 byte and %d MB", maxUploadBytes>>20))
 	}
@@ -120,7 +151,9 @@ func (s *MediaService) PresignUpload(ctx context.Context, userID uint64, mime st
 	if !ok {
 		return nil, "", apperr.BadRequest("unsupported file type; allowed: jpeg, png, gif, webp, pdf")
 	}
-	key, err := randomKey(ext)
+
+	nurseryID := s.resolveNurseryID(ctx, userID)
+	key, err := buildStorageKey(nurseryID, folder, entityID, ext)
 	if err != nil {
 		return nil, "", apperr.Internal(err)
 	}

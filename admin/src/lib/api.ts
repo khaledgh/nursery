@@ -4,7 +4,7 @@ import type { ApiErrorBody, LoginResponse } from "../types/api";
 import { parseApiError } from "./apiError";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8080/api/v1",
+  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
   timeout: 20000,
 });
 
@@ -54,6 +54,11 @@ api.interceptors.response.use(
       if (token) {
         original.headers.Authorization = `Bearer ${token}`;
         return api(original);
+      } else {
+        useAuthStore.getState().logout();
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
       }
     }
     return Promise.reject(error);

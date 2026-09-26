@@ -33,7 +33,7 @@ INSERT INTO nurseries (id, name, slug, status)
 SELECT 1,
        COALESCE(
            NULLIF(TRIM(BOTH '"' FROM (SELECT value_json FROM settings WHERE `key` = 'nursery_name' LIMIT 1)), ''),
-           'Little Talent Childcare'
+           'Nursee+'
        ),
        'default',
        'active'
