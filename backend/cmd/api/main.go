@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -37,6 +38,9 @@ import (
 	"github.com/sunnystars/backend/internal/storage"
 	"github.com/sunnystars/backend/internal/ws"
 )
+
+//go:embed all:dist
+var embeddedAdminFS embed.FS
 
 func main() {
 	log := zerolog.New(os.Stdout).With().Timestamp().Logger()
@@ -230,20 +234,21 @@ func main() {
 	platformHandler.RegisterPublic(api)
 	platformHandler.Register(protected)
 
-	// Serve Admin frontend SPA on the same port (e.g. localhost:8080)
-	if adminDist := findAdminDist(); adminDist != "" {
-		log.Info().Str("path", adminDist).Msg("serving admin frontend SPA")
+	// Serve Admin frontend SPA embedded directly in the Go binary
+	if subFS, err := fs.Sub(embeddedAdminFS, "dist"); err == nil {
+		log.Info().Msg("serving embedded admin frontend SPA")
 		e.Use(echomw.StaticWithConfig(echomw.StaticConfig{
-			Root:   adminDist,
-			Index:  "index.html",
-			HTML5:  true,
+			Root:       "/",
+			Index:      "index.html",
+			HTML5:      true,
+			Filesystem: http.FS(subFS),
 			Skipper: func(c echo.Context) bool {
 				p := c.Request().URL.Path
 				return strings.HasPrefix(p, "/api") || strings.HasPrefix(p, "/healthz")
 			},
 		}))
 	} else {
-		log.Warn().Msg("admin dist folder not found — admin frontend SPA not served")
+		log.Warn().Err(err).Msg("failed to load embedded admin filesystem")
 	}
 
 	// Background jobs
@@ -370,27 +375,4 @@ func requestLogger(log zerolog.Logger) echo.MiddlewareFunc {
 			return nil
 		},
 	})
-}
-
-func findAdminDist() string {
-	candidates := []string{
-		os.Getenv("ADMIN_DIST_DIR"),
-		"../admin/dist",
-		"./admin/dist",
-		"../../admin/dist",
-		"./dist",
-	}
-	for _, c := range candidates {
-		if c == "" {
-			continue
-		}
-		if fi, err := os.Stat(filepath.Join(c, "index.html")); err == nil && !fi.IsDir() {
-			abs, err := filepath.Abs(c)
-			if err == nil {
-				return abs
-			}
-			return c
-		}
-	}
-	return ""
 }

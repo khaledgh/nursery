@@ -26,6 +26,10 @@ export default defineConfig(({ mode }) => {
   const devPort = parseInt(env.PORT || env.VITE_PORT || '5173', 10)
 
   return {
+    build: {
+      outDir: '../backend/cmd/api/dist',
+      emptyOutDir: true,
+    },
     plugins: [react()],
     server: {
       port: isNaN(devPort) ? 5173 : devPort,

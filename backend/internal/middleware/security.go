@@ -18,22 +18,22 @@ func SecurityHeaders() echo.MiddlewareFunc {
 			h := c.Response().Header()
 			h.Set("X-Content-Type-Options", "nosniff")
 			h.Set("X-Frame-Options", "DENY")
-			h.Set("Referrer-Policy", "no-referrer")
-			h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
-			h.Set("Cross-Origin-Opener-Policy", "same-origin")
 			h.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 
-			if strings.HasPrefix(c.Request().URL.Path, mediaStreamPrefix) {
-				// The dashboard and app load these images from another origin, so
-				// same-origin CORP would make the browser discard a 200 response
-				// ("ERR_BLOCKED_BY_RESPONSE.NotSameOrigin"). cross-origin here only
-				// permits embedding; the signed URL still gates who can fetch it.
-				h.Set("Cross-Origin-Resource-Policy", "cross-origin")
-				// Caching is left to the stream handler, which allows a private
-				// cache for the lifetime of the signature.
+			p := c.Request().URL.Path
+			if strings.HasPrefix(p, "/api") {
+				h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+				h.Set("Cross-Origin-Opener-Policy", "same-origin")
+				if strings.HasPrefix(p, mediaStreamPrefix) {
+					h.Set("Cross-Origin-Resource-Policy", "cross-origin")
+				} else {
+					h.Set("Cross-Origin-Resource-Policy", "same-origin")
+					h.Set("Cache-Control", "no-store")
+				}
 			} else {
-				h.Set("Cross-Origin-Resource-Policy", "same-origin")
-				h.Set("Cache-Control", "no-store")
+				// Admin frontend SPA & static assets
+				h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: http:; connect-src 'self' ws: wss: https: http:; frame-ancestors 'none'")
+				h.Set("Cross-Origin-Resource-Policy", "cross-origin")
 			}
 			return next(c)
 		}

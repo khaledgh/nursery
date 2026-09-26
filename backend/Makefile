@@ -13,8 +13,8 @@ run:
 	go run ./cmd/api
 
 build:
-	go build -trimpath -ldflags "-s -w" -o bin/api ./cmd/api
-	go build -trimpath -ldflags "-s -w" -o bin/seed ./cmd/seed
+	cd ../admin && npm run build
+	go build -trimpath -ldflags "-s -w" -o api.exe ./cmd/api
 
 seed:
 	go run ./cmd/seed
