@@ -29,7 +29,8 @@
     "analytics": "Analytics",
     "superadmin_dashboard": "Platform Dashboard",
     "superadmin_reports": "Reports & Analytics",
-    "superadmin_reminders": "Reminders & Alerts"
+    "superadmin_reminders": "Reminders & Alerts",
+    "superadmin_demo_requests": "Demo Requests"
   },
   "auth": {
     "title": "Sign in to Nursee+",
@@ -57,6 +58,47 @@
     "date": "Date",
     "title": "Title",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "items": "items"
+  },
+  "demo_requests": {
+    "title": "Demo Requests",
+    "subtitle": "Leads submitted from the Nursee+ landing page",
+    "allStatuses": "All statuses",
+    "received": "Received",
+    "contact": "Contact",
+    "nursery": "Nursery",
+    "children": "Children",
+    "location": "Location",
+    "language": "Language",
+    "message": "Message",
+    "preferredTime": "Preferred contact time",
+    "notes": "Internal notes",
+    "notesPlaceholder": "Call summary, next steps…",
+    "details": "Demo request",
+    "saved": "Saved",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "call": "Call",
+    "status": {
+      "new": "New",
+      "contacted": "Contacted",
+      "scheduled": "Demo scheduled",
+      "converted": "Converted",
+      "rejected": "Rejected"
+    },
+    "range": {
+      "lt30": "< 30",
+      "30_60": "30–60",
+      "60_100": "60–100",
+      "100_150": "100–150",
+      "gt150": "150+"
+    },
+    "phone": "Phone",
+    "time": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    }
   }
 }

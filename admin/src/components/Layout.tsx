@@ -21,6 +21,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   BellRing,
+  Inbox,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -46,7 +47,7 @@ import { useMeContext } from "../hooks/useMeContext";
 import { useUnreadCount } from "../hooks/useUnreadCount";
 import { BillingBanner } from "./SeatMeter";
 import { GlobalSearch } from "./GlobalSearch";
-import type { Capability, ListResponse, Notification } from "../types/api";
+import type { Capability, ListResponse, Notification, PlatformStats } from "../types/api";
 
 interface NavItem {
   to: string;
@@ -55,6 +56,7 @@ interface NavItem {
   end?: boolean;
   capability?: Capability;
   roles?: string[];
+  badge?: number;
 }
 
 interface NavSection {
@@ -146,6 +148,13 @@ export function Layout() {
 
   const isSuperAdmin = user?.role === "superadmin";
 
+  const { data: platformStats } = useQuery({
+    queryKey: ["platform-stats"],
+    queryFn: async () => (await api.get<{ data: PlatformStats }>("/superadmin/stats")).data.data,
+    enabled: isSuperAdmin,
+    refetchInterval: 60_000,
+  });
+
   const visible: NavSection[] = isSuperAdmin
     ? [
         {
@@ -156,6 +165,12 @@ export function Layout() {
             { to: "/superadmin/plans", icon: Layers, key: "nav.plans_admin" },
             { to: "/superadmin/reports", icon: BarChart3, key: "nav.superadmin_reports" },
             { to: "/superadmin/reminders", icon: BellRing, key: "nav.superadmin_reminders" },
+            {
+              to: "/superadmin/demo-requests",
+              icon: Inbox,
+              key: "nav.superadmin_demo_requests",
+              badge: platformStats?.new_demo_requests,
+            },
           ],
         },
         {
@@ -250,7 +265,7 @@ export function Layout() {
                   {section.label}
                 </p>
               )}
-              {section.items.map(({ to, icon: Icon, key, end }) => {
+              {section.items.map(({ to, icon: Icon, key, end, badge }) => {
                 const navLink = (
                   <NavLink
                     to={to}
@@ -267,6 +282,11 @@ export function Layout() {
                   >
                     <Icon size={17} className="shrink-0" />
                     {!collapsed && <span className="truncate">{t(key)}</span>}
+                    {!collapsed && badge ? (
+                      <span className="ms-auto rounded-full bg-rose-500 px-1.5 text-[10px] font-bold leading-4 text-white">
+                        {badge > 99 ? "99+" : badge}
+                      </span>
+                    ) : null}
                   </NavLink>
                 );
 

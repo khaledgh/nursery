@@ -14,7 +14,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.nurseeplus",
-      buildNumber: "3",
+      buildNumber: "4",
       infoPlist: {
         // Lets a push wake the app to fetch before the notification is shown.
         UIBackgroundModes: ["remote-notification"],

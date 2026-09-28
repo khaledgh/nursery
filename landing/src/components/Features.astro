@@ -1,0 +1,50 @@
+---
+import { features } from "../data/features";
+import type { Dict } from "../i18n";
+
+interface Props {
+  t: Dict["features"];
+}
+const { t } = Astro.props;
+---
+
+<section id="features" class="relative overflow-hidden py-24 sm:py-32">
+  <!-- depth-0 / depth-2 decoration -->
+  <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+    <div class="glow glow-teal drift absolute top-10 -end-40 h-96 w-96"></div>
+    <div class="glow glow-marigold drift absolute bottom-0 -start-40 h-96 w-96 [animation-delay:-7s]"></div>
+    <span class="float-loop absolute top-24 start-[8%] text-3xl text-coral/70">★</span>
+    <span class="float-loop-slow absolute bottom-24 end-[10%] text-4xl font-black text-violet/50">+</span>
+  </div>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6">
+    <div class="mx-auto max-w-2xl text-center">
+      <span class="eyebrow" data-reveal>{t.eyebrow}</span>
+      <h2 class="mt-4 text-3xl font-black text-ink sm:text-5xl" data-reveal style="--i:1">{t.title}</h2>
+      <p class="mt-4 text-lg text-muted" data-reveal style="--i:2">{t.subtitle}</p>
+    </div>
+
+    <ul class="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        features.map(({ key, icon: Icon, color, tint }, i) => (
+          <li
+            data-reveal="pop"
+            style={`--i:${i % 4}`}
+            class="group relative overflow-hidden rounded-3xl bg-white p-6 shadow-[0_10px_40px_-20px_rgba(30,41,59,0.25)] ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_25px_50px_-20px_rgba(108,92,231,0.35)]"
+          >
+            <span
+              class="absolute -end-10 -top-10 h-28 w-28 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              style={`background:${tint}`}
+              aria-hidden="true"
+            />
+            <span class="wiggle relative grid h-14 w-14 place-items-center rounded-2xl" style={`background:${tint};color:${color}`}>
+              <Icon size={26} strokeWidth={2.2} />
+            </span>
+            <h3 class="relative mt-5 text-lg font-extrabold text-ink">{t.items[key].t}</h3>
+            <p class="relative mt-2 text-sm leading-relaxed text-muted">{t.items[key].d}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

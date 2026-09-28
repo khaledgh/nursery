@@ -1,0 +1,103 @@
+---
+import { Check, Palette } from "lucide-react";
+import { currency, tiers, whiteLabelPrice } from "../data/pricing";
+import type { Dict } from "../i18n";
+
+interface Props {
+  t: Dict["pricing"];
+  ranges: Dict["ranges"];
+}
+const { t, ranges } = Astro.props;
+const faceColors = ["#2cafa8", "#6c5ce7", "#ffb142", "#ff5e7e", "#00a8ff"];
+---
+
+<section id="pricing" class="relative overflow-hidden bg-white py-24 sm:py-32">
+  <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+    <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cream to-transparent"></div>
+    <span class="float-loop absolute top-28 end-[12%] text-4xl text-marigold">★</span>
+    <span class="float-loop-slow absolute bottom-20 start-[6%] h-5 w-5 rounded-full bg-sky/60"></span>
+  </div>
+
+  <div class="relative mx-auto max-w-7xl px-4 sm:px-6">
+    <div class="mx-auto max-w-2xl text-center">
+      <span class="eyebrow" data-reveal>{t.eyebrow}</span>
+      <h2 class="mt-4 text-3xl font-black text-ink sm:text-5xl" data-reveal style="--i:1">{t.title}</h2>
+      <p class="mt-4 text-lg text-muted" data-reveal style="--i:2">{t.subtitle}</p>
+    </div>
+
+    <ul class="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4">
+      {
+        tiers.map((tier, i) => (
+          <li
+            data-reveal
+            style={`--i:${i}`}
+            class:list={[
+              "relative flex flex-col rounded-3xl p-6 transition-shadow duration-300",
+              tier.popular
+                ? "bg-gradient-to-b from-violet to-violet-dark text-white shadow-[0_30px_60px_-25px_rgba(108,92,231,0.8)] lg:-my-4 lg:py-10"
+                : "bg-cream ring-1 ring-black/5 hover:shadow-xl",
+            ]}
+          >
+            {tier.popular && (
+              <span class="absolute -top-3 start-1/2 -translate-x-1/2 rounded-full bg-marigold px-3 py-1 text-xs font-extrabold whitespace-nowrap text-ink shadow rtl:translate-x-1/2">
+                {t.popular}
+              </span>
+            )}
+            <div class="flex min-h-[3.25rem] flex-wrap content-start gap-1" aria-hidden="true">
+              {Array.from({ length: tier.kids }).map((_, k) => (
+                <span
+                  class="grid h-6 w-6 place-items-center rounded-full text-xs"
+                  style={`background:${tier.popular ? "rgba(255,255,255,0.2)" : faceColors[k % faceColors.length] + "22"}`}
+                >
+                  👶
+                </span>
+              ))}
+            </div>
+            <p class:list={["mt-4 text-sm font-extrabold", tier.popular ? "text-white/80" : "text-muted"]}>
+              {ranges[tier.range]} {t.children}
+            </p>
+            <p class="mt-2 flex flex-wrap items-baseline gap-1">
+              <span class="text-4xl font-black" dir="ltr">
+                {currency}
+                {tier.price}
+              </span>
+              <span class:list={["text-sm font-bold", tier.popular ? "text-white/70" : "text-muted"]}>{t.perMonth}</span>
+            </p>
+            <p class:list={["mt-4 mb-6 flex items-center gap-2 text-sm font-bold", tier.popular ? "text-white" : "text-ink/80"]}>
+              <Check size={16} strokeWidth={3} class={tier.popular ? "text-marigold" : "text-teal"} />
+              {t.allFeatures}
+            </p>
+            <button
+              type="button"
+              data-demo
+              data-range={tier.range}
+              class:list={[
+                "mt-auto w-full rounded-full px-4 py-2.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5",
+                tier.popular ? "bg-white text-violet-dark" : "bg-white text-ink ring-1 ring-black/10 hover:ring-teal",
+              ]}
+            >
+              {t.cta}
+            </button>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div
+      data-reveal
+      class="mx-auto mt-12 flex max-w-3xl flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-teal/40 bg-teal-light p-6 text-center sm:flex-row sm:text-start"
+    >
+      <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white text-teal shadow-sm">
+        <Palette size={26} />
+      </span>
+      <div class="flex-1">
+        <h3 class="text-lg font-extrabold text-ink">{t.whiteLabelTitle}</h3>
+        <p class="text-sm text-muted">{t.whiteLabelDesc}</p>
+      </div>
+      <p class="text-2xl font-black text-teal-dark">
+        <span dir="ltr">+{currency}{whiteLabelPrice}</span>
+        <span class="text-sm font-bold text-muted">{t.perMonth}</span>
+      </p>
+    </div>
+  </div>
+</section>

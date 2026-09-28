@@ -29,7 +29,8 @@
     "analytics": "التحليلات",
     "superadmin_dashboard": "لوحة المنصة",
     "superadmin_reports": "تقارير المنصة",
-    "superadmin_reminders": "التنبيهات والمواعيد"
+    "superadmin_reminders": "التنبيهات والمواعيد",
+    "superadmin_demo_requests": "طلبات العرض التجريبي"
   },
   "auth": {
     "title": "تسجيل الدخول",
@@ -57,6 +58,47 @@
     "date": "التاريخ",
     "title": "العنوان",
     "active": "نشط",
-    "inactive": "غير نشط"
+    "inactive": "غير نشط",
+    "items": "عنصر"
+  },
+  "demo_requests": {
+    "title": "طلبات العرض التجريبي",
+    "subtitle": "الطلبات المرسلة من الصفحة التعريفية لـ Nursee+",
+    "allStatuses": "كل الحالات",
+    "received": "تاريخ الاستلام",
+    "contact": "التواصل",
+    "nursery": "الحضانة",
+    "children": "عدد الأطفال",
+    "location": "الموقع",
+    "language": "اللغة",
+    "message": "الرسالة",
+    "preferredTime": "الوقت المفضل للتواصل",
+    "notes": "ملاحظات داخلية",
+    "notesPlaceholder": "ملخص المكالمة، الخطوات التالية…",
+    "details": "طلب عرض تجريبي",
+    "saved": "تم الحفظ",
+    "whatsapp": "واتساب",
+    "email": "البريد",
+    "call": "اتصال",
+    "status": {
+      "new": "جديد",
+      "contacted": "تم التواصل",
+      "scheduled": "تم تحديد موعد",
+      "converted": "تم الاشتراك",
+      "rejected": "مرفوض"
+    },
+    "range": {
+      "lt30": "أقل من 30",
+      "30_60": "30–60",
+      "60_100": "60–100",
+      "100_150": "100–150",
+      "gt150": "أكثر من 150"
+    },
+    "phone": "الهاتف",
+    "time": {
+      "morning": "صباحًا",
+      "afternoon": "بعد الظهر",
+      "evening": "مساءً"
+    }
   }
 }

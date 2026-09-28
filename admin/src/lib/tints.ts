@@ -30,6 +30,14 @@ export const SUBSCRIPTION_STATUS_TINT: Record<string, string> = {
   cancelled: NEUTRAL,
 };
 
+export const DEMO_REQUEST_STATUS_TINT: Record<string, string> = {
+  new: "bg-sky-100 text-sky-700",
+  contacted: "bg-amber-100 text-amber-700",
+  scheduled: "bg-purple-100 text-purple-700",
+  converted: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-rose-100 text-rose-700",
+};
+
 export const EVENT_STATUS_TINT: Record<string, string> = {
   scheduled: "bg-sky-100 text-sky-700",
   ongoing: "bg-emerald-100 text-emerald-700",

@@ -1,0 +1,54 @@
+---
+import Base from "../layouts/Base.astro";
+import Contact from "./Contact.astro";
+import DemoModal from "./DemoModal";
+import Features from "./Features.astro";
+import Footer from "./Footer.astro";
+import Hero from "./Hero";
+import Navbar from "./Navbar";
+import Pricing from "./Pricing.astro";
+import Showcase from "./Showcase";
+import WhyUs from "./WhyUs.astro";
+import { features } from "../data/features";
+import { site } from "../data/site";
+import { dirOf, getDict, localeNames, localePath, locales, type Locale } from "../i18n";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = getDict(locale);
+const languages = locales.map((code) => ({ code, name: localeNames[code], href: localePath(code) }));
+const marquee = features.map((f) => t.features.items[f.key].t);
+---
+
+<Base locale={locale}>
+  <Navbar client:load t={t.nav} locale={locale} adminUrl={site.adminUrl} languages={languages} home={localePath(locale)} />
+
+  <main>
+    <Hero client:load t={{ hero: t.hero, mock: t.mock }} rtl={dirOf(locale) === "rtl"} />
+
+    <!-- Feature ribbon: a slow marquee between hero and features -->
+    <div class="relative -rotate-1 overflow-hidden bg-gradient-to-r from-teal via-violet to-coral py-4 shadow-lg" aria-hidden="true">
+      <div class="marquee-track flex w-max gap-10 whitespace-nowrap">
+        {
+          [...marquee, ...marquee].map((label) => (
+            <span class="flex items-center gap-10 text-lg font-extrabold text-white">
+              {label}
+              <span class="text-marigold">✦</span>
+            </span>
+          ))
+        }
+      </div>
+    </div>
+
+    <Features t={t.features} />
+    <Showcase client:visible t={t.showcase} mock={t.mock} />
+    <WhyUs t={t.why} />
+    <Pricing t={t.pricing} ranges={t.ranges} />
+    <Contact t={{ cta: t.cta, contact: t.contact, form: t.form, ranges: t.ranges }} locale={locale} />
+  </main>
+
+  <Footer t={{ footer: t.footer, nav: t.nav }} locale={locale} />
+  <DemoModal client:load t={t.form} ranges={t.ranges} locale={locale} />
+</Base>

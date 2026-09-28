@@ -36,6 +36,7 @@ import { PlansPage } from "./features/superadmin/PlansPage";
 import { SuperAdminDashboardPage } from "./features/superadmin/SuperAdminDashboardPage";
 import { SuperAdminReportsPage } from "./features/superadmin/SuperAdminReportsPage";
 import { SuperAdminRemindersPage } from "./features/superadmin/SuperAdminRemindersPage";
+import { DemoRequestsPage } from "./features/superadmin/DemoRequestsPage";
 
 import { useAuthStore } from "./store/auth";
 
@@ -71,6 +72,7 @@ function AppContent() {
             <Route path="superadmin/plans" element={<PlansPage />} />
             <Route path="superadmin/reports" element={<SuperAdminReportsPage />} />
             <Route path="superadmin/reminders" element={<SuperAdminRemindersPage />} />
+            <Route path="superadmin/demo-requests" element={<DemoRequestsPage />} />
             <Route path="classrooms" element={<ClassroomsPage />} />
             <Route path="classrooms/:id" element={<ClassroomDetailPage />} />
             <Route path="attendance" element={<AttendancePage />} />

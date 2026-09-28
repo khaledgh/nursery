@@ -128,6 +128,9 @@ func main() {
 	e.HideBanner = true
 	e.HTTPErrorHandler = errorHandler(log)
 	e.Validator = dto.NewValidator()
+	// Trust X-Forwarded-For only from loopback/private proxies, so per-IP rate
+	// limits and audit IPs can't be spoofed by a client-sent header.
+	e.IPExtractor = echo.ExtractIPFromXFFHeader()
 
 	// Allow both /api/* and /api/v1/* for convenience
 	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -226,6 +229,7 @@ func main() {
 
 	superAdminSvc := service.NewSuperAdminService(db, subscriptionSvc, jwts, auditSvc)
 	handler.NewSuperAdminHandler(superAdminSvc, subscriptionSvc).Register(protected)
+	handler.NewDemoRequestHandler(service.NewDemoRequestService(db, auditSvc)).Register(api, protected)
 	// /me/context is one call the admin SPA makes on load: who am I, which
 	// nursery, which modules, and how many seats are left.
 	handler.NewContextHandler(subscriptionSvc, userSvc, service.NewSearchService(db, subscriptionSvc), db).Register(protected)

@@ -13,6 +13,7 @@
     "production": {
       "prebuildCommand": "npx expo prebuild --clean",
       "env": {
+        "NODE_ENV": "production",
         "EXPO_PUBLIC_API_URL": "https://nurseeplus.gonext.tech/api",
         "EXPO_PUBLIC_ONESIGNAL_APP_ID": "f04b30a6-6386-41a4-9a50-05f846e2574b"
       },

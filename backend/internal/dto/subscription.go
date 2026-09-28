@@ -102,6 +102,7 @@ type PlatformStats struct {
 	OverdueInvoices  int64 `json:"overdue_invoices"`
 	MRRMinor         int64 `json:"mrr_minor"`
 	NurseriesPastDue int64 `json:"nurseries_past_due"`
+	NewDemoRequests  int64 `json:"new_demo_requests"`
 }
 
 type AutoRunResult struct {

@@ -148,6 +148,29 @@ export interface PlatformStats {
   overdue_invoices: number;
   mrr_minor: number;
   nurseries_past_due: number;
+  new_demo_requests: number;
+}
+
+export type DemoRequestStatus = "new" | "contacted" | "scheduled" | "converted" | "rejected";
+
+export interface DemoRequest {
+  id: number;
+  full_name: string;
+  nursery_name: string;
+  email: string;
+  phone: string;
+  city: string | null;
+  country: string | null;
+  children_range: "lt30" | "30_60" | "60_100" | "100_150" | "gt150" | null;
+  preferred_contact_time: string | null;
+  message: string | null;
+  locale: string;
+  status: DemoRequestStatus;
+  admin_notes: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SubscriptionInvoice {

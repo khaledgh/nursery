@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Nunito", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --color-teal: #2cafa8;
+  --color-teal-dark: #1f7571;
+  --color-teal-light: #eefbf9;
+  --color-violet: #6c5ce7;
+  --color-violet-dark: #4d3ec2;
+  --color-violet-light: #ede9fe;
+  --color-marigold: #ffb142;
+  --color-coral: #ff5e7e;
+  --color-sky: #00a8ff;
+  --color-ink: #1e293b;
+  --color-muted: #64748b;
+  --color-cream: #fffdf8;
+}
+
+html {
+  scroll-padding-top: 5rem;
+  scroll-behavior: smooth;
+}
+
+html[lang="ar"] {
+  --font-sans: "Cairo", "Nunito", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-cream text-ink antialiased;
+  font-family: var(--font-sans);
+}
+
+/* In the components layer so utilities (hidden, !px-5…) can override them. */
+@layer components {
+  .text-gradient {
+    background: linear-gradient(100deg, var(--color-teal) 0%, var(--color-violet) 55%, var(--color-coral) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-extrabold text-white shadow-lg transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0;
+    background: linear-gradient(100deg, var(--color-teal), var(--color-violet));
+    box-shadow: 0 10px 30px -10px rgb(108 92 231 / 0.55);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border-2 border-ink/10 bg-white/90 px-6 py-3 font-extrabold text-ink transition-all duration-200 hover:-translate-y-0.5 hover:border-teal hover:text-teal-dark;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full bg-violet-light px-4 py-1.5 text-xs font-extrabold tracking-wider text-violet-dark uppercase;
+  }
+}
+
+/* Scroll reveal: elements start offset and settle in when they enter the viewport. */
+[data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0) scale(0.98);
+  /* translate/box-shadow keep Tailwind hover effects smooth; only the entrance is staggered. */
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i, 0) * 70ms),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i, 0) * 70ms),
+    translate 0.3s ease,
+    box-shadow 0.3s ease;
+}
+[data-reveal="left"] { transform: translate3d(-40px, 0, 0); }
+[data-reveal="right"] { transform: translate3d(40px, 0, 0); }
+[dir="rtl"] [data-reveal="left"] { transform: translate3d(40px, 0, 0); }
+[dir="rtl"] [data-reveal="right"] { transform: translate3d(-40px, 0, 0); }
+[data-reveal="pop"] { transform: scale(0.85); }
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Gentle float for decorative shapes. */
+@keyframes float-y {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -14px, 0) rotate(4deg); }
+}
+.float-loop { animation: float-y 8s ease-in-out infinite; }
+
+/* Vertical-only bob for UI mockups, which should stay level. */
+@keyframes bob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+.float-soft { animation: bob 7s ease-in-out infinite; }
+.float-loop-slow { animation: float-y 12s ease-in-out infinite; }
+
+/* Soft colour glows: a radial gradient looks like a blurred blob but costs
+   nothing to paint, unlike filter: blur() which re-rasterises every frame. */
+.glow { border-radius: 9999px; background: radial-gradient(closest-side, var(--glow-color), transparent); }
+.glow-teal { --glow-color: rgb(44 175 168 / 0.32); }
+.glow-violet { --glow-color: rgb(108 92 231 / 0.28); }
+.glow-marigold { --glow-color: rgb(255 177 66 / 0.34); }
+.glow-coral { --glow-color: rgb(255 94 126 / 0.26); }
+.glow-white { --glow-color: rgb(255 255 255 / 0.18); }
+
+/* Transform-only drift: runs on the compositor, no repaint. */
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -4%, 0) scale(1.08); }
+}
+.drift { animation: drift 18s ease-in-out infinite; }
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg) scale(1.08); }
+  75% { transform: rotate(10deg) scale(1.08); }
+}
+.group:hover .wiggle { animation: wiggle 0.5s ease-in-out; }
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+[dir="rtl"] .marquee-track { animation-direction: reverse; }
+.marquee-track { animation: marquee 30s linear infinite; }
+
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] { opacity: 1; transform: none; }
+}

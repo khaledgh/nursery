@@ -51,6 +51,8 @@ func (s *SuperAdminService) Stats(ctx context.Context) (*dto.PlatformStats, erro
 		Count(&out.OverdueInvoices)
 	s.db.WithContext(c).Model(&model.Subscription{}).
 		Where("status = ?", model.SubPastDue).Count(&out.NurseriesPastDue)
+	s.db.WithContext(c).Model(&model.DemoRequest{}).
+		Where("status = ?", model.DemoRequestNew).Count(&out.NewDemoRequests)
 
 	// MRR counts only subscriptions that are actually billing.
 	s.db.WithContext(c).Model(&model.Subscription{}).

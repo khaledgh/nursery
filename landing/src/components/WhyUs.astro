@@ -1,0 +1,74 @@
+---
+import { Clock, Layers, ShieldCheck, Smile } from "lucide-react";
+import CountUp from "./CountUp";
+import StoreBadges from "./StoreBadges.astro";
+import type { Dict } from "../i18n";
+
+interface Props {
+  t: Dict["why"];
+}
+const { t } = Astro.props;
+const icons = [
+  { icon: Smile, color: "#2cafa8", tint: "#eefbf9" },
+  { icon: Clock, color: "#f59e0b", tint: "#fffbeb" },
+  { icon: Layers, color: "#6c5ce7", tint: "#ede9fe" },
+  { icon: ShieldCheck, color: "#ff5e7e", tint: "#ffe4e6" },
+];
+---
+
+<section class="relative overflow-hidden py-24 sm:py-32">
+  <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+    <div class="glow glow-violet drift absolute top-1/4 start-1/2 h-[30rem] w-[30rem] -translate-x-1/2"></div>
+  </div>
+
+  <div class="mx-auto grid max-w-7xl items-center gap-16 px-4 sm:px-6 lg:grid-cols-2">
+    <div>
+      <span class="eyebrow" data-reveal>{t.eyebrow}</span>
+      <h2 class="mt-4 text-3xl font-black text-ink sm:text-5xl" data-reveal style="--i:1">{t.title}</h2>
+
+      <ul class="mt-10 grid gap-6 sm:grid-cols-2">
+        {
+          t.items.map((item, i) => {
+            const { icon: Icon, color, tint } = icons[i];
+            return (
+              <li class="group flex gap-4" data-reveal="left" style={`--i:${i}`}>
+                <span class="wiggle grid h-12 w-12 shrink-0 place-items-center rounded-2xl" style={`background:${tint};color:${color}`}>
+                  <Icon size={22} strokeWidth={2.3} />
+                </span>
+                <div>
+                  <h3 class="font-extrabold text-ink">{item.t}</h3>
+                  <p class="mt-1 text-sm text-muted">{item.d}</p>
+                </div>
+              </li>
+            );
+          })
+        }
+      </ul>
+
+      <div class="mt-10" data-reveal style="--i:4">
+        <p class="mb-3 text-sm font-extrabold text-ink/70">{t.download}</p>
+        <StoreBadges />
+      </div>
+    </div>
+
+    <div class="relative" data-reveal="right">
+      <div class="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-teal to-violet p-8 text-white shadow-2xl sm:p-12">
+        <div class="pointer-events-none absolute -end-10 -top-10 h-48 w-48 rounded-full bg-white/10" aria-hidden="true"></div>
+        <div class="glow glow-marigold pointer-events-none absolute -bottom-16 -start-10 h-56 w-56" aria-hidden="true"></div>
+        <img src="/mark.webp" alt="" width="120" height="132" loading="lazy" class="float-loop relative mx-auto mb-8 w-28 drop-shadow-xl" />
+        <dl class="relative grid gap-4 sm:grid-cols-3">
+          {
+            t.stats.map((s) => (
+              <div class="flex flex-col-reverse rounded-3xl bg-white/15 p-5 text-center">
+                <dt class="mt-1 text-sm font-bold text-white/85">{s.label}</dt>
+                <dd class="text-4xl font-black" dir="ltr">
+                  <CountUp client:visible value={s.value} suffix={s.suffix} />
+                </dd>
+              </div>
+            ))
+          }
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>

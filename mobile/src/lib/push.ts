@@ -2,6 +2,7 @@ import Constants from "expo-constants";
 import { LogLevel, OneSignal } from "react-native-onesignal";
 import { Platform } from "react-native";
 import { api } from "../api/client";
+import { queryClient } from "./queryClient";
 import { useAuthStore } from "../store/auth";
 
 const appId = (Constants.expoConfig?.extra?.oneSignalAppId as string | undefined) ?? "";
@@ -59,6 +60,21 @@ export function initPush() {
 
   if (__DEV__) OneSignal.Debug.setLogLevel(LogLevel.Verbose);
   OneSignal.initialize(appId);
+
+  // iOS suppresses the visible banner for a push that arrives while the app is
+  // foregrounded unless the app explicitly displays it — without this, users only
+  // feel the vibration and the notification silently waits for the next refetch.
+  OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
+    event.getNotification().display();
+
+    const data = event.notification.additionalData as { type?: string; conversation_id?: number } | undefined;
+    if (data?.type === "chat" && data?.conversation_id) {
+      void queryClient.invalidateQueries({ queryKey: ["messages", data.conversation_id] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    } else {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    }
+  });
 
   // Deep linking on notification tap
   OneSignal.Notifications.addEventListener("click", (event: any) => {

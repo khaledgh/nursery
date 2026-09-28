@@ -5,7 +5,7 @@ import {
   Nunito_800ExtraBold,
   useFonts,
 } from "@expo-google-fonts/nunito";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import * as NavigationBar from "expo-navigation-bar";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Platform } from "react-native";
 import "../src/i18n";
+import { queryClient } from "../src/lib/queryClient";
 import { initPush } from "../src/lib/push";
 import { colors, fonts } from "../src/theme";
 
@@ -22,12 +23,6 @@ void SplashScreen.preventAutoHideAsync();
 // Outside the component: the OneSignal SDK must initialise once per app start,
 // not on every remount of the root layout.
 initPush();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000 },
-  },
-});
 
 export default function RootLayout() {
   const { t } = useTranslation();

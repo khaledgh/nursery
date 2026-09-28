@@ -1,0 +1,98 @@
+---
+import { ArrowRight, CheckCircle2, Mail, MessageCircle, Phone } from "lucide-react";
+import DemoForm from "./DemoForm";
+import { site } from "../data/site";
+import type { Dict, Locale } from "../i18n";
+
+interface Props {
+  t: Pick<Dict, "cta" | "contact" | "form" | "ranges">;
+  locale: Locale;
+}
+const { t, locale } = Astro.props;
+---
+
+<!-- CTA band -->
+<section class="relative px-4 py-16 sm:px-6">
+  <div
+    data-reveal="pop"
+    class="relative mx-auto max-w-6xl overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-teal via-teal-dark to-violet px-6 py-14 text-center text-white shadow-2xl sm:px-16"
+  >
+    <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+      <div class="glow glow-white drift absolute -top-20 -start-20 h-72 w-72"></div>
+      <div class="glow glow-marigold drift absolute -bottom-24 -end-10 h-80 w-80 [animation-delay:-6s]"></div>
+      <span class="float-loop absolute top-8 end-[14%] text-4xl text-marigold">★</span>
+      <span class="float-loop-slow absolute bottom-8 start-[10%] text-5xl font-black text-white/40">+</span>
+    </div>
+    <h2 class="relative text-3xl font-black sm:text-5xl">{t.cta.title}</h2>
+    <p class="relative mx-auto mt-4 max-w-xl text-lg text-white/85">{t.cta.subtitle}</p>
+    <button
+      type="button"
+      data-demo
+      class="relative mt-8 inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 font-extrabold text-violet-dark shadow-xl transition-transform hover:-translate-y-0.5"
+    >
+      {t.cta.button}
+      <ArrowRight size={18} class="rtl:rotate-180" />
+    </button>
+  </div>
+</section>
+
+<!-- Inline demo form -->
+<section id="contact" class="relative overflow-hidden py-24 sm:py-28">
+  <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+    <div class="glow glow-violet drift absolute top-10 -start-32 h-96 w-96"></div>
+    <div class="glow glow-teal drift absolute bottom-0 -end-32 h-96 w-96 [animation-delay:-8s]"></div>
+  </div>
+
+  <div class="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
+    <div>
+      <span class="eyebrow" data-reveal>{t.contact.eyebrow}</span>
+      <h2 class="mt-4 text-3xl font-black text-ink sm:text-5xl" data-reveal style="--i:1">{t.contact.title}</h2>
+      <p class="mt-4 text-lg text-muted" data-reveal style="--i:2">{t.contact.subtitle}</p>
+      <ul class="mt-8 space-y-3">
+        {
+          t.contact.points.map((p, i) => (
+            <li class="flex items-center gap-3 font-bold text-ink/80" data-reveal="left" style={`--i:${i + 3}`}>
+              <CheckCircle2 size={20} class="shrink-0 text-teal" /> {p}
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="mt-10 space-y-3" data-reveal style="--i:6">
+        {
+          site.email && (
+            <a href={`mailto:${site.email}`} class="flex items-center gap-3 font-bold text-ink hover:text-teal-dark">
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-teal-light text-teal"><Mail size={18} /></span>
+              <span dir="ltr">{site.email}</span>
+            </a>
+          )
+        }
+        {
+          site.phone && (
+            <a href={`tel:${site.phone}`} class="flex items-center gap-3 font-bold text-ink hover:text-teal-dark">
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-violet-light text-violet"><Phone size={18} /></span>
+              <span dir="ltr">{site.phone}</span>
+            </a>
+          )
+        }
+        {
+          site.whatsapp && (
+            <a
+              href={`https://wa.me/${site.whatsapp.replace(/[^\d]/g, "")}`}
+              target="_blank"
+              rel="noopener"
+              class="flex items-center gap-3 font-bold text-ink hover:text-teal-dark"
+            >
+              <span class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-emerald-600"><MessageCircle size={18} /></span>
+              <span dir="ltr">WhatsApp</span>
+            </a>
+          )
+        }
+      </div>
+    </div>
+
+    <div data-reveal="right" class="rounded-[2rem] bg-white p-6 shadow-[0_30px_80px_-30px_rgba(30,41,59,0.35)] ring-1 ring-black/5 sm:p-10">
+      <DemoForm client:visible t={t.form} ranges={t.ranges} locale={locale} />
+    </div>
+  </div>
+</section>
