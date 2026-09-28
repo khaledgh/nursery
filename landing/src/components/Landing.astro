@@ -2,6 +2,7 @@
 import Base from "../layouts/Base.astro";
 import Contact from "./Contact.astro";
 import DemoModal from "./DemoModal";
+import Faq from "./Faq.astro";
 import Features from "./Features.astro";
 import Footer from "./Footer.astro";
 import Hero from "./Hero";
@@ -12,6 +13,7 @@ import WhyUs from "./WhyUs.astro";
 import { features } from "../data/features";
 import { site } from "../data/site";
 import { dirOf, getDict, localeNames, localePath, locales, type Locale } from "../i18n";
+import { homeSchema } from "../lib/seo";
 
 interface Props {
   locale: Locale;
@@ -22,7 +24,7 @@ const languages = locales.map((code) => ({ code, name: localeNames[code], href: 
 const marquee = features.map((f) => t.features.items[f.key].t);
 ---
 
-<Base locale={locale}>
+<Base locale={locale} schema={homeSchema(locale)}>
   <Navbar client:load t={t.nav} locale={locale} adminUrl={site.adminUrl} languages={languages} home={localePath(locale)} />
 
   <main>
@@ -46,6 +48,7 @@ const marquee = features.map((f) => t.features.items[f.key].t);
     <Showcase client:visible t={t.showcase} mock={t.mock} />
     <WhyUs t={t.why} />
     <Pricing t={t.pricing} ranges={t.ranges} />
+    <Faq t={t.faq} />
     <Contact t={{ cta: t.cta, contact: t.contact, form: t.form, ranges: t.ranges }} locale={locale} />
   </main>
 

@@ -2,9 +2,13 @@ import type { Dict } from "./en";
 
 const fr: Dict = {
   meta: {
-    title: "Nursee+ — La gestion de crèche tout-en-un avec apps parents et enseignants",
+    title: "Nursee+ | Application de gestion de crèche au Liban",
+    brand: "Nursee+ Application crèche Liban",
     description:
-      "Nursee+ aide les crèches à gérer les soins quotidiens, les présences, la facturation et la communication avec les parents depuis une seule plateforme.",
+      "Nursee+ est l'application libanaise de gestion de crèche et garderie : journal quotidien, présences, messagerie parents, événements et frais en arabe, français et anglais. Demandez une démo gratuite.",
+    keywords:
+      "application crèche Liban, logiciel gestion crèche Liban, application garderie Beyrouth, logiciel maternelle Liban, communication parents crèche, Nursee+",
+    ogLocale: "fr_FR",
   },
   nav: {
     overview: "Accueil",
@@ -23,7 +27,7 @@ const fr: Dict = {
     titleHighlight: "que les parents adorent",
     titleB: "et sur laquelle votre équipe compte",
     subtitle:
-      "Nursee+ réunit journal quotidien, présences, messagerie, événements et facturation — avec des applications mobiles pour les parents et les enseignants et un tableau de bord complet pour la direction.",
+      "Conçu au Liban pour les crèches et garderies : Nursee+ réunit journal quotidien, présences, messagerie, événements et facturation — avec des applications mobiles pour les parents et les enseignants et un tableau de bord complet pour la direction.",
     ctaDemo: "Demander une démo",
     ctaFeatures: "Voir les fonctionnalités",
     trust: ["Apps parents & enseignants", "Arabe, anglais & français", "Opérationnel en quelques jours"],
@@ -158,6 +162,40 @@ const fr: Dict = {
       generic: "Une erreur est survenue. Veuillez réessayer.",
       rateLimited: "Trop de demandes. Réessayez dans quelques minutes.",
     },
+  },
+  faq: {
+    eyebrow: "FAQ",
+    title: "Les questions que nous posent les crèches au Liban",
+    items: [
+      {
+        q: "Qu'est-ce que Nursee+ ?",
+        a: "Nursee+ est une application de gestion de crèche et garderie conçue au Liban. Elle offre à la crèche un tableau de bord web pour gérer enfants, classes, présences, équipe et frais, une app enseignants pour noter repas, siestes, changes, activités et photos, et une app parents pour suivre la journée de l'enfant et échanger avec la crèche.",
+      },
+      {
+        q: "Nursee+ est-il conçu pour les crèches au Liban ?",
+        a: "Oui. Nursee+ est développé au Liban pour les crèches, garderies et maternelles libanaises, à Beyrouth et dans tout le pays. Les applications fonctionnent entièrement en arabe, français et anglais — les trois langues des familles libanaises.",
+      },
+      {
+        q: "Que voient les parents dans l'application Nursee+ ?",
+        a: "Les parents suivent la journée de leur enfant (arrivée, repas, siestes, activités et photos), reçoivent des notifications instantanées, lisent les annonces, répondent aux événements, consultent les factures et échangent en privé avec les enseignants et la direction.",
+      },
+      {
+        q: "Combien coûte Nursee+ ?",
+        a: "Les formules commencent à {price} par mois selon le nombre d'enfants, et chaque formule inclut toutes les fonctionnalités, l'app parents et l'app enseignants. Demandez une démo pour obtenir un devis.",
+      },
+      {
+        q: "Nursee+ fonctionne-t-il sur iPhone et Android ?",
+        a: "Oui. Les apps parents et enseignants sont disponibles sur iOS et Android, et la direction utilise le tableau de bord depuis n'importe quel navigateur.",
+      },
+      {
+        q: "Les informations des enfants sont-elles sécurisées ?",
+        a: "Les données de chaque crèche sont séparées, l'accès dépend du rôle de chacun, toutes les communications sont chiffrées et les parents ne voient que leurs enfants. Nursee+ n'affiche aucune publicité et ne vend jamais de données.",
+      },
+      {
+        q: "Comment démarrer avec Nursee+ dans notre crèche ?",
+        a: "Demandez une démo gratuite. Notre équipe vous présente la plateforme, configure vos classes et vous aide à reprendre vos dossiers enfants et familles pour démarrer en quelques jours.",
+      },
+    ],
   },
   ranges: { lt30: "Moins de 30", "30_60": "30 – 60", "60_100": "60 – 100", "100_150": "100 – 150", gt150: "Plus de 150" },
   footer: {

@@ -65,10 +65,10 @@ module.exports = {
         "expo-splash-screen",
         {
           image: "./assets/splash-icon.png",
-          // The source is a square canvas with transparent margin around a wide
-          // logo. 300 keeps the wordmark legible without the artwork bleeding
-          // off the edges on narrow devices.
-          imageWidth: 300,
+          // Android 12+ draws the splash icon on a 288dp canvas and shows only
+          // its inner 2/3 circle, so the asset keeps the logo inside that circle
+          // with transparent padding. 288 makes iOS and older Android match.
+          imageWidth: 288,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
         },

@@ -1,8 +1,12 @@
 const en = {
   meta: {
-    title: "Nursee+ — All-in-one nursery management with parent & teacher apps",
+    title: "Nursee+ | Nursery & Daycare Management App in Lebanon",
+    brand: "Nursee+ Nursery App Lebanon",
     description:
-      "Nursee+ helps nurseries run daily care, attendance, billing and parent communication from one platform, with beautiful mobile apps for parents and teachers.",
+      "Nursee+ is the Lebanese nursery and daycare management app: daily diary, attendance, parent chat, events and fees in Arabic, English and French. Mobile apps for parents and teachers. Request a free demo.",
+    keywords:
+      "nursery app Lebanon, nursery management software Lebanon, daycare app Lebanon, preschool app Beirut, kindergarten management system, parent communication app, childcare software Lebanon, Nursee+",
+    ogLocale: "en_US",
   },
   nav: {
     overview: "Overview",
@@ -21,7 +25,7 @@ const en = {
     titleHighlight: "parents love",
     titleB: "and teams rely on",
     subtitle:
-      "Nursee+ brings daily care logs, attendance, chat, events and billing into one platform — with mobile apps for parents and teachers and a powerful dashboard for your office.",
+      "Made in Lebanon for nurseries and daycares: Nursee+ brings daily care logs, attendance, chat, events and billing into one platform — with mobile apps for parents and teachers and a powerful dashboard for your office.",
     ctaDemo: "Request a Demo",
     ctaFeatures: "Explore features",
     trust: ["Parent & teacher apps", "Arabic, English & French", "Setup in days, not months"],
@@ -156,6 +160,40 @@ const en = {
       generic: "Something went wrong. Please try again.",
       rateLimited: "Too many requests. Please try again in a few minutes.",
     },
+  },
+  faq: {
+    eyebrow: "FAQ",
+    title: "Questions nurseries in Lebanon ask us",
+    items: [
+      {
+        q: "What is Nursee+?",
+        a: "Nursee+ is a nursery and daycare management app made in Lebanon. It gives nurseries a web dashboard to manage children, classrooms, attendance, staff and fees, a teacher app to log meals, naps, diapers, activities and photos, and a parent app where families follow their child's day and chat with the nursery.",
+      },
+      {
+        q: "Is Nursee+ made for nurseries in Lebanon?",
+        a: "Yes. Nursee+ is built in Lebanon for Lebanese nurseries, daycares and preschools in Beirut and across the country. The apps work fully in Arabic, French and English — the three languages Lebanese families use every day.",
+      },
+      {
+        q: "What can parents see in the Nursee+ app?",
+        a: "Parents see their child's daily timeline (check-in, meals, naps, activities and photos), receive instant notifications, read announcements, reply to events, view invoices, and chat privately with teachers and the nursery office.",
+      },
+      {
+        q: "How much does Nursee+ cost?",
+        a: "Plans start from {price} per month depending on the number of children, and every plan includes all features, the parent app and the teacher app. Request a demo for a quote for your nursery.",
+      },
+      {
+        q: "Does Nursee+ work on iPhone and Android?",
+        a: "Yes. The parent and teacher apps are available on iOS and Android, and nursery administrators use the dashboard from any web browser.",
+      },
+      {
+        q: "Is children's information secure?",
+        a: "Each nursery's data is kept separate, access depends on each person's role, all traffic is encrypted, and parents only see their own children. Nursee+ has no ads and never sells data.",
+      },
+      {
+        q: "How do we start using Nursee+ at our nursery?",
+        a: "Request a free demo. Our team shows you the platform, sets up your classrooms and helps you move your existing children and family records so you can start in days.",
+      },
+    ],
   },
   ranges: { lt30: "Under 30", "30_60": "30 – 60", "60_100": "60 – 100", "100_150": "100 – 150", gt150: "150+" },
   footer: {
