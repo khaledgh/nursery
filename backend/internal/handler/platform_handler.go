@@ -181,6 +181,12 @@ func (h *PlatformHandler) UpdatePlatformSettings(c echo.Context) error {
 }
 
 func (h *PlatformHandler) updateSettings(c echo.Context, allowPlatform bool) error {
+	// A real superadmin (not an impersonation session) may change platform
+	// settings through either endpoint, so an admin page cached from before the
+	// split keeps working. Nursery admins can never change them.
+	if claims := mw.Claims(c); claims != nil && model.Role(claims.Role) == model.RoleSuperAdmin && !claims.IsImpersonating() {
+		allowPlatform = true
+	}
 	var updates map[string]any
 	if err := c.Bind(&updates); err != nil || len(updates) == 0 {
 		return apperr.BadRequest("request body must be a non-empty JSON object of settings")

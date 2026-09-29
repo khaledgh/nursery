@@ -132,6 +132,26 @@ func (s *NotificationService) deliver(caller context.Context, recipients func(co
 	}
 
 	nurseryID, _ := database.TenantFrom(ctx)
+	// Tenant isolation, enforced here for every notification path: when a
+	// nursery sends something, only that nursery's users (the accounts issued
+	// from its login-ID range) may receive it, whatever the caller passed in.
+	if nurseryID != 0 {
+		var allowed []uint64
+		if err := s.db.WithContext(database.WithCrossTenant(ctx)).Model(&model.User{}).
+			Where("id IN ? AND nursery_id = ?", userIDs, nurseryID).
+			Pluck("id", &allowed).Error; err != nil {
+			s.log.Error().Err(err).Msg("notification tenant check failed; not sending")
+			return
+		}
+		if dropped := len(userIDs) - len(allowed); dropped > 0 {
+			s.log.Warn().Uint64("nursery_id", nurseryID).Int("dropped", dropped).
+				Msg("dropped notification recipients outside the sending nursery")
+		}
+		userIDs = allowed
+		if len(userIDs) == 0 {
+			return
+		}
+	}
 	now := time.Now()
 	dataJSON, _ := json.Marshal(data)
 
