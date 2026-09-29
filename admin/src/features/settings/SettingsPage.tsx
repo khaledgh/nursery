@@ -10,13 +10,13 @@ import {
   Globe,
   HardDrive,
   History,
-  Layers,
   Save,
   ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Switch, Tab, Tabs } from "@heroui/react";
+import { CURRENCY_OPTIONS } from "../../hooks/useCurrency";
 import { DataTable, type Column } from "../../components/DataTable";
 import { PageHeader } from "../../components/PageHeader";
 import { usePagedList } from "../../hooks/usePagedList";
@@ -26,22 +26,18 @@ import type { AuditLog, ItemResponse } from "../../types/api";
 
 type SettingsMap = Record<string, any>;
 
-const CURRENCY_PRESETS = [
-  { code: "USD", symbol: "$", label: "US Dollar (USD)" },
-  { code: "SAR", symbol: "﷼", label: "Saudi Riyal (SAR)" },
-  { code: "AED", symbol: "د.إ", label: "UAE Dirham (AED)" },
-  { code: "KWD", symbol: "د.ك", label: "Kuwaiti Dinar (KWD)" },
-  { code: "EUR", symbol: "€", label: "Euro (EUR)" },
-  { code: "GBP", symbol: "£", label: "British Pound (GBP)" },
-  { code: "QAR", symbol: "﷼", label: "Qatari Riyal (QAR)" },
-  { code: "BHD", symbol: ".د.ب", label: "Bahraini Dinar (BHD)" },
-];
+const CURRENCY_PRESETS = CURRENCY_OPTIONS;
 
 const LOCALES = [
   { code: "en", name: "English", dir: "ltr", flag: "🇬🇧" },
   { code: "ar", name: "العربية (Arabic)", dir: "rtl", flag: "🇸🇦" },
 ];
 
+/**
+ * Platform settings — superadmin only. Storage, push keys, default language,
+ * platform billing currency and the cross-nursery audit log. Nursery admins
+ * get NurserySettingsPage instead.
+ */
 export function SettingsPage() {
   const qc = useQueryClient();
   const { t, i18n } = useTranslation();
@@ -50,12 +46,9 @@ export function SettingsPage() {
   const [error, setError] = useState("");
 
   // Form States
-  const [nurseryName, setNurseryName] = useState("Nursee+ Childcare");
   const [currency, setCurrency] = useState("USD");
   const [customCurrency, setCustomCurrency] = useState("");
   const [defaultLocale, setDefaultLocale] = useState("en");
-  const [featureCommunity, setFeatureCommunity] = useState(true);
-  const [featurePayments, setFeaturePayments] = useState(true);
 
   // Storage States
   const [storageDriver, setStorageDriver] = useState<"local" | "s3">("local");
@@ -73,32 +66,38 @@ export function SettingsPage() {
   const [oneSignalAppId, setOneSignalAppId] = useState("");
   const [oneSignalApiKey, setOneSignalApiKey] = useState("");
   const [showOneSignalKey, setShowOneSignalKey] = useState(false);
+  // Secrets are never sent back by the API; these flags say one is stored.
+  const [secretSet, setSecretSet] = useState<Record<string, boolean>>({});
+  const [testUserId, setTestUserId] = useState("");
+  const [testResult, setTestResult] = useState<string>("");
 
   // Fetch Settings
   const settingsQuery = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["platform-settings"],
     queryFn: async () => {
-      const res = await api.get<ItemResponse<SettingsMap>>("/admin/settings");
+      const res = await api.get<ItemResponse<SettingsMap>>("/superadmin/settings");
       return res.data.data;
     },
   });
 
   // Audit Logs
-  const auditList = usePagedList<AuditLog>("audit-logs", "/admin/audit-logs");
+  const auditList = usePagedList<AuditLog>("audit-logs", "/superadmin/audit-logs");
 
   useEffect(() => {
     if (settingsQuery.data) {
       const s = settingsQuery.data;
-      if (typeof s.nursery_name === "string") setNurseryName(s.nursery_name);
-      if (typeof s.currency === "string") {
-        setCurrency(s.currency);
-        if (!CURRENCY_PRESETS.some((c) => c.code === s.currency)) {
-          setCustomCurrency(s.currency);
+      if (typeof s.platform_currency === "string") {
+        setCurrency(s.platform_currency);
+        if (!CURRENCY_PRESETS.some((c) => c.code === s.platform_currency)) {
+          setCustomCurrency(s.platform_currency);
         }
       }
+      setSecretSet({
+        s3_access_key: Boolean(s.s3_access_key_set),
+        s3_secret_key: Boolean(s.s3_secret_key_set),
+        onesignal_rest_api_key: Boolean(s.onesignal_rest_api_key_set),
+      });
       if (typeof s.default_locale === "string") setDefaultLocale(s.default_locale);
-      if (typeof s.feature_community === "boolean") setFeatureCommunity(s.feature_community);
-      if (typeof s.feature_payments === "boolean") setFeaturePayments(s.feature_payments);
 
       if (s.storage_driver === "local" || s.storage_driver === "s3") setStorageDriver(s.storage_driver);
       if (typeof s.s3_bucket === "string") setS3Bucket(s.s3_bucket);
@@ -119,11 +118,8 @@ export function SettingsPage() {
     mutationFn: async () => {
       const effectiveCurrency = (customCurrency || currency || "USD").trim().toUpperCase();
       const payload: Record<string, any> = {
-        nursery_name: nurseryName,
-        currency: effectiveCurrency,
+        platform_currency: effectiveCurrency,
         default_locale: defaultLocale,
-        feature_community: featureCommunity,
-        feature_payments: featurePayments,
         storage_driver: storageDriver,
       };
 
@@ -141,19 +137,44 @@ export function SettingsPage() {
       payload.onesignal_app_id = oneSignalAppId;
       payload.onesignal_rest_api_key = oneSignalApiKey;
 
-      await api.put("/admin/settings", payload);
+      // Empty secret fields mean "keep the stored value".
+      for (const key of ["s3_access_key", "s3_secret_key", "onesignal_rest_api_key"]) {
+        if (payload[key] === "") delete payload[key];
+      }
+      await api.put("/superadmin/settings", payload);
     },
     onSuccess: () => {
       setSaved(true);
       setError("");
       void settingsQuery.refetch();
-      void qc.invalidateQueries({ queryKey: ["settings"] });
-      void qc.invalidateQueries({ queryKey: ["parent"] });
+      void qc.invalidateQueries({ queryKey: ["platform-settings"] });
+      void qc.invalidateQueries({ queryKey: ["platform-currency"] });
+      setS3AccessKey("");
+      setS3SecretKey("");
+      setOneSignalApiKey("");
       setTimeout(() => setSaved(false), 3000);
     },
     onError: (err) => {
       setError(errorMessage(err));
     },
+  });
+
+  const testPush = useMutation({
+    mutationFn: async () =>
+      (await api.post<ItemResponse<Record<string, unknown>>>("/superadmin/push/test", { user_id: Number(testUserId) })).data.data,
+    onSuccess: (data) => setTestResult(JSON.stringify(data, null, 2)),
+    onError: (err) => setTestResult(errorMessage(err)),
+  });
+
+  const applyCurrency = useMutation({
+    mutationFn: async () =>
+      (await api.post<ItemResponse<{ updated: number }>>("/superadmin/plans/apply-currency")).data.data.updated,
+    onSuccess: (n) => {
+      setError("");
+      void qc.invalidateQueries({ queryKey: ["superadmin-plans"] });
+      window.alert(`${n} plan(s) now use the platform currency.`);
+    },
+    onError: (err) => setError(errorMessage(err)),
   });
 
   const auditColumns: Column<AuditLog>[] = [
@@ -207,7 +228,7 @@ export function SettingsPage() {
     <div className="space-y-6 max-w-5xl">
       <PageHeader
         title={t("nav.settings")}
-        subtitle="Manage nursery branding, currency, language, media cloud storage, and push notifications"
+        subtitle="Platform-wide configuration: billing currency, default language, media storage, push notifications and audit logs"
         actions={
           selectedTab !== "audit" ? (
             <Button
@@ -254,7 +275,7 @@ export function SettingsPage() {
           title={
             <div className="flex items-center gap-2">
               <Building2 size={16} />
-              <span>General & Currency</span>
+              <span>Platform Currency</span>
             </div>
           }
         />
@@ -300,39 +321,16 @@ export function SettingsPage() {
       {selectedTab === "general" && (
         <div className="space-y-6">
           <div className="card p-6 space-y-6 border border-slate-200/80 dark:border-slate-800">
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Building2 size={18} className="text-primary" />
-                Nursery Profile
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Primary name and branding information shown across the application.
-              </p>
-            </div>
-
-            <div className="space-y-4 max-w-xl">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                  Nursery Name
-                </label>
-                <input
-                  className="input"
-                  value={nurseryName}
-                  onChange={(e) => setNurseryName(e.target.value)}
-                  placeholder="e.g. Nursee+ Childcare"
-                />
-              </div>
-            </div>
-
             {/* Currency Section */}
             <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Coins size={18} className="text-amber-500" />
-                  Nursery Currency
+                  Platform Billing Currency
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Select or type the currency code used for invoices, tuition fees, and balances.
+                  Currency the platform bills nurseries in (subscription plans and platform invoices).
+                  Each nursery chooses its own currency for parent invoices in its own settings.
                 </p>
               </div>
 
@@ -354,7 +352,6 @@ export function SettingsPage() {
                           : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary/50"
                       }`}
                     >
-                      <span className="font-mono text-sm opacity-80">{c.symbol}</span>
                       <span>{c.code}</span>
                     </button>
                   );
@@ -384,35 +381,21 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {/* Feature Flags */}
-            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Layers size={18} className="text-sky-500" />
-                  System Features
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Enable or disable module visibility for staff and parents.
-                </p>
-              </div>
-
-              <div className="space-y-3 max-w-lg">
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                  <div>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Community Social Feed</p>
-                    <p className="text-xs text-slate-400">Class photos, announcements, and parent comments</p>
-                  </div>
-                  <Switch isSelected={featureCommunity} onValueChange={setFeatureCommunity} color="primary" />
-                </div>
-
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                  <div>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Tuition & Invoicing</p>
-                    <p className="text-xs text-slate-400">Invoice generation, due dates tracking, and payments</p>
-                  </div>
-                  <Switch isSelected={featurePayments} onValueChange={setFeaturePayments} color="primary" />
-                </div>
-              </div>
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-3">
+              <Button
+                variant="flat"
+                color="warning"
+                isLoading={applyCurrency.isPending}
+                onPress={() => {
+                  if (window.confirm("Relabel every subscription plan with the saved platform currency? Prices are NOT converted.")) {
+                    applyCurrency.mutate();
+                  }
+                }}
+                className="font-bold"
+              >
+                Apply platform currency to all plans
+              </Button>
+              <span className="text-xs text-slate-400">Save first, then apply. Amounts stay as entered.</span>
             </div>
           </div>
         </div>
@@ -625,7 +608,7 @@ export function SettingsPage() {
                     </label>
                     <input
                       className="input font-mono text-xs"
-                      placeholder="e.g. af10d7b6d2cd8071ef4ddd..."
+                      placeholder={secretSet.s3_access_key ? "•••••• saved — leave blank to keep" : "e.g. af10d7b6d2cd8071ef4ddd..."}
                       value={s3AccessKey}
                       onChange={(e) => setS3AccessKey(e.target.value)}
                     />
@@ -639,7 +622,7 @@ export function SettingsPage() {
                       <input
                         type={showS3Secret ? "text" : "password"}
                         className="input font-mono text-xs pr-10"
-                        placeholder="e.g. e9aa62825ba90265104..."
+                        placeholder={secretSet.s3_secret_key ? "•••••• saved — leave blank to keep" : "e.g. e9aa62825ba90265104..."}
                         value={s3SecretKey}
                         onChange={(e) => setS3SecretKey(e.target.value)}
                       />
@@ -726,7 +709,7 @@ export function SettingsPage() {
                   <input
                     type={showOneSignalKey ? "text" : "password"}
                     className="input font-mono text-xs pr-10"
-                    placeholder="os_v2_app_..."
+                    placeholder={secretSet.onesignal_rest_api_key ? "•••••• saved — leave blank to keep" : "os_v2_app_..."}
                     value={oneSignalApiKey}
                     onChange={(e) => setOneSignalApiKey(e.target.value)}
                   />
@@ -742,6 +725,39 @@ export function SettingsPage() {
                   Secret API key for server-side push dispatch.
                 </p>
               </div>
+              <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                The API server sends pushes with the ONESIGNAL_APP_ID / ONESIGNAL_API_KEY environment variables.
+                Keep them identical to these values.
+              </p>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3 max-w-xl">
+              <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">Send a test push</h4>
+              <p className="text-xs text-slate-400">
+                Sends a notification to one user (by user ID) and shows OneSignal's answer. "recipients: 0" means
+                the user's phone is not subscribed (open the app and allow notifications, then retry); an error
+                mentioning APNs points to the iOS certificate/key in the OneSignal dashboard.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  className="input font-mono text-xs"
+                  placeholder="User ID, e.g. 12"
+                  value={testUserId}
+                  onChange={(e) => setTestUserId(e.target.value.replace(/[^\d]/g, ""))}
+                />
+                <Button
+                  color="primary"
+                  isDisabled={!testUserId}
+                  isLoading={testPush.isPending}
+                  onPress={() => testPush.mutate()}
+                  className="font-bold shrink-0"
+                >
+                  Send test
+                </Button>
+              </div>
+              {testResult && (
+                <pre className="max-h-64 overflow-auto rounded-xl bg-slate-900 p-3 text-[11px] text-emerald-300">{testResult}</pre>
+              )}
             </div>
           </div>
         </div>

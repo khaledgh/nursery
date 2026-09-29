@@ -4,6 +4,9 @@ import (
 	"context"
 	"time"
 
+	"gorm.io/gorm"
+
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -11,6 +14,7 @@ import (
 )
 
 type AttendanceService struct {
+	db         *gorm.DB
 	attendance *repository.AttendanceRepo
 	children   *repository.ChildRepo
 	childSvc   *ChildService
@@ -18,8 +22,54 @@ type AttendanceService struct {
 	notifier   Notifier
 }
 
-func NewAttendanceService(attendance *repository.AttendanceRepo, children *repository.ChildRepo, childSvc *ChildService, audit *AuditService, notifier Notifier) *AttendanceService {
-	return &AttendanceService{attendance: attendance, children: children, childSvc: childSvc, audit: audit, notifier: notifier}
+func NewAttendanceService(db *gorm.DB, attendance *repository.AttendanceRepo, children *repository.ChildRepo, childSvc *ChildService, audit *AuditService, notifier Notifier) *AttendanceService {
+	return &AttendanceService{db: db, attendance: attendance, children: children, childSvc: childSvc, audit: audit, notifier: notifier}
+}
+
+// nurseryToday is today's date in the nursery's own timezone. Truncating a UTC
+// timestamp put evening requests on the wrong day for eastern timezones.
+func (s *AttendanceService) nurseryToday(ctx context.Context) time.Time {
+	loc := time.UTC
+	if id, ok := database.TenantFrom(ctx); ok && id != 0 {
+		var n model.Nursery
+		if err := s.db.WithContext(database.WithCrossTenant(ctx)).Select("timezone").First(&n, id).Error; err == nil {
+			if l, err := time.LoadLocation(n.Timezone); err == nil {
+				loc = l
+			}
+		}
+	}
+	today, _ := time.Parse("2006-01-02", time.Now().In(loc).Format("2006-01-02"))
+	return today
+}
+
+// notifyAttendanceChange tells everyone who cares about a parent's report:
+// the child's classroom teachers, the nursery admins and the other guardians.
+func (s *AttendanceService) notifyAttendanceChange(ctx context.Context, ch *model.Child, reporterID uint64, title, body string) {
+	data := map[string]any{"type": "attendance", "screen": "attendance", "child_id": ch.ID}
+	recipients := map[uint64]bool{}
+	if ch.ClassroomID != nil {
+		var teacherIDs []uint64
+		s.db.WithContext(ctx).Model(&model.ClassroomTeacher{}).
+			Where("classroom_id = ?", *ch.ClassroomID).Pluck("teacher_user_id", &teacherIDs)
+		for _, id := range teacherIDs {
+			recipients[id] = true
+		}
+	}
+	var adminIDs []uint64
+	s.db.WithContext(ctx).Model(&model.User{}).
+		Where("role = ? AND status = ?", model.RoleAdmin, model.UserActive).Pluck("id", &adminIDs)
+	for _, id := range adminIDs {
+		recipients[id] = true
+	}
+	var guardianIDs []uint64
+	s.db.WithContext(ctx).Model(&model.Guardian{}).Where("child_id = ?", ch.ID).Pluck("parent_user_id", &guardianIDs)
+	for _, id := range guardianIDs {
+		recipients[id] = true
+	}
+	delete(recipients, reporterID)
+	for id := range recipients {
+		s.notifier.NotifyUser(ctx, id, model.CategoryUpdates, title, body, data)
+	}
 }
 
 func (s *AttendanceService) List(ctx context.Context, role model.Role, userID, childID uint64, q dto.ListAttendanceQuery) ([]model.Attendance, int64, error) {
@@ -54,7 +104,7 @@ func (s *AttendanceService) Request(ctx context.Context, role model.Role, userID
 	if err != nil {
 		return nil, apperr.BadRequest("invalid date")
 	}
-	today := time.Now().Truncate(24 * time.Hour)
+	today := s.nurseryToday(ctx)
 	if date.Before(today) {
 		return nil, apperr.BadRequest("attendance can only be requested for today or a future date")
 	}
@@ -75,12 +125,32 @@ func (s *AttendanceService) Request(ctx context.Context, role model.Role, userID
 	}
 	s.audit.Record(ctx, userID, "request", "attendance", stored.ID,
 		map[string]any{"child_id": childID, "status": req.Status, "date": req.Date}, ip)
-	// Sits in the staff review queue until someone confirms it, so tell them
-	// it is there rather than relying on the queue being checked.
+	ch, err := s.children.ByID(ctx, childID)
+	if err != nil {
+		return nil, apperr.NotFound("child not found")
+	}
+	// An absence for today changes the child's live status everywhere at once
+	// (parent app, teacher roster, admin dashboard). Late / early pickup keep
+	// the child expected, so their presence is left to the teacher's check-in.
+	if status == model.AttendanceAbsent && date.Equal(today) && ch.PresentStatus != model.PresentAbs {
+		ch.PresentStatus = model.PresentAbs
+		if err := s.children.Update(ctx, ch); err != nil {
+			return nil, apperr.Internal(err)
+		}
+	}
 	if role == model.RoleParent {
-		s.notifier.NotifyRole(ctx, string(model.RoleTeacher), model.CategoryUpdates,
-			"New attendance request", "A parent submitted a request for "+req.Date,
-			map[string]any{"screen": "attendance", "child_id": childID})
+		label := map[model.AttendanceStatus]string{
+			model.AttendanceAbsent: "will be absent",
+			model.AttendanceLate:   "will arrive late",
+		}[status]
+		if label == "" {
+			label = "will be picked up early"
+		}
+		body := ch.FirstName + " " + label + " on " + req.Date
+		if req.Note != "" {
+			body += ": " + req.Note
+		}
+		s.notifyAttendanceChange(ctx, ch, userID, "Attendance update", body)
 	}
 	return stored, nil
 }

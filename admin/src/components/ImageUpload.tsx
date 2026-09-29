@@ -8,10 +8,11 @@ interface ImageUploadProps {
   value: Media | null;
   onChange: (media: Media | null) => void;
   label?: string;
+  folder?: "photos" | "branding" | "avatars";
 }
 
 /** Thumbnail + file picker that uploads immediately and hands back the Media row. */
-export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, label, folder }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -21,7 +22,7 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
     setBusy(true);
     setError("");
     try {
-      onChange(await uploadMedia(file));
+      onChange(await uploadMedia(file, folder));
     } catch (err) {
       setError(errorMessage(err));
     } finally {

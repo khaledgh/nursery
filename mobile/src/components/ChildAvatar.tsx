@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../theme";
+import { remoteImage } from "../lib/remoteImage";
 
 interface ChildAvatarProps {
   url?: string | null;
@@ -15,7 +16,7 @@ export function ChildAvatar({ url, name, size = 48, ringColor }: ChildAvatarProp
   if (url) {
     return (
       <Image
-        source={{ uri: url }}
+        source={remoteImage(url)}
         style={[{ width: size, height: size, borderRadius: size / 2 }, ring]}
         contentFit="cover"
         transition={150}

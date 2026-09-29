@@ -1,7 +1,7 @@
 import { useRouter, useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useMarkAllRead, useMarkRead, useNotifications } from "../src/api/hooks";
 import type { NotificationItem } from "../src/api/types";
 import { EmptyState } from "../src/components/EmptyState";
@@ -10,6 +10,8 @@ import { IconCircle } from "../src/components/IconCircle";
 import { Card, Loading, Screen, UnreadDot } from "../src/components/ui";
 import { formatDate, formatTime, isSameDay, addDays } from "../src/lib/stats";
 import { colors, fonts, NOTIFICATION_CATEGORY, spacing } from "../src/theme";
+import { Tap } from "../src/components/Tap";
+import { Chevron } from "../src/components/Chevron";
 
 export default function NotificationsScreen() {
   const { t, i18n } = useTranslation();
@@ -25,9 +27,9 @@ export default function NotificationsScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={() => markAllRead.mutate()} hitSlop={8}>
+        <Tap onPress={() => markAllRead.mutate()} hitSlop={8}>
           <Text style={styles.markAll}>{t("notifications.markAllRead")}</Text>
-        </Pressable>
+        </Tap>
       ),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,7 +97,7 @@ export default function NotificationsScreen() {
               {group.items.map((item, i) => {
                 const visual = NOTIFICATION_CATEGORY[item.category] ?? NOTIFICATION_CATEGORY.general;
                 return (
-                  <Pressable
+                  <Tap
                     key={item.id}
                     onPress={() => open(item)}
                     style={[styles.row, i < group.items.length - 1 && styles.rowBorder]}
@@ -113,7 +115,8 @@ export default function NotificationsScreen() {
                       <Text style={styles.time}>{formatTime(item.created_at, i18n.language)}</Text>
                       <UnreadDot visible={!item.read_at} />
                     </View>
-                  </Pressable>
+                    <Chevron size={16} />
+                  </Tap>
                 );
               })}
             </Card>

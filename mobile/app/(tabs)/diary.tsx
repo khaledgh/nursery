@@ -18,6 +18,8 @@ import { Card, Loading, Screen } from "../../src/components/ui";
 import { formatTime, toISODate } from "../../src/lib/stats";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, DIARY_TYPE, fonts, radius, spacing } from "../../src/theme";
+import { useClearSectionBadge } from "../../src/lib/useClearSectionBadge";
+import { remoteImage } from "../../src/lib/remoteImage";
 
 type Filter = "all" | "meals" | "sleep" | "activities" | "care";
 
@@ -30,6 +32,7 @@ const FILTER_TYPES: Record<Filter, DiaryEntry["type"][] | null> = {
 };
 
 export default function DiaryScreen() {
+  useClearSectionBadge("diary");
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { child } = useActiveChild();
@@ -118,7 +121,7 @@ export default function DiaryScreen() {
                       <Text style={styles.entryBy}>{t("diary.loggedBy", { name: entry.logged_by.name })}</Text>
                     ) : null}
                   </View>
-                  {photo && <Image source={{ uri: photo }} style={styles.entryPhoto} contentFit="cover" />}
+                  {photo && <Image source={remoteImage(photo)} style={styles.entryPhoto} contentFit="cover" />}
                 </Card>
               </TimelineItem>
             );

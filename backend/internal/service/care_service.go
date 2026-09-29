@@ -74,8 +74,13 @@ func (s *CareService) CreateDiary(ctx context.Context, role model.Role, userID, 
 	}
 	s.audit.Record(ctx, userID, "create", "diary_entry", entry.ID, map[string]any{"child_id": childID, "type": req.Type}, ip)
 	if shouldNotifyDiary(req) {
-		s.notifier.NotifyGuardians(ctx, childID, "updates", "New diary update", req.Title,
-			map[string]any{"screen": "diary", "child_id": childID, "entry_id": entry.ID})
+		// Entries with photos badge the Gallery section; others the Diary.
+		screen, title := "diary", "New diary update"
+		if len(req.MediaIDs) > 0 {
+			screen, title = "gallery", "New photos 📸"
+		}
+		s.notifier.NotifyGuardians(ctx, childID, "updates", title, req.Title,
+			map[string]any{"screen": screen, "child_id": childID, "entry_id": entry.ID})
 	}
 	return entry, nil
 }

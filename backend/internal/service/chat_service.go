@@ -224,6 +224,7 @@ func (s *ChatService) SendMessage(ctx context.Context, conversationID, senderID 
 
 	s.notifier.NotifyUser(ctx, recipientID, model.CategoryMessages, senderName, body, map[string]any{
 		"type":            "chat",
+		"screen":          "messages",
 		"conversation_id": conversationID,
 		"sender_id":       senderID,
 		"url":             fmt.Sprintf("/chat/%d", conversationID),

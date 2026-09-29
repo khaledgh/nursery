@@ -41,6 +41,9 @@ export function AttendancePage() {
     queryKey: ["attendance-pending"],
     queryFn: async () =>
       (await api.get<ListResponse<PendingRow>>("/attendance/pending", { params: { per_page: 50 } })).data.data,
+    // Parents report absences from the app; keep the queue live.
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const confirm = useMutation({

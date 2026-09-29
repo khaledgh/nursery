@@ -112,7 +112,7 @@ func main() {
 	subscriptionSvc := service.NewSubscriptionService(db)
 	childSvc := service.NewChildService(childRepo, userRepo, auditSvc, subscriptionSvc)
 	classroomSvc := service.NewClassroomService(classroomRepo, userRepo, localeSvc, auditSvc)
-	attendanceSvc := service.NewAttendanceService(attendanceRepo, childRepo, childSvc, auditSvc, notifier)
+	attendanceSvc := service.NewAttendanceService(db, attendanceRepo, childRepo, childSvc, auditSvc, notifier)
 	mediaSvc := service.NewMediaService(db, store)
 	careSvc := service.NewCareService(careRepo, childRepo, classroomRepo, childSvc, notifier, auditSvc)
 	healthSvc := service.NewHealthService(db, childSvc, auditSvc, notifier)
@@ -230,6 +230,8 @@ func main() {
 	superAdminSvc := service.NewSuperAdminService(db, subscriptionSvc, jwts, auditSvc)
 	handler.NewSuperAdminHandler(superAdminSvc, subscriptionSvc).Register(protected)
 	handler.NewDemoRequestHandler(service.NewDemoRequestService(db, auditSvc)).Register(api, protected)
+	handler.NewNurseryProfileHandler(service.NewNurseryProfileService(db, auditSvc)).Register(protected)
+	handler.NewPushTestHandler(notifier).Register(protected)
 	// /me/context is one call the admin SPA makes on load: who am I, which
 	// nursery, which modules, and how many seats are left.
 	handler.NewContextHandler(subscriptionSvc, userSvc, service.NewSearchService(db, subscriptionSvc), db).Register(protected)

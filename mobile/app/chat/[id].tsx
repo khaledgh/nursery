@@ -6,7 +6,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +17,7 @@ import { Loading, Screen } from "../../src/components/ui";
 import { addDays, formatTime, isSameDay } from "../../src/lib/stats";
 import { useAuthStore } from "../../src/store/auth";
 import { colors, fonts, radius, spacing } from "../../src/theme";
+import { Tap } from "../../src/components/Tap";
 
 /** "Today" / "Yesterday" / short date, for the sticky separator between message groups. */
 function dayLabel(iso: string, locale: string): string {
@@ -177,13 +177,13 @@ export default function ChatRoomScreen() {
             onChangeText={setText}
             multiline
           />
-          <Pressable
+          <Tap
             style={[styles.sendButton, (!text.trim() || isSending) && styles.disabledSend]}
             onPress={handleSend}
             disabled={!text.trim() || isSending}
           >
             <Ionicons name="send" size={18} color={colors.white} />
-          </Pressable>
+          </Tap>
         </View>
       </KeyboardAvoidingView>
     </Screen>

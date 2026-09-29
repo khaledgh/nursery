@@ -28,13 +28,13 @@ export function LocalesPage() {
   const uiStrings = useQuery({
     queryKey: ["ui-translations", uiLocale],
     queryFn: async () => {
-      const res = await api.get<ItemResponse<UITranslation[]>>("/admin/translations/ui", { params: { locale: uiLocale } });
+      const res = await api.get<ItemResponse<UITranslation[]>>("/superadmin/translations/ui", { params: { locale: uiLocale } });
       return res.data.data;
     },
   });
 
   const saveLocale = useMutation({
-    mutationFn: async (loc: typeof draft) => api.put("/admin/locales", { ...loc, sort_order: 0 }),
+    mutationFn: async (loc: typeof draft) => api.put("/superadmin/locales", { ...loc, sort_order: 0 }),
     onSuccess: () => {
       setAddingLocale(false);
       setDraft({ code: "", name: "", native_name: "", direction: "ltr", is_active: true, is_default: false });
@@ -44,19 +44,19 @@ export function LocalesPage() {
   });
 
   const toggleLocale = useMutation({
-    mutationFn: async (loc: Locale) => api.put("/admin/locales", { ...loc, is_active: !loc.is_active }),
+    mutationFn: async (loc: Locale) => api.put("/superadmin/locales", { ...loc, is_active: !loc.is_active }),
     onSuccess: () => void locales.refetch(),
     onError: (err) => setError(errorMessage(err)),
   });
 
   const deleteLocale = useMutation({
-    mutationFn: async (code: string) => api.delete(`/admin/locales/${code}`),
+    mutationFn: async (code: string) => api.delete(`/superadmin/locales/${code}`),
     onSuccess: () => void locales.refetch(),
     onError: (err) => setError(errorMessage(err)),
   });
 
   const upsertUI = useMutation({
-    mutationFn: async () => api.put("/admin/translations/ui", { locale: uiLocale, key: newKey, value: newValue }),
+    mutationFn: async () => api.put("/superadmin/translations/ui", { locale: uiLocale, key: newKey, value: newValue }),
     onSuccess: () => {
       setNewKey("");
       setNewValue("");
@@ -66,7 +66,7 @@ export function LocalesPage() {
   });
 
   const deleteUI = useMutation({
-    mutationFn: async (id: number) => api.delete(`/admin/translations/ui/${id}`),
+    mutationFn: async (id: number) => api.delete(`/superadmin/translations/ui/${id}`),
     onSuccess: () => void uiStrings.refetch(),
   });
 

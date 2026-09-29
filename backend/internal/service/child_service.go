@@ -129,6 +129,21 @@ func (s *ChildService) Update(ctx context.Context, childID uint64, req *dto.Upda
 	return ch, nil
 }
 
+// UpdateProfile lets a guardian (or staff with access) edit the child's name,
+// date of birth and photo. Classroom, status and medical fields stay admin-only.
+func (s *ChildService) UpdateProfile(ctx context.Context, role model.Role, userID, childID uint64, req *dto.UpdateChildProfileRequest, ip string) (*model.Child, error) {
+	if err := s.Authorize(ctx, role, userID, childID); err != nil {
+		return nil, err
+	}
+	ch, err := s.Update(ctx, childID, &dto.UpdateChildRequest{
+		FirstName: req.FirstName, LastName: req.LastName, DOB: req.DOB, AvatarID: req.AvatarID,
+	}, userID, ip)
+	if err != nil {
+		return nil, err
+	}
+	return s.children.ByID(ctx, ch.ID)
+}
+
 // Delete soft-deletes a child, freeing their seat. The row is recoverable via
 // Restore, so this is safe to offer directly in the UI.
 //

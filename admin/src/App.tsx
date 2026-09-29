@@ -1,4 +1,5 @@
-import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import type { ReactElement } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { HeroUIProvider } from "@heroui/react";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -16,6 +17,7 @@ import { InvoiceDetailPage } from "./features/payments/InvoiceDetailPage";
 import { NotificationsPage } from "./features/notifications/NotificationsPage";
 import { LocalesPage } from "./features/locales/LocalesPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { NurserySettingsPage } from "./features/settings/NurserySettingsPage";
 import { AuditLogsPage } from "./features/audit/AuditLogsPage";
 import { MenusPage } from "./features/menus/MenusPage";
 import { WeeklyPlansPage } from "./features/plans/WeeklyPlansPage";
@@ -89,9 +91,9 @@ function AppContent() {
             <Route path="invoices" element={<InvoicesPage />} />
             <Route path="invoices/:id" element={<InvoiceDetailPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="locales" element={<LocalesPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="audit" element={<AuditLogsPage />} />
+            <Route path="locales" element={<SuperAdminOnly><LocalesPage /></SuperAdminOnly>} />
+            <Route path="settings" element={<RoleSettings />} />
+            <Route path="audit" element={<SuperAdminOnly><AuditLogsPage /></SuperAdminOnly>} />
           </Route>
         </Route>
       </Routes>
@@ -105,4 +107,16 @@ export default function App() {
       <AppContent />
     </BrowserRouter>
   );
+}
+
+/** Platform-wide pages (languages, audit): the API enforces this too. */
+function SuperAdminOnly({ children }: { children: ReactElement }) {
+  const role = useAuthStore((s) => s.user?.role);
+  return role === "superadmin" ? children : <Navigate to="/" replace />;
+}
+
+/** Superadmin gets platform settings; a nursery admin gets their nursery's. */
+function RoleSettings() {
+  const role = useAuthStore((s) => s.user?.role);
+  return role === "superadmin" ? <SettingsPage /> : <NurserySettingsPage />;
 }

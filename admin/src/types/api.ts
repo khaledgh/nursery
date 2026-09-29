@@ -100,6 +100,8 @@ export interface Nursery {
   status: "active" | "suspended" | "cancelled";
   locale: string;
   timezone: string;
+  /** Billing currency for parent invoices (set by the nursery admin). */
+  currency?: string;
 }
 
 /** One call on load: identity, tenant, purchased modules, seats left. */

@@ -9,6 +9,7 @@ import { Card, Screen } from "../../src/components/ui";
 import { applyLocale } from "../../src/i18n";
 import { useAuthStore } from "../../src/store/auth";
 import { colors, fonts, radius, spacing } from "../../src/theme";
+import { VersionFooter } from "../../src/components/VersionFooter";
 
 const LOCALES = [
   { code: "en", label: "English" },
@@ -45,6 +46,7 @@ export default function TeacherMore() {
 
   return (
     <Screen>
+      <Pressable onPress={() => router.push("/profile/edit")} accessibilityRole="button">
       <Card style={styles.profile}>
         <ChildAvatar url={user?.avatar?.url} name={user?.name ?? "?"} size={64} ringColor={colors.primaryLight} />
         <View style={{ flex: 1 }}>
@@ -52,6 +54,7 @@ export default function TeacherMore() {
           <Text style={styles.email}>{user?.email}</Text>
         </View>
       </Card>
+      </Pressable>
 
       <ActionCard
         icon="chatbubbles"
@@ -108,6 +111,7 @@ export default function TeacherMore() {
       <Pressable style={styles.logout} onPress={() => void signOut()}>
         <Text style={styles.logoutText}>{t("more.logout")}</Text>
       </Pressable>
+      <VersionFooter />
     </Screen>
   );
 }

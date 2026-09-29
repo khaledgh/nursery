@@ -16,6 +16,7 @@ import { Platform } from "react-native";
 import "../src/i18n";
 import { queryClient } from "../src/lib/queryClient";
 import { initPush } from "../src/lib/push";
+import { useRealtimeChat } from "../src/lib/realtime";
 import { colors, fonts } from "../src/theme";
 
 void SplashScreen.preventAutoHideAsync();
@@ -25,6 +26,7 @@ void SplashScreen.preventAutoHideAsync();
 initPush();
 
 export default function RootLayout() {
+  useRealtimeChat();
   const { t } = useTranslation();
   const [fontsLoaded, fontError] = useFonts({
     Nunito_400Regular,
@@ -79,6 +81,8 @@ export default function RootLayout() {
         <Stack.Screen name="child/gallery" options={{ title: t("gallery.title") }} />
         <Stack.Screen name="child/report" options={{ title: t("report.title") }} />
         <Stack.Screen name="child/meals-schedule" options={{ title: t("menu.title") }} />
+        <Stack.Screen name="child/edit" options={{ title: t("profile.editChild") }} />
+        <Stack.Screen name="profile/edit" options={{ title: t("profile.editProfile") }} />
         <Stack.Screen name="events/index" options={{ title: t("events.title") }} />
         <Stack.Screen name="events/[id]" options={{ title: t("events.detailTitle") }} />
         <Stack.Screen name="payments/index" options={{ title: t("payments.title") }} />

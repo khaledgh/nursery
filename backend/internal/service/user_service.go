@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
@@ -145,6 +146,25 @@ func (s *UserService) Update(ctx context.Context, id uint64, req *dto.UpdateUser
 
 // UpdateMyAvatar lets any signed-in user set or clear their own photo —
 // parents have no access to the admin user CRUD.
+// UpdateMe lets any signed-in user change their own display name and phone.
+func (s *UserService) UpdateMe(ctx context.Context, userID uint64, req *dto.UpdateMeRequest, ip string) (*model.User, error) {
+	u, err := s.users.ByID(ctx, userID)
+	if err != nil {
+		return nil, apperr.NotFound("user not found")
+	}
+	if req.Name != nil {
+		u.Name = strings.TrimSpace(*req.Name)
+	}
+	if req.Phone != nil {
+		u.Phone = strings.TrimSpace(*req.Phone)
+	}
+	if err := s.users.Update(ctx, u); err != nil {
+		return nil, apperr.Internal(err)
+	}
+	s.audit.Record(ctx, userID, "update", "user_profile", u.ID, map[string]any{"name": u.Name, "phone": u.Phone}, ip)
+	return s.users.ByID(ctx, userID)
+}
+
 func (s *UserService) UpdateMyAvatar(ctx context.Context, userID uint64, mediaID *uint64, ip string) (*model.User, error) {
 	u, err := s.users.ByID(ctx, userID)
 	if err != nil {

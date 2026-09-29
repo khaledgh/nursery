@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -30,14 +29,7 @@ type PaymentService struct {
 }
 
 func (s *PaymentService) getNurseryCurrency(ctx context.Context) string {
-	var setting model.Setting
-	if err := s.db.WithContext(ctx).Where("`key` = ?", "currency").First(&setting).Error; err == nil {
-		var str string
-		if json.Unmarshal(setting.ValueJSON, &str) == nil && strings.TrimSpace(str) != "" {
-			return strings.ToUpper(strings.TrimSpace(str))
-		}
-	}
-	return "SEK"
+	return NurseryCurrency(ctx, s.db)
 }
 
 func NewPaymentService(db *gorm.DB, children *repository.ChildRepo, provider payment.Provider, notifier Notifier, audit *AuditService, log zerolog.Logger) *PaymentService {
@@ -172,50 +164,54 @@ func (s *PaymentService) CancelInvoice(ctx context.Context, id, actorID uint64, 
 }
 
 // Pay initiates a gateway payment for the caller's own invoice.
-func (s *PaymentService) Pay(ctx context.Context, role model.Role, userID, invoiceID uint64, req *dto.PayInvoiceRequest, ip string) (map[string]any, error) {
-	inv, err := s.GetInvoice(ctx, role, userID, invoiceID)
-	if err != nil {
-		return nil, err
+// MarkPaid records a payment taken by the nursery office (cash, bank transfer,
+// card terminal…) and settles the invoice. This is the only way an invoice
+// becomes paid: parents cannot pay from the app.
+func (s *PaymentService) MarkPaid(ctx context.Context, invoiceID uint64, req *dto.MarkInvoicePaidRequest, actorID uint64, ip string) (*model.Invoice, error) {
+	var inv model.Invoice
+	if err := s.db.WithContext(ctx).First(&inv, invoiceID).Error; err != nil {
+		return nil, apperr.NotFound("invoice not found")
 	}
 	if inv.Status != model.InvoiceDue && inv.Status != model.InvoiceOverdue {
-		return nil, apperr.Conflict("invoice is not payable in its current status")
+		return nil, apperr.Conflict("only due or overdue invoices can be marked as paid")
 	}
-	gw, err := s.provider.CreatePayment(ctx, inv.InvoiceNo, inv.TotalMinor, inv.Currency, req.PayerAlias)
-	if err != nil {
-		s.log.Error().Err(err).Uint64("invoice_id", invoiceID).Msg("gateway payment creation failed")
-		return nil, apperr.New(apperr.CodeInternal, "payment could not be initiated; try again later")
+	paidAt := time.Now()
+	if req.PaidAt != "" {
+		t, err := time.Parse("2006-01-02", req.PaidAt)
+		if err != nil {
+			return nil, apperr.Validation(map[string]string{"paid_at": "must be a date (YYYY-MM-DD)"})
+		}
+		paidAt = t
 	}
+	raw, _ := json.Marshal(map[string]string{"reference": req.Reference, "note": req.Note, "recorded_by": fmt.Sprint(actorID)})
 	p := &model.Payment{
-		InvoiceID:   inv.ID,
-		Provider:    s.provider.Name(),
-		ProviderRef: gw.ProviderRef,
-		AmountMinor: inv.TotalMinor,
-		Status:      model.PaymentPending,
-		InitiatedBy: userID,
+		InvoiceID:      inv.ID,
+		Provider:       req.Method,
+		ProviderRef:    fmt.Sprintf("manual-%d-%d", inv.ID, time.Now().UnixNano()),
+		AmountMinor:    inv.TotalMinor,
+		Status:         model.PaymentPaid,
+		PaidAt:         &paidAt,
+		InitiatedBy:    actorID,
+		RawPayloadJSON: datatypes.JSON(raw),
 	}
-	if err := s.db.WithContext(ctx).Create(p).Error; err != nil {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(p).Error; err != nil {
+			return err
+		}
+		return tx.Model(&inv).Update("status", model.InvoicePaid).Error
+	})
+	if err != nil {
 		return nil, apperr.Internal(err)
 	}
-	s.audit.Record(ctx, userID, "initiate", "payment", p.ID, map[string]any{"invoice_id": inv.ID}, ip)
-
-	if s.provider.Name() == "mock" {
-		status, _ := s.provider.VerifyPayment(ctx, p.ProviderRef)
-		if status != nil && status.Paid {
-			_ = s.settle(ctx, p, status)
-		}
-	}
-
-	return map[string]any{
-		"payment_id":   p.ID,
-		"provider":     p.Provider,
-		"provider_ref": p.ProviderRef,
-		"token":        gw.Token,
-	}, nil
+	s.audit.Record(ctx, actorID, "mark_paid", "invoice", inv.ID,
+		map[string]any{"method": req.Method, "reference": req.Reference, "amount_minor": inv.TotalMinor}, ip)
+	s.notifier.NotifyUser(ctx, inv.PayerUserID, "updates", "Payment received ✅",
+		fmt.Sprintf("Invoice %s is paid. Thank you!", inv.InvoiceNo),
+		map[string]any{"screen": "payments", "invoice_id": inv.ID})
+	inv.Status = model.InvoicePaid
+	return &inv, nil
 }
 
-// HandleCallback processes a gateway webhook. The payload is untrusted:
-// only the reference is extracted, then the authoritative status is fetched
-// from the gateway over mTLS before any state changes.
 func (s *PaymentService) HandleCallback(ctx context.Context, providerRef string) error {
 	if providerRef == "" {
 		return apperr.BadRequest("missing payment reference")

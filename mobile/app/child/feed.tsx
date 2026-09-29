@@ -25,6 +25,7 @@ import {
 import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { accents, colors, fonts, MEAL_STATUS, MEAL_TYPE, radius, spacing } from "../../src/theme";
+import { remoteImage } from "../../src/lib/remoteImage";
 
 export default function FeedScreen() {
   const { t, i18n } = useTranslation();
@@ -101,7 +102,7 @@ export default function FeedScreen() {
                 />
                 {meal.note ? <Text style={styles.mealNote}>{meal.note}</Text> : null}
               </View>
-              {meal.image?.url && <Image source={{ uri: meal.image.url }} style={styles.mealPhoto} contentFit="cover" />}
+              {meal.image?.url && <Image source={remoteImage(meal.image.url)} style={styles.mealPhoto} contentFit="cover" />}
             </Card>
           );
         })

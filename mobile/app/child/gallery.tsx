@@ -12,7 +12,6 @@ import {
   SectionList,
   FlatList,
   Modal,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -28,6 +27,9 @@ import { EmptyState } from "../../src/components/EmptyState";
 import { Loading } from "../../src/components/ui";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, radius, spacing } from "../../src/theme";
+import { useClearSectionBadge } from "../../src/lib/useClearSectionBadge";
+import { remoteImage } from "../../src/lib/remoteImage";
+import { Tap } from "../../src/components/Tap";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const columns = 3;
@@ -178,7 +180,7 @@ function ZoomableImage({ uri, onZoomStateChange, viewRef }: ZoomableImageProps) 
 
   return (
     <View ref={viewRef} style={zoomStyles.container} collapsable={false} {...panResponder.panHandlers}>
-      <Pressable onPress={handlePress} style={zoomStyles.pressable}>
+      <Tap onPress={handlePress} style={zoomStyles.pressable}>
         <Animated.Image
           source={{ uri }}
           style={[
@@ -193,16 +195,8 @@ function ZoomableImage({ uri, onZoomStateChange, viewRef }: ZoomableImageProps) 
           ]}
           resizeMode="contain"
         />
-      </Pressable>
+      </Tap>
 
-      {/* Watermark overlay in bottom corner */}
-      <View style={zoomStyles.watermarkBadge} pointerEvents="none">
-        <Image
-          source={require("../../assets/notification-icon-large.png")}
-          style={zoomStyles.watermarkIcon}
-          contentFit="contain"
-        />
-      </View>
     </View>
   );
 }
@@ -225,21 +219,6 @@ const zoomStyles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
-  },
-  watermarkBadge: {
-    position: "absolute",
-    bottom: 110,
-    right: 20,
-    zIndex: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
-    padding: 6,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-  },
-  watermarkIcon: {
-    width: 36,
-    height: 36,
   },
 });
 
@@ -293,6 +272,7 @@ const getGroupedSections = (mediaList: Media[], t: any) => {
 };
 
 export default function GalleryScreen() {
+  useClearSectionBadge("gallery");
   const { t } = useTranslation();
   const { child } = useActiveChild();
 
@@ -423,7 +403,7 @@ export default function GalleryScreen() {
       {rowItems.map((photo) => {
         const globalIndex = allMedia.findIndex((m) => m.id === photo.id);
         return (
-          <Pressable
+          <Tap
             key={photo.id}
             style={styles.thumbnailWrapper}
             onPress={() => {
@@ -431,12 +411,12 @@ export default function GalleryScreen() {
             }}
           >
             <Image
-              source={{ uri: photo.url }}
+              source={remoteImage(photo.url)}
               style={styles.thumbnail}
               contentFit="cover"
               transition={200}
             />
-          </Pressable>
+          </Tap>
         );
       })}
       {rowItems.length < columns &&
@@ -495,13 +475,13 @@ export default function GalleryScreen() {
           <View style={styles.modalBackground}>
             {/* Header / Close */}
             <View style={styles.modalHeader}>
-              <Pressable
+              <Tap
                 style={styles.closeButton}
                 onPress={handleCloseModal}
                 hitSlop={12}
               >
                 <Ionicons name="close" size={28} color="#ffffff" />
-              </Pressable>
+              </Tap>
             </View>
 
             {/* Photo View */}
@@ -535,7 +515,7 @@ export default function GalleryScreen() {
 
             {/* Actions Footer */}
             <View style={styles.modalFooter}>
-              <Pressable
+              <Tap
                 style={[styles.actionButton, styles.saveButton]}
                 onPress={() => void saveToGallery(allMedia[selectedPhotoIndex])}
                 disabled={actionLoading !== null}
@@ -548,9 +528,9 @@ export default function GalleryScreen() {
                     <Text style={styles.actionText}>{t("common.save")}</Text>
                   </>
                 )}
-              </Pressable>
+              </Tap>
 
-              <Pressable
+              <Tap
                 style={[styles.actionButton, styles.shareButton]}
                 onPress={() => void shareToWhatsApp(allMedia[selectedPhotoIndex])}
                 disabled={actionLoading !== null}
@@ -563,7 +543,7 @@ export default function GalleryScreen() {
                     <Text style={styles.actionText}>WhatsApp</Text>
                   </>
                 )}
-              </Pressable>
+              </Tap>
             </View>
           </View>
         </Modal>

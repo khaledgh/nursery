@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Linking, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import { errorMessage } from "../../src/api/client";
-import { useInvoices, usePayInvoice } from "../../src/api/hooks";
+import { useInvoices } from "../../src/api/hooks";
 import type { Invoice } from "../../src/api/types";
 import { PrimaryButton } from "../../src/components/Buttons";
 import { EmptyState } from "../../src/components/EmptyState";
@@ -21,18 +21,19 @@ const STATUS_ACCENT: Record<Invoice["status"], AccentName> = {
   cancelled: "neutral",
 };
 
-import { Modal, TextInput, Pressable } from "react-native";
+import { Modal, TextInput } from "react-native";
 import { usePayMultiMonths } from "../../src/api/hooks";
 import { useAuthStore } from "../../src/store/auth";
+import { useClearSectionBadge } from "../../src/lib/useClearSectionBadge";
+import { Tap } from "../../src/components/Tap";
 
 export default function PaymentsScreen() {
+  useClearSectionBadge("payments");
   const { t, i18n } = useTranslation();
   const invoices = useInvoices();
-  const pay = usePayInvoice();
   const payMulti = usePayMultiMonths();
   const user = useAuthStore((s) => s.user);
 
-  const [payingId, setPayingId] = useState<number | null>(null);
   const [showMultiModal, setShowMultiModal] = useState(false);
   const [childIdText, setChildIdText] = useState("");
   const [monthsCountText, setMonthsCountText] = useState("3");
@@ -70,22 +71,6 @@ export default function PaymentsScreen() {
   const open = all.filter((inv) => inv.status === "due" || inv.status === "overdue");
   const current = open[0];
   const paid = all.filter((inv) => inv.status === "paid");
-
-  const startPayment = (invoice: Invoice) => {
-    setPayingId(invoice.id);
-    pay.mutate(invoice.id, {
-      onSuccess: (data) => {
-        setPayingId(null);
-        const url = (data?.payment_url ?? data?.swish_url ?? data?.redirect_url) as string | undefined;
-        if (url) void Linking.openURL(url);
-        void invoices.refetch();
-      },
-      onError: (err) => {
-        setPayingId(null);
-        Alert.alert(t("common.error"), errorMessage(err));
-      },
-    });
-  };
 
   return (
     <Screen refreshing={invoices.isRefetching} onRefresh={() => void invoices.refetch()}>
@@ -135,13 +120,11 @@ export default function PaymentsScreen() {
               </View>
               <IconCircle name="receipt" accent="primary" size={64} squircle />
             </View>
-            <PrimaryButton
-              label={t("payments.payNow")}
-              icon="flash"
-              loading={pay.isPending && payingId === current.id}
-              onPress={() => startPayment(current)}
-            />
-            <Text style={styles.redirect}>🔒 {t("payments.redirect")}</Text>
+            {/* Parents don't pay in the app: the nursery office records payments. */}
+            <View style={styles.officeNote}>
+              <IconCircle name="business" accent="primary" size={32} />
+              <Text style={styles.officeText}>{t("payments.payAtOffice")}</Text>
+            </View>
           </Card>
 
           {/* Invoice summary */}
@@ -209,7 +192,10 @@ export default function PaymentsScreen() {
 
       {/* Admin Multi-Month Payment Modal */}
       <Modal visible={showMultiModal} transparent animationType="fade" onRequestClose={() => setShowMultiModal(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalBackdrop}
+        >
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Multi-Month Payment Entry</Text>
             <Text style={styles.modalSub}>Mark multiple months as paid for a student</Text>
@@ -237,9 +223,9 @@ export default function PaymentsScreen() {
               onChangeText={setStartPeriodText}
             />
             <View style={styles.modalActions}>
-              <Pressable onPress={() => setShowMultiModal(false)} style={styles.modalCancel}>
+              <Tap onPress={() => setShowMultiModal(false)} style={styles.modalCancel}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
-              </Pressable>
+              </Tap>
               <View style={{ flex: 1 }}>
                 <PrimaryButton
                   label="Submit Payment"
@@ -249,7 +235,7 @@ export default function PaymentsScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </Screen>
   );
@@ -282,7 +268,15 @@ const styles = StyleSheet.create({
   dueLabel: { fontSize: 14, fontFamily: fonts.extrabold, color: colors.text },
   dueAmount: { fontSize: 30, fontFamily: fonts.extrabold, color: colors.danger },
   dueDate: { fontSize: 12, fontFamily: fonts.semibold, color: colors.textMuted },
-  redirect: { fontSize: 11, fontFamily: fonts.semibold, color: colors.textMuted, textAlign: "center" },
+  officeNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    padding: spacing.sm + 2,
+  },
+  officeText: { flex: 1, fontSize: 12, fontFamily: fonts.semibold, color: colors.text, lineHeight: 17 },
   invoiceNo: { fontSize: 13, fontFamily: fonts.extrabold, color: colors.text, paddingBottom: 4 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingTop: 6 },
   totalLabel: { fontSize: 14, fontFamily: fonts.extrabold, color: colors.text },

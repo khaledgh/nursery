@@ -14,6 +14,7 @@ import { addDays, isSameDay, startOfWeek, toISODate } from "../../src/lib/stats"
 import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { accents, colors, fonts, MEAL_TYPE, radius, spacing, type AccentName } from "../../src/theme";
+import { remoteImage } from "../../src/lib/remoteImage";
 
 const RATING_OPTIONS: { key: "eats" | "sometimes" | "doesnt_eat"; accent: AccentName; icon: string }[] = [
   { key: "eats", accent: "activity", icon: "✅" },
@@ -101,7 +102,7 @@ export default function MealsScheduleScreen() {
               </View>
 
               <View style={styles.menuBody}>
-                {m.image?.url && <Image source={{ uri: m.image.url }} style={styles.menuPhoto} contentFit="cover" />}
+                {m.image?.url && <Image source={remoteImage(m.image.url)} style={styles.menuPhoto} contentFit="cover" />}
                 <View style={styles.menuTexts}>
                   <Text style={styles.dishName}>{m.dish_name}</Text>
                   {(m.items ?? []).map((item, i) => (

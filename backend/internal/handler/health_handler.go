@@ -25,7 +25,9 @@ func (h *HealthHandler) Register(protected *echo.Group) {
 
 	staff := protected.Group("", mw.RequireRole(model.RoleTeacher, model.RoleAdmin))
 
-	registerHealthResource[model.Allergy](protected, staff, h.health, "allergies", "allergy")
+	// Guardians may keep allergies and health notes up to date for their own
+	// children (per-child access is enforced by the resource service).
+	registerHealthResource[model.Allergy](protected, protected, h.health, "allergies", "allergy")
 	registerHealthResource[model.IllnessLog](protected, staff, h.health, "illnesses", "illness_log")
 	registerHealthResource[model.Medication](protected, staff, h.health, "medications", "medication")
 	registerHealthResource[model.Immunization](protected, staff, h.health, "immunizations", "immunization")
@@ -35,7 +37,7 @@ func (h *HealthHandler) Register(protected *echo.Group) {
 	registerHealthResource[model.EmergencyContact](protected, staff, h.health, "emergency-contacts", "emergency_contact")
 	registerHealthResource[model.InsuranceInfo](protected, staff, h.health, "insurance", "insurance_info")
 	registerHealthResource[model.MedicalDocument](protected, staff, h.health, "documents", "medical_document")
-	registerHealthResource[model.HealthNote](protected, staff, h.health, "notes", "health_note")
+	registerHealthResource[model.HealthNote](protected, protected, h.health, "notes", "health_note")
 }
 
 func (h *HealthHandler) Profile(c echo.Context) error {

@@ -7,7 +7,7 @@ import { ACTION_TINT } from "../../lib/tints";
 
 export function AuditLogsPage() {
   const { t } = useTranslation();
-  const list = usePagedList<AuditLog>("audit-logs", "/admin/audit-logs");
+  const list = usePagedList<AuditLog>("audit-logs", "/superadmin/audit-logs");
 
   const columns: Column<AuditLog>[] = [
     {

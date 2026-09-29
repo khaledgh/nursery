@@ -20,6 +20,12 @@ type UpdateUserRequest struct {
 }
 
 // UpdateMyAvatarRequest lets any signed-in user change their own photo.
+// UpdateMeRequest is the self-service profile edit (any role).
+type UpdateMeRequest struct {
+	Name  *string `json:"name" validate:"omitempty,min=2,max=191"`
+	Phone *string `json:"phone" validate:"omitempty,max=32"`
+}
+
 type UpdateMyAvatarRequest struct {
 	MediaID *uint64 `json:"media_id"`
 }

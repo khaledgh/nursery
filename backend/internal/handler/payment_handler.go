@@ -26,11 +26,12 @@ func NewPaymentHandler(payments *service.PaymentService) *PaymentHandler {
 func (h *PaymentHandler) Register(protected *echo.Group) {
 	protected.GET("/invoices", h.List)
 	protected.GET("/invoices/:id", h.Get)
-	protected.POST("/invoices/:id/pay", h.Pay)
+	// Parents no longer pay in the app: the nursery office records payments.
 
 	admin := protected.Group("/admin", mw.RequireRole(model.RoleAdmin))
 	admin.POST("/invoices", h.Create)
 	admin.POST("/invoices/:id/cancel", h.Cancel)
+	admin.POST("/invoices/:id/mark-paid", h.MarkPaid)
 	admin.POST("/invoices/pay-multi-months", h.PayMultiMonths)
 }
 
@@ -102,20 +103,20 @@ func (h *PaymentHandler) PayMultiMonths(c echo.Context) error {
 	return response.OK(c, map[string]any{"data": invs})
 }
 
-func (h *PaymentHandler) Pay(c echo.Context) error {
+func (h *PaymentHandler) MarkPaid(c echo.Context) error {
 	id, err := paramID(c)
 	if err != nil {
 		return err
 	}
-	req, err := dto.Bind[dto.PayInvoiceRequest](c)
+	req, err := dto.Bind[dto.MarkInvoicePaidRequest](c)
 	if err != nil {
 		return err
 	}
-	res, err := h.payments.Pay(c.Request().Context(), mw.Role(c), mw.UserID(c), id, req, c.RealIP())
+	inv, err := h.payments.MarkPaid(c.Request().Context(), id, req, mw.AuditActor(c), c.RealIP())
 	if err != nil {
 		return err
 	}
-	return response.OK(c, res)
+	return response.OK(c, inv)
 }
 
 // SwishWebhook receives gateway callbacks. The body is treated as untrusted

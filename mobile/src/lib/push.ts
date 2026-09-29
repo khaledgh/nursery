@@ -24,6 +24,23 @@ function safeNavigate(targetUrl: string) {
   }, 300);
 }
 
+/** Where a tapped notification opens, by the "screen" the backend tags it with. */
+const SCREEN_ROUTES: Record<string, string> = {
+  diary: "/diary",
+  gallery: "/child/gallery",
+  events: "/events",
+  messages: "/messages",
+  announcements: "/messages",
+  payments: "/payments",
+  community: "/community",
+  attendance: "/",
+  health: "/child/health",
+  milestones: "/child/milestones",
+  reports: "/child/report",
+  reminders: "/reminders",
+  notifications: "/notifications",
+};
+
 /** The id OneSignal last reported for this device, so we only POST on change. */
 let registeredId: string | null = null;
 
@@ -67,12 +84,29 @@ export function initPush() {
   OneSignal.Notifications.addEventListener("foregroundWillDisplay", (event: any) => {
     event.getNotification().display();
 
-    const data = event.notification.additionalData as { type?: string; conversation_id?: number } | undefined;
+    const data = event.notification.additionalData as
+      | { type?: string; conversation_id?: number; screen?: string; child_id?: number }
+      | undefined;
+    // Badges and the notification list always change.
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     if (data?.type === "chat" && data?.conversation_id) {
       void queryClient.invalidateQueries({ queryKey: ["messages", data.conversation_id] });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    } else {
-      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    }
+    // Attendance changes (parent reported absence, check-in/out) must show on
+    // the parent's status pill, the teacher roster and staff queues at once.
+    if (data?.type === "attendance" || data?.screen === "attendance") {
+      for (const key of [["children"], ["teacherRoster"], ["attendance"]]) {
+        void queryClient.invalidateQueries({ queryKey: key });
+      }
+      if (data?.child_id) void queryClient.invalidateQueries({ queryKey: ["dashboard", data.child_id] });
+    }
+    if (data?.screen === "gallery" || data?.screen === "diary") {
+      if (data?.child_id) {
+        void queryClient.invalidateQueries({ queryKey: ["childMedia", data.child_id] });
+        void queryClient.invalidateQueries({ queryKey: ["diary", data.child_id] });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard", data.child_id] });
+      }
     }
   });
 
@@ -85,7 +119,7 @@ export function initPush() {
     } else if (data?.type === "chat" && data?.conversation_id) {
       target = `/chat/${data.conversation_id}`;
     } else if (data?.screen) {
-      target = `/${data.screen}`;
+      target = SCREEN_ROUTES[data.screen] ?? "/notifications";
     }
     safeNavigate(target);
   });
@@ -148,4 +182,37 @@ function watchAuth() {
     if (current === null) onLoggedOut();
     else onAuthenticated(current);
   });
+}
+
+/**
+ * What OneSignal knows about this device — shown from a hidden panel in the
+ * More tab so a phone that gets no pushes can be diagnosed on the spot.
+ */
+export async function pushDiagnostics() {
+  if (!appId) return { configured: false as const };
+  const [permission, subscriptionId, optedIn, externalId] = await Promise.all([
+    OneSignal.Notifications.getPermissionAsync().catch(() => false),
+    OneSignal.User.pushSubscription.getIdAsync().catch(() => null),
+    OneSignal.User.pushSubscription.getOptedInAsync().catch(() => false),
+    OneSignal.User.getExternalId().catch(() => null),
+  ]);
+  return {
+    configured: true as const,
+    platform: Platform.OS,
+    permission,
+    subscriptionId,
+    optedIn,
+    externalId,
+    expectedExternalId: useAuthStore.getState().user?.id?.toString() ?? null,
+  };
+}
+
+/** Re-links this device to the signed-in user and asks for permission again. */
+export async function reRegisterPush() {
+  const userId = useAuthStore.getState().user?.id;
+  if (!appId || !userId) return;
+  OneSignal.login(String(userId));
+  await OneSignal.Notifications.requestPermission(true);
+  OneSignal.User.pushSubscription.optIn();
+  void pollForSubscriptionId();
 }

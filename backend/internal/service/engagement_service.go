@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gorm.io/datatypes"
@@ -26,6 +27,25 @@ type EngagementService struct {
 	notifier     Notifier
 	audit        *AuditService
 	translations *TranslationService
+	// photoPushAt remembers the last "new photos" push per event (and child)
+	// so uploading an album sends one notification, not one per photo.
+	photoPushAt sync.Map
+}
+
+// photoPushWindow merges album uploads into a single notification.
+const photoPushWindow = 10 * time.Minute
+
+// notifyEventAudience sends an event notification only to the families the
+// event is for: one classroom's guardians for "classroom:<id>", otherwise
+// every parent of the nursery.
+func (s *EngagementService) notifyEventAudience(ctx context.Context, ev *model.Event, category, title, body string, data map[string]any) {
+	if strings.HasPrefix(ev.Audience, "classroom:") {
+		if id, err := strconv.ParseUint(strings.TrimPrefix(ev.Audience, "classroom:"), 10, 64); err == nil && id != 0 {
+			s.notifier.NotifyClassroomGuardians(ctx, id, category, title, body, data)
+			return
+		}
+	}
+	s.notifier.NotifyRole(ctx, string(model.RoleParent), category, title, body, data)
 }
 
 func NewEngagementService(db *gorm.DB, children *repository.ChildRepo, childSvc *ChildService, notifier Notifier, audit *AuditService, translations *TranslationService) *EngagementService {
@@ -173,7 +193,7 @@ func (s *EngagementService) CreateEvent(ctx context.Context, req *dto.CreateEven
 	if ev.NurseryID != 0 {
 		evCtx = database.WithTenant(ctx, ev.NurseryID)
 	}
-	s.notifier.NotifyRole(evCtx, string(model.RoleParent), "events", "New event 📅", ev.Title,
+	s.notifyEventAudience(evCtx, ev, "events", "New event 📅", ev.Title,
 		map[string]any{"screen": "events", "event_id": ev.ID, "nursery_id": ev.NurseryID})
 	return ev, nil
 }
@@ -195,7 +215,7 @@ func (s *EngagementService) UpdateEventStatus(ctx context.Context, id uint64, st
 		if ev.NurseryID != 0 {
 			evCtx = database.WithTenant(ctx, ev.NurseryID)
 		}
-		s.notifier.NotifyRole(evCtx, string(model.RoleParent), model.CategoryEvents,
+		s.notifyEventAudience(evCtx, ev, model.CategoryEvents,
 			"Event cancelled", ev.Title,
 			map[string]any{"screen": "events", "event_id": ev.ID, "nursery_id": ev.NurseryID})
 	}
@@ -249,7 +269,8 @@ func (s *EngagementService) ListEventMedia(ctx context.Context, eventID uint64) 
 }
 
 func (s *EngagementService) AddEventMedia(ctx context.Context, eventID, actorID uint64, req *dto.AddEventMediaRequest, ip string) (*model.EventMedia, error) {
-	if _, err := s.GetEvent(ctx, eventID); err != nil {
+	ev, err := s.GetEvent(ctx, eventID)
+	if err != nil {
 		return nil, err
 	}
 	em := &model.EventMedia{EventID: eventID, MediaID: req.MediaID, Caption: req.Caption, ChildID: req.ChildID, UploadedBy: actorID}
@@ -257,12 +278,27 @@ func (s *EngagementService) AddEventMedia(ctx context.Context, eventID, actorID 
 		return nil, apperr.Internal(err)
 	}
 	s.audit.Record(ctx, actorID, "create", "event_media", em.ID, map[string]any{"event_id": eventID}, ip)
-	// Photos are the payoff of an event for parents who could not attend.
-	// TODO: uploading an album sends one push per photo — route through the
-	// digest once it exists so a batch arrives as a single notification.
-	s.notifier.NotifyRole(ctx, string(model.RoleParent), model.CategoryEvents,
-		"New event photos 📷", "Photos have been added to the album",
-		map[string]any{"screen": "events", "event_id": eventID})
+	// A photo of one child goes to that child's family only; untagged album
+	// photos go to the event's audience. Either way an album upload produces
+	// one notification per window, not one per photo.
+	key := fmt.Sprintf("%d", eventID)
+	if req.ChildID != nil {
+		key = fmt.Sprintf("%d:%d", eventID, *req.ChildID)
+	}
+	now := time.Now()
+	if last, ok := s.photoPushAt.Load(key); ok && now.Sub(last.(time.Time)) < photoPushWindow {
+		return em, nil
+	}
+	s.photoPushAt.Store(key, now)
+	data := map[string]any{"screen": "events", "event_id": eventID}
+	if req.ChildID != nil {
+		data["child_id"] = *req.ChildID
+		s.notifier.NotifyGuardians(ctx, *req.ChildID, model.CategoryEvents,
+			"New photos 📷", "New photos of your child were added to "+ev.Title, data)
+		return em, nil
+	}
+	s.notifyEventAudience(ctx, ev, model.CategoryEvents,
+		"New event photos 📷", "Photos have been added to "+ev.Title, data)
 	return em, nil
 }
 

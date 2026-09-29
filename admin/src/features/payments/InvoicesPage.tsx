@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Select, SelectItem } from "@heroui/react";
@@ -8,7 +8,8 @@ import { Modal } from "../../components/Modal";
 import { DatePicker } from "../../components/DatePicker";
 import { ChildPicker } from "../../components/Pickers";
 import { usePagedList } from "../../hooks/usePagedList";
-import { useCurrency } from "../../hooks/useCurrency";
+import { CURRENCY_OPTIONS, useCurrency } from "../../hooks/useCurrency";
+import { MarkPaidModal } from "./MarkPaidModal";
 import { api, errorMessage } from "../../lib/api";
 import type { Invoice } from "../../types/api";
 import { INVOICE_STATUS_TINT } from "../../lib/tints";
@@ -27,6 +28,7 @@ export function InvoicesPage() {
   const list = usePagedList<Invoice>("invoices", "/invoices", { status: statusFilter || undefined });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [paying, setPaying] = useState<Invoice | null>(null);
 
   const [childId, setChildId] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -103,9 +105,22 @@ export function InvoicesPage() {
     },
     {
       header: t("common.actions"),
-      className: "w-24",
+      className: "w-28",
       render: (i) =>
         i.status === "due" || i.status === "overdue" ? (
+          <div className="flex items-center gap-1">
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            color="success"
+            radius="lg"
+            title="Mark as paid"
+            onPress={() => setPaying(i)}
+            className="text-emerald-600 hover:bg-emerald-50"
+          >
+            <CheckCircle2 size={15} />
+          </Button>
           <Button
             isIconOnly
             size="sm"
@@ -118,6 +133,7 @@ export function InvoicesPage() {
           >
             <XCircle size={15} />
           </Button>
+          </div>
         ) : null,
     },
   ];
@@ -221,7 +237,7 @@ export function InvoicesPage() {
             <div>
               <label className="label">Currency</label>
               <select className="input" value={activeCurrency} onChange={(e) => setCurrency(e.target.value)}>
-                {Array.from(new Set([defaultCurrency, "USD", "SAR", "AED", "KWD", "EUR", "GBP", "QAR", "BHD", "SEK"])).map((c) => (
+                {Array.from(new Set([defaultCurrency, ...CURRENCY_OPTIONS.map((o) => o.code)])).map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
@@ -337,6 +353,8 @@ export function InvoicesPage() {
           </div>
         </div>
       </Modal>
+
+      <MarkPaidModal invoice={paying} onClose={() => setPaying(null)} onPaid={() => void list.refetch()} />
     </div>
   );
 }

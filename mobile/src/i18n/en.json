@@ -51,7 +51,9 @@
     "gallery": "Gallery",
     "unreadBanner": "You have {{count}} unread updates",
     "noChildren": "No children linked to your account yet.",
-    "now": "Now"
+    "now": "Now",
+    "letUsKnowHint": "Tap a button to let the nursery know",
+    "quickAccessHint": "Tap an icon to open it"
   },
   "diary": {
     "title": "Diary",
@@ -289,7 +291,8 @@
     "needHelp": "Need help?",
     "needHelpSub": "If you have any questions about payments, please contact the administration.",
     "allPaid": "You're all paid up! 🎉",
-    "empty": "No invoices yet"
+    "empty": "No invoices yet",
+    "payAtOffice": "Payments are recorded by the nursery office. Please pay at the office and your invoice will be marked as paid."
   },
   "classroom": {
     "title": "Classroom",
@@ -329,7 +332,17 @@
     "invitation": "Invitation",
     "parent": "Parent",
     "teacher": "Teacher",
-    "empty": "No posts yet — share the first moment!"
+    "empty": "No posts yet — share the first moment!",
+    "roles": {
+      "teacher": "Teacher",
+      "parent": "Parent",
+      "admin": "Nursery"
+    },
+    "deleteComment": "Delete comment",
+    "deleteCommentConfirm": "Delete this comment? This cannot be undone.",
+    "date": "Date",
+    "time": "Time",
+    "addPhotos": "Add photos"
   },
   "reminders": {
     "title": "What to Bring",
@@ -444,7 +457,8 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "viewAll": "View all",
-    "empty": "Nothing here yet"
+    "empty": "Nothing here yet",
+    "delete": "Delete"
   },
   "diaperScreen": {
     "title": "Diaper",
@@ -581,5 +595,28 @@
       "whatHappened": "What happened",
       "titleRequired": "Please add a short title."
     }
+  },
+  "profile": {
+    "editProfile": "Edit profile",
+    "editChild": "Edit child profile",
+    "edit": "Edit",
+    "name": "Full name",
+    "phone": "Phone",
+    "email": "Email",
+    "nameRequired": "Please enter a name.",
+    "changeChildPhoto": "Change photo",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "birthday": "Date of birth",
+    "allergies": "Allergies",
+    "noAllergies": "No allergies recorded.",
+    "addAllergy": "Add an allergy",
+    "allergyPlaceholder": "e.g. Peanuts",
+    "add": "Add",
+    "medicalNotes": "Medical notes",
+    "noNotes": "No medical notes yet.",
+    "noteTitle": "Note title",
+    "noteBody": "Details",
+    "deleteConfirm": "Delete this item?"
   }
 }

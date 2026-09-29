@@ -15,7 +15,7 @@ interface TextFieldProps {
    * rather than a server error after they have finished typing.
    */
   maxLength?: number;
-  keyboardType?: "default" | "numeric" | "email-address";
+  keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
   autoCapitalize?: "none" | "sentences";
   error?: string;
 }

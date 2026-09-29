@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -738,7 +739,7 @@ func (s *SuperAdminService) SavePlan(ctx context.Context, id uint64, req *dto.Pl
 	plan.MaxStudents = req.MaxStudents
 	plan.MaxStaff = req.MaxStaff
 	plan.PriceMinor = req.PriceMinor
-	plan.Currency = orDefault(req.Currency, "USD")
+	plan.Currency = strings.ToUpper(orDefault(req.Currency, s.PlatformCurrency(ctx)))
 	plan.BillingPeriod = model.BillingPeriod(orDefault(req.BillingPeriod, string(model.BillingMonthly)))
 	if req.IsActive != nil {
 		plan.IsActive = *req.IsActive
@@ -751,6 +752,30 @@ func (s *SuperAdminService) SavePlan(ctx context.Context, id uint64, req *dto.Pl
 	}
 	s.audit.Record(ctx, actorID, "update", "plan", plan.ID, map[string]any{"code": plan.Code}, ip)
 	return &plan, nil
+}
+
+// PlatformCurrency is the currency the platform bills nurseries in (superadmin setting).
+func (s *SuperAdminService) PlatformCurrency(ctx context.Context) string {
+	var setting model.Setting
+	if err := s.db.WithContext(s.ctx(ctx)).Where("`key` = ?", "platform_currency").First(&setting).Error; err == nil {
+		var code string
+		if json.Unmarshal(setting.ValueJSON, &code) == nil && len(code) == 3 {
+			return strings.ToUpper(code)
+		}
+	}
+	return "USD"
+}
+
+// ApplyPlatformCurrencyToPlans relabels every plan with the platform currency.
+// Prices are not converted: amounts stay as entered.
+func (s *SuperAdminService) ApplyPlatformCurrencyToPlans(ctx context.Context, actorID uint64, ip string) (int64, error) {
+	code := s.PlatformCurrency(ctx)
+	res := s.db.WithContext(s.ctx(ctx)).Model(&model.Plan{}).Where("currency <> ?", code).Update("currency", code)
+	if res.Error != nil {
+		return 0, apperr.Internal(res.Error)
+	}
+	s.audit.Record(ctx, actorID, "update", "plans_currency", 0, map[string]any{"currency": code, "plans": res.RowsAffected}, ip)
+	return res.RowsAffected, nil
 }
 
 // --- platform invoices ---

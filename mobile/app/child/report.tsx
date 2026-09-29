@@ -15,6 +15,7 @@ import { formatTime, minutesLabel, toISODate } from "../../src/lib/stats";
 import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, MEAL_STATUS, radius, spacing } from "../../src/theme";
+import { remoteImage } from "../../src/lib/remoteImage";
 
 const DIM_ICONS: Record<string, string> = {
   social: "people",
@@ -130,7 +131,7 @@ export default function ReportScreen() {
               <SectionHeader title={`✨ ${t("report.highlight")}`} />
               <Card style={styles.highlightCard}>
                 {report.highlight_media?.url && (
-                  <Image source={{ uri: report.highlight_media.url }} style={styles.highlightPhoto} contentFit="cover" />
+                  <Image source={remoteImage(report.highlight_media.url)} style={styles.highlightPhoto} contentFit="cover" />
                 )}
                 {report.highlight_text ? <Text style={styles.highlightText}>{report.highlight_text}</Text> : null}
               </Card>

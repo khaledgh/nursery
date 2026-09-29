@@ -105,6 +105,7 @@ func (s *MediaService) Upload(ctx context.Context, userID uint64, fh *multipart.
 		_ = s.store.Delete(ctx, key) // don't orphan the file
 		return nil, apperr.Internal(err)
 	}
+	s.watermarkIfEnabled(ctx, media)
 	return media, nil
 }
 
@@ -219,6 +220,7 @@ func (s *MediaService) ConfirmUpload(ctx context.Context, id, userID uint64) (*m
 	}).Error; err != nil {
 		return nil, apperr.Internal(err)
 	}
+	s.watermarkIfEnabled(ctx, &media)
 	if err := media.AfterFind(nil); err != nil {
 		return nil, apperr.Internal(err)
 	}

@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useAnnouncements, useArchiveAnnouncement } from "../../src/api/hooks";
 import { EmptyState } from "../../src/components/EmptyState";
 import { IconCircle } from "../../src/components/IconCircle";
@@ -10,10 +10,14 @@ import { SegmentTabs } from "../../src/components/SegmentTabs";
 import { Card, Loading, Screen, UnreadDot } from "../../src/components/ui";
 import { formatDate } from "../../src/lib/stats";
 import { colors, fonts, gradients, NOTIFICATION_CATEGORY, radius, spacing } from "../../src/theme";
+import { useClearSectionBadge } from "../../src/lib/useClearSectionBadge";
+import { Tap } from "../../src/components/Tap";
+import { Chevron } from "../../src/components/Chevron";
 
 type Tab = "all" | "unread" | "archived";
 
 export default function MessagesScreen() {
+  useClearSectionBadge("messages", "announcements");
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("all");
@@ -51,7 +55,7 @@ export default function MessagesScreen() {
           const a = row.announcement;
           const visual = NOTIFICATION_CATEGORY[a.category] ?? NOTIFICATION_CATEGORY.general;
           return (
-            <Pressable key={a.id} onPress={() => router.push(`/message/${a.id}` as never)}>
+            <Tap key={a.id} onPress={() => router.push(`/message/${a.id}` as never)}>
               <Card style={styles.messageCard}>
                 <IconCircle name={visual.icon} accent={visual.accent} size={46} squircle />
                 <View style={styles.messageTexts}>
@@ -71,28 +75,29 @@ export default function MessagesScreen() {
                     </Text>
                   </View>
                 </View>
-                <Pressable
+                <Tap
                   hitSlop={8}
                   onPress={() => archive.mutate({ id: a.id, archived: tab !== "archived" })}
                   style={styles.archiveBtn}
                 >
                   <IconCircle name={tab === "archived" ? "arrow-undo" : "archive"} accent="neutral" size={28} />
-                </Pressable>
+                </Tap>
               </Card>
-            </Pressable>
+            </Tap>
           );
         })
       )}
 
-      <Pressable onPress={() => router.push("/notifications")}>
+      <Tap onPress={() => router.push("/notifications")}>
         <Card style={styles.settingsBanner}>
           <IconCircle name="notifications" accent="primary" size={38} />
           <View style={{ flex: 1 }}>
             <Text style={styles.settingsTitle}>{t("messages.neverMiss")}</Text>
             <Text style={styles.settingsSub}>{t("messages.neverMissSub")}</Text>
           </View>
+          <Chevron />
         </Card>
-      </Pressable>
+      </Tap>
     </Screen>
   );
 }

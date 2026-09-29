@@ -51,7 +51,9 @@
     "gallery": "Galleri",
     "unreadBanner": "Du har {{count}} olästa uppdateringar",
     "noChildren": "Inga barn kopplade till ditt konto ännu.",
-    "now": "Nu"
+    "now": "Nu",
+    "letUsKnowHint": "Tryck på en knapp för att meddela förskolan",
+    "quickAccessHint": "Tryck på en ikon för att öppna den"
   },
   "diary": {
     "title": "Dagbok",
@@ -289,7 +291,8 @@
     "needHelp": "Behöver du hjälp?",
     "needHelpSub": "Om du har frågor om betalningar, kontakta administrationen.",
     "allPaid": "Allt är betalt! 🎉",
-    "empty": "Inga fakturor ännu"
+    "empty": "Inga fakturor ännu",
+    "payAtOffice": "Betalningar registreras av förskolans kontor. Betala på kontoret så markeras fakturan som betald."
   },
   "classroom": {
     "title": "Avdelning",
@@ -329,7 +332,17 @@
     "invitation": "Inbjudan",
     "parent": "Förälder",
     "teacher": "Lärare",
-    "empty": "Inga inlägg ännu — dela det första ögonblicket!"
+    "empty": "Inga inlägg ännu — dela det första ögonblicket!",
+    "roles": {
+      "teacher": "Pedagog",
+      "parent": "Förälder",
+      "admin": "Förskolan"
+    },
+    "deleteComment": "Ta bort kommentar",
+    "deleteCommentConfirm": "Ta bort den här kommentaren? Det går inte att ångra.",
+    "date": "Datum",
+    "time": "Tid",
+    "addPhotos": "Lägg till bilder"
   },
   "reminders": {
     "title": "Att ta med",
@@ -444,7 +457,8 @@
     "today": "Idag",
     "yesterday": "Igår",
     "viewAll": "Visa alla",
-    "empty": "Inget här ännu"
+    "empty": "Inget här ännu",
+    "delete": "Ta bort"
   },
   "diaperScreen": {
     "title": "Blöja",
@@ -581,5 +595,28 @@
       "whatHappened": "Vad hände",
       "titleRequired": "Lägg till en kort rubrik."
     }
+  },
+  "profile": {
+    "editProfile": "Redigera profil",
+    "editChild": "Redigera barnets profil",
+    "edit": "Redigera",
+    "name": "Fullständigt namn",
+    "phone": "Telefon",
+    "email": "E-post",
+    "nameRequired": "Ange ett namn.",
+    "changeChildPhoto": "Byt bild",
+    "firstName": "Förnamn",
+    "lastName": "Efternamn",
+    "birthday": "Födelsedatum",
+    "allergies": "Allergier",
+    "noAllergies": "Inga allergier registrerade.",
+    "addAllergy": "Lägg till allergi",
+    "allergyPlaceholder": "t.ex. jordnötter",
+    "add": "Lägg till",
+    "medicalNotes": "Medicinska anteckningar",
+    "noNotes": "Inga medicinska anteckningar ännu.",
+    "noteTitle": "Rubrik",
+    "noteBody": "Detaljer",
+    "deleteConfirm": "Ta bort det här?"
   }
 }

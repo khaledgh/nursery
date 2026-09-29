@@ -13,6 +13,7 @@ import { Card, Loading, Screen } from "../../src/components/ui";
 import { formatDate, formatTime } from "../../src/lib/stats";
 import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { colors, fonts, NOTIFICATION_CATEGORY, radius, spacing } from "../../src/theme";
+import { remoteImage } from "../../src/lib/remoteImage";
 
 export default function MessageDetailScreen() {
   const { t, i18n } = useTranslation();
@@ -76,7 +77,7 @@ export default function MessageDetailScreen() {
       {images.length > 0 && (
         <View style={styles.imageGrid}>
           {images.map((img, i) => (
-            <Image key={i} source={{ uri: img.media!.url }} style={styles.image} contentFit="cover" />
+            <Image key={i} source={remoteImage(img.media?.url)} style={styles.image} contentFit="cover" />
           ))}
         </View>
       )}

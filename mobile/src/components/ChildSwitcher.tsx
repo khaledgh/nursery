@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { ScrollView, StyleSheet, Text } from "react-native";
 import { api } from "../api/client";
 import { useActiveChild, type ChildSummary } from "../store/activeChild";
 import { colors, fonts, radius, spacing } from "../theme";
 import { ChildAvatar } from "./ChildAvatar";
+import { Tap } from "./Tap";
 
 /** Horizontal child picker with avatars; auto-selects the first child on load. */
 export function ChildSwitcher() {
@@ -19,9 +20,17 @@ export function ChildSwitcher() {
   });
 
   useEffect(() => {
-    if (!child && children.data && children.data.length > 0) {
-      setChild(children.data[0]);
+    const list = children.data;
+    if (!list || list.length === 0) return;
+    if (!child) {
+      setChild(list[0]);
+      return;
     }
+    // Keep the selection in sync with fresh data (edited name/photo, absence
+    // status…): the store holds a snapshot, not a live query.
+    const fresh = list.find((c) => c.id === child.id);
+    if (!fresh) setChild(list[0]);
+    else if (fresh !== child) setChild(fresh);
   }, [child, children.data, setChild]);
 
   if (!children.data || children.data.length <= 1) return null;
@@ -31,10 +40,10 @@ export function ChildSwitcher() {
       {children.data.map((c) => {
         const active = child?.id === c.id;
         return (
-          <Pressable key={c.id} onPress={() => setChild(c)} style={[styles.chip, active && styles.chipActive]}>
+          <Tap key={c.id} onPress={() => setChild(c)} style={[styles.chip, active && styles.chipActive]}>
             <ChildAvatar url={c.avatar?.url} name={c.first_name} size={28} />
             <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.first_name}</Text>
-          </Pressable>
+          </Tap>
         );
       })}
     </ScrollView>

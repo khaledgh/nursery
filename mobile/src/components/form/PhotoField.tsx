@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { uploadMedia } from "../../api/client";
 import { colors, fonts, radius, spacing } from "../../theme";
+import { Tap } from "../Tap";
 
 interface PhotoFieldProps {
   label?: string;
@@ -32,7 +34,8 @@ export function PhotoField({ label, mediaIds, onChange, max = 10, allowCamera = 
     setPreviews((p) => [...p, asset.uri]);
     setBusy(true);
     try {
-      const media = await uploadMedia(asset.uri, asset.mimeType ?? "image/jpeg");
+      const prepared = await prepareForUpload(asset);
+      const media = await uploadMedia(prepared.uri, prepared.mime, "photos");
       onChange([...mediaIds, media.id]);
     } catch {
       setPreviews((p) => p.filter((uri) => uri !== asset.uri));
@@ -81,15 +84,15 @@ export function PhotoField({ label, mediaIds, onChange, max = 10, allowCamera = 
 
       <View style={styles.actions}>
         {allowCamera ? (
-          <Pressable style={styles.btn} onPress={() => void fromCamera()} disabled={full || busy}>
+          <Tap style={styles.btn} onPress={() => void fromCamera()} disabled={full || busy}>
             <Ionicons name="camera-outline" size={18} color={colors.primary} />
             <Text style={styles.btnLabel}>{t("teacher.diaryEntry.camera")}</Text>
-          </Pressable>
+          </Tap>
         ) : null}
-        <Pressable style={styles.btn} onPress={() => void fromLibrary()} disabled={full || busy}>
+        <Tap style={styles.btn} onPress={() => void fromLibrary()} disabled={full || busy}>
           <Ionicons name="images-outline" size={18} color={colors.primary} />
           <Text style={styles.btnLabel}>{t("teacher.diaryEntry.library")}</Text>
-        </Pressable>
+        </Tap>
       </View>
     </View>
   );
@@ -115,3 +118,24 @@ const styles = StyleSheet.create({
   },
   btnLabel: { fontSize: 13, fontFamily: fonts.bold, color: colors.primary },
 });
+
+const MAX_PHOTO_WIDTH = 1600;
+
+/**
+ * Downscales large photos and re-encodes them as JPEG before upload. This
+ * keeps uploads fast on mobile data and bakes the camera's EXIF rotation into
+ * the pixels, so the server-side watermark lands on an upright image.
+ */
+async function prepareForUpload(asset: ImagePicker.ImagePickerAsset): Promise<{ uri: string; mime: string }> {
+  try {
+    const ctx = ImageManipulator.manipulate(asset.uri);
+    if (asset.width && asset.width > MAX_PHOTO_WIDTH) {
+      ctx.resize({ width: MAX_PHOTO_WIDTH });
+    }
+    const image = await ctx.renderAsync();
+    const saved = await image.saveAsync({ compress: 0.82, format: SaveFormat.JPEG });
+    return { uri: saved.uri, mime: "image/jpeg" };
+  } catch {
+    return { uri: asset.uri, mime: asset.mimeType ?? "image/jpeg" };
+  }
+}

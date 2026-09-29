@@ -33,3 +33,6 @@ mobile/android/app/local.properties
 mobile/ios/build/
 mobile/ios/Pods/
 mobile/ios/DerivedData/
+
+# Browser-testing screenshots
+.playwright-mcp/

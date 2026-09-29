@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useReports, useWeeklyPlan } from "../../src/api/hooks";
 import type { WeeklyPlanItem } from "../../src/api/types";
 import { ChildSwitcher } from "../../src/components/ChildSwitcher";
@@ -17,6 +17,7 @@ import { addDays, childAgeLabel, startOfWeek, toISODate, weekRange } from "../..
 import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, radius, REPORT_RATING, safeIcon, spacing } from "../../src/theme";
+import { Tap } from "../../src/components/Tap";
 
 function planAccent(item: WeeklyPlanItem) {
   return item.color ? { main: item.color, tint: `${item.color}22`, dark: item.color } : undefined;
@@ -151,7 +152,7 @@ export default function OverviewScreen() {
           {(reports.data ?? []).map((report) => {
             const top = report.ratings?.filter((r) => r.rating === "thriving" || r.rating === "doing_well") ?? [];
             return (
-              <Pressable
+              <Tap
                 key={report.id}
                 onPress={() => router.push(`/child/report?date=${report.date.slice(0, 10)}` as never)}
               >
@@ -184,7 +185,7 @@ export default function OverviewScreen() {
                     )}
                   </View>
                 </Card>
-              </Pressable>
+              </Tap>
             );
           })}
         </>

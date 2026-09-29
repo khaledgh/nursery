@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRealtimeStatus } from "../lib/realtime";
 import { api } from "./client";
 import type {
   Announcement,
@@ -255,6 +256,76 @@ export function useHealthProfile(childId?: number) {
   });
 }
 
+/** Guardians may keep allergies and health notes up to date for their own child. */
+export function useAddAllergy(childId?: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { name: string; severity: "mild" | "moderate" | "severe" }) =>
+      api.post(`/children/${childId}/health/allergies`, body),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["health", childId] }),
+  });
+}
+
+export function useDeleteAllergy(childId?: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (allergyId: number) => api.delete(`/children/${childId}/health/allergies/${allergyId}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["health", childId] }),
+  });
+}
+
+export function useAddHealthNote(childId?: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { title: string; body: string }) => api.post(`/children/${childId}/health/notes`, body),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["health", childId] }),
+  });
+}
+
+export function useDeleteHealthNote(childId?: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (noteId: number) => api.delete(`/children/${childId}/health/notes/${noteId}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["health", childId] }),
+  });
+}
+
+// ---- profiles ----
+
+/** Identity + nursery for the signed-in user (includes phone, which login omits). */
+export function useMeContext() {
+  return useQuery({
+    queryKey: ["meContext"],
+    queryFn: () => item<{ user: { id: number; name: string; email: string; phone?: string } }>("/me/context"),
+  });
+}
+
+export function useUpdateMe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { name: string; phone: string }) =>
+      (await api.put<ItemResponse<Record<string, unknown>>>("/users/me", body)).data.data,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["meContext"] }),
+  });
+}
+
+/**
+ * Parent edits their child's name, birthday or photo. Every screen showing the
+ * child reads one of these keys, so the change appears everywhere at once.
+ */
+export function useUpdateChildProfile(childId?: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { first_name?: string; last_name?: string; dob?: string; avatar_id?: number }) =>
+      (await api.put<ItemResponse<Child>>(`/children/${childId}/profile`, body)).data.data,
+    onSuccess: () => {
+      for (const key of [["children"], ["child", childId], ["dashboard", childId], ["health", childId], ["teacherRoster"]]) {
+        void qc.invalidateQueries({ queryKey: key });
+      }
+    },
+  });
+}
+
 // ---- attendance ----
 
 export function useRequestAttendance(childId?: number) {
@@ -263,8 +334,9 @@ export function useRequestAttendance(childId?: number) {
     mutationFn: async (input: { date: string; status: "absent" | "late" | "early_pickup"; note?: string }) =>
       (await api.post<ItemResponse<Attendance>>(`/children/${childId}/attendance`, input)).data.data,
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["attendance", childId] });
-      void qc.invalidateQueries({ queryKey: ["dashboard", childId] });
+      for (const key of [["attendance", childId], ["dashboard", childId], ["children"], ["teacherRoster"], ["notifications"]]) {
+        void qc.invalidateQueries({ queryKey: key });
+      }
     },
   });
 }
@@ -373,6 +445,30 @@ export function useUnreadCount() {
   });
 }
 
+export type Section = "diary" | "gallery" | "events" | "messages" | "community" | "payments" | "attendance" | "announcements";
+
+/** Unread notifications per app section, for the badges on the home icons. */
+export function useUnreadSummary(childId?: number) {
+  return useQuery({
+    queryKey: ["notifications", "summary", childId],
+    queryFn: () =>
+      item<{ total: number; by_screen: Partial<Record<Section, number>> }>("/notifications/unread-summary", {
+        child_id: childId,
+      }),
+    refetchInterval: 60_000,
+  });
+}
+
+/** Clears a section's badge once the user opens it. */
+export function useMarkSectionRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { screen: Section; childId?: number }) =>
+      api.post("/notifications/read-screen", { screen: input.screen, child_id: input.childId }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
+
 export function useMarkRead() {
   const qc = useQueryClient();
   return useMutation({
@@ -416,6 +512,15 @@ export function useComment() {
   return useMutation({
     mutationFn: async (input: { postId: number; body: string }) =>
       api.post(`/community/posts/${input.postId}/comments`, { body: input.body }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["community"] }),
+  });
+}
+
+/** Parents may delete their own comments; staff may delete any (enforced server-side). */
+export function useDeleteComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (commentId: number) => api.delete(`/community/comments/${commentId}`),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["community"] }),
   });
 }
@@ -475,15 +580,6 @@ export function useInvoices() {
   });
 }
 
-export function usePayInvoice() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (invoiceId: number) =>
-      (await api.post<ItemResponse<Record<string, unknown>>>(`/invoices/${invoiceId}/pay`, {})).data.data,
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["invoices"] }),
-  });
-}
-
 // ---- teacher ----
 
 /**
@@ -496,6 +592,7 @@ export function useTeacherRoster(status?: string) {
   return useQuery({
     queryKey: ["teacherRoster", status],
     queryFn: () => list<Child>("/children", { per_page: 100, sort: "first_name", status: status && status !== "all" ? status : undefined }),
+    refetchInterval: 30_000,
   });
 }
 
@@ -649,10 +746,12 @@ export function useCreateHealthRecord(segment: string) {
 // ---- Chat hooks ----
 
 export function useConversations() {
+  // Live updates come over the chat socket; poll only as a fallback.
+  const live = useRealtimeStatus((s) => s.connected);
   return useQuery({
     queryKey: ["conversations"],
     queryFn: async () => (await api.get<{ data: Conversation[] }>("/chat/conversations")).data.data,
-    refetchInterval: 10_000,
+    refetchInterval: live ? false : 15_000,
   });
 }
 
@@ -668,11 +767,13 @@ export function useGetOrCreateConversation() {
 }
 
 export function useMessages(conversationId: number) {
+  const live = useRealtimeStatus((s) => s.connected);
   return useQuery({
     queryKey: ["messages", conversationId],
     queryFn: async () => (await api.get<{ data: ChatMessage[] }>(`/chat/conversations/${conversationId}/messages`)).data.data,
     enabled: conversationId > 0,
-    refetchInterval: 4_000,
+    staleTime: 0,
+    refetchInterval: live ? false : 8_000,
   });
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -159,7 +160,7 @@ func (s *NotificationService) deliver(caller context.Context, recipients func(co
 		targetNurseryID := userNurseryMap[uid]
 		rows = append(rows, model.Notification{
 			TenantBase: model.TenantBase{NurseryID: targetNurseryID},
-			UserID: uid, Category: category, Title: title, Body: body,
+			UserID:     uid, Category: category, Title: title, Body: body,
 			DataJSON: dataJSON, SentAt: &now,
 		})
 	}
@@ -231,39 +232,54 @@ func (s *NotificationService) deliver(caller context.Context, recipients func(co
 		return
 	}
 
-	// Grouped by locale so OneSignal delivers in the recipient's language rather
-	// than labelling every push as English.
-	var devices []struct {
-		OneSignalPlayerID string
-		Locale            string
-	}
-	if err := s.db.WithContext(ctx).Model(&model.DeviceToken{}).
-		Select("one_signal_player_id", "locale").
-		Where("user_id IN ?", pushUserIDs).
-		Scan(&devices).Error; err != nil {
-		s.log.Error().Err(err).Msg("device token lookup failed")
-		return
-	}
-	s.log.Debug().
-		Interface("devices_found", devices).
-		Msg("Device tokens found in DB for push")
+	s.pushToUsers(ctx, pushUserIDs, title, body, data)
+}
 
+// pushToUsers sends to users by external id (set by the app via
+// OneSignal.login), grouped by each user's language.
+func (s *NotificationService) pushToUsers(ctx context.Context, userIDs []uint64, title, body string, data map[string]any) []notification.Result {
+	var users []struct {
+		ID     uint64
+		Locale string
+	}
+	if err := s.db.WithContext(database.WithCrossTenant(ctx)).Model(&model.User{}).
+		Select("id", "locale").Where("id IN ?", userIDs).Scan(&users).Error; err != nil {
+		s.log.Error().Err(err).Msg("push recipient lookup failed")
+		return nil
+	}
 	byLocale := make(map[string][]string, 2)
-	for _, d := range devices {
-		byLocale[d.Locale] = append(byLocale[d.Locale], d.OneSignalPlayerID)
+	for _, u := range users {
+		byLocale[u.Locale] = append(byLocale[u.Locale], strconv.FormatUint(u.ID, 10))
 	}
 	if len(byLocale) == 0 {
-		s.log.Debug().Msg("No OneSignal player IDs found in DB for recipients, skipping push delivery")
-		return
+		return nil
 	}
 	// Bodies are not translated yet, so every locale gets the same text; the
 	// grouping is what lets that change without touching this call.
 	texts := map[string]notification.Text{"en": {Title: title, Body: body}}
-	if err := s.onesignal.SendLocalized(ctx, byLocale, texts, data); err != nil {
+	results, err := s.onesignal.SendLocalized(ctx, byLocale, texts, data)
+	if err != nil {
 		s.log.Error().Err(err).Msg("onesignal push failed")
-	} else {
-		s.log.Info().Msg("OneSignal push delivery request completed successfully!")
+		return results
 	}
+	for _, r := range results {
+		// OneSignal answers 200 even when nobody matched; surface that in the logs.
+		if r.Errors != nil || r.Recipients == 0 {
+			s.log.Warn().Interface("onesignal", r.Raw).Msg("onesignal push reached no device")
+		}
+	}
+	return results
+}
+
+// TestPush sends a diagnostic push to one user and returns OneSignal's raw
+// answer, so a superadmin can see whether the user's devices are subscribed.
+func (s *NotificationService) TestPush(ctx context.Context, userID uint64) (map[string]any, error) {
+	if !s.onesignal.Enabled() {
+		return map[string]any{"enabled": false, "hint": "ONESIGNAL_APP_ID / ONESIGNAL_API_KEY are not set on the server"}, nil
+	}
+	results := s.pushToUsers(ctx, []uint64{userID}, "Nursee+ test 🔔",
+		"If you can read this, push notifications work on this device.", map[string]any{"screen": "notifications"})
+	return map[string]any{"enabled": true, "external_id": strconv.FormatUint(userID, 10), "results": results}, nil
 }
 
 func (s *NotificationService) GetUserSettings(ctx context.Context, userID uint64) (*model.UserNotificationSetting, error) {

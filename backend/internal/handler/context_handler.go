@@ -53,6 +53,7 @@ func (h *ContextHandler) MeContext(c echo.Context) error {
 		User: dto.AuthUser{
 			ID: user.ID, Name: user.Name, Email: user.Email, LoginID: user.LoginID,
 			Role: string(user.Role), Locale: user.Locale, NurseryID: user.NurseryID,
+			Phone: user.Phone,
 		},
 	}
 
@@ -71,6 +72,7 @@ func (h *ContextHandler) MeContext(c echo.Context) error {
 			LoginRangeStart: nursery.LoginRangeStart,
 			LoginRangeEnd: nursery.LoginRangeEnd,
 			Status: string(nursery.Status), Locale: nursery.Locale, Timezone: nursery.Timezone,
+			Currency: nursery.Currency,
 		}
 	}
 

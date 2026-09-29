@@ -54,6 +54,7 @@ type AuthUser struct {
 	Role      string  `json:"role"`
 	Locale    string  `json:"locale"`
 	NurseryID uint64  `json:"nursery_id"`
+	Phone     string  `json:"phone,omitempty"`
 }
 
 type TokenPair struct {

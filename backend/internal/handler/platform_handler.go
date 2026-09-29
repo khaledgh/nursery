@@ -32,19 +32,27 @@ func (h *PlatformHandler) RegisterPublic(api *echo.Group) {
 }
 
 func (h *PlatformHandler) Register(protected *echo.Group) {
+	// Readable by every signed-in user: never includes platform config or secrets.
 	protected.GET("/settings", h.GetSettings)
 
+	// Nursery admins manage only nursery-level options (community etc.).
 	admin := protected.Group("/admin", mw.RequireRole(model.RoleAdmin))
-	admin.PUT("/locales", h.UpsertLocale)
-	admin.DELETE("/locales/:code", h.DeleteLocale)
-	admin.GET("/translations/ui", h.ListUITranslations)
-	admin.PUT("/translations/ui", h.UpsertUITranslation)
-	admin.DELETE("/translations/ui/:id", h.DeleteUITranslation)
-	admin.GET("/translations/content", h.ListContentTranslations)
-	admin.PUT("/translations/content", h.UpsertContentTranslation)
 	admin.GET("/settings", h.GetSettings)
 	admin.PUT("/settings", h.UpdateSettings)
-	admin.GET("/audit-logs", h.AuditLogs)
+
+	// Storage, push keys, languages, translations and audit logs span every
+	// nursery, so only the platform superadmin may touch them.
+	sa := protected.Group("/superadmin", mw.RequireSuperAdmin())
+	sa.GET("/settings", h.GetPlatformSettings)
+	sa.PUT("/settings", h.UpdatePlatformSettings)
+	sa.PUT("/locales", h.UpsertLocale)
+	sa.DELETE("/locales/:code", h.DeleteLocale)
+	sa.GET("/translations/ui", h.ListUITranslations)
+	sa.PUT("/translations/ui", h.UpsertUITranslation)
+	sa.DELETE("/translations/ui/:id", h.DeleteUITranslation)
+	sa.GET("/translations/content", h.ListContentTranslations)
+	sa.PUT("/translations/content", h.UpsertContentTranslation)
+	sa.GET("/audit-logs", h.AuditLogs)
 }
 
 func (h *PlatformHandler) UIBundle(c echo.Context) error {
@@ -149,7 +157,15 @@ func (h *PlatformHandler) UpsertContentTranslation(c echo.Context) error {
 }
 
 func (h *PlatformHandler) GetSettings(c echo.Context) error {
-	settings, err := h.settings.All(c.Request().Context())
+	settings, err := h.settings.Nursery(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, settings)
+}
+
+func (h *PlatformHandler) GetPlatformSettings(c echo.Context) error {
+	settings, err := h.settings.Platform(c.Request().Context())
 	if err != nil {
 		return err
 	}
@@ -157,11 +173,19 @@ func (h *PlatformHandler) GetSettings(c echo.Context) error {
 }
 
 func (h *PlatformHandler) UpdateSettings(c echo.Context) error {
+	return h.updateSettings(c, false)
+}
+
+func (h *PlatformHandler) UpdatePlatformSettings(c echo.Context) error {
+	return h.updateSettings(c, true)
+}
+
+func (h *PlatformHandler) updateSettings(c echo.Context, allowPlatform bool) error {
 	var updates map[string]any
 	if err := c.Bind(&updates); err != nil || len(updates) == 0 {
 		return apperr.BadRequest("request body must be a non-empty JSON object of settings")
 	}
-	if err := h.settings.Update(c.Request().Context(), updates, mw.UserID(c), c.RealIP()); err != nil {
+	if err := h.settings.Update(c.Request().Context(), updates, allowPlatform, mw.UserID(c), c.RealIP()); err != nil {
 		return err
 	}
 	return response.NoContent(c)

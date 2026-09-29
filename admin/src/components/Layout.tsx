@@ -98,9 +98,7 @@ const NAV: NavSection[] = [
   {
     label: "System",
     items: [
-      { to: "/settings", icon: Settings, key: "nav.settings" },
-      { to: "/locales", icon: Languages, key: "nav.locales" },
-      { to: "/audit", icon: ScrollText, key: "nav.audit" },
+      { to: "/settings", icon: Settings, key: "nav.settings", roles: ["admin"] },
     ],
   },
   {
@@ -177,6 +175,7 @@ export function Layout() {
           label: "System",
           items: [
             { to: "/settings", icon: Settings, key: "nav.settings" },
+            { to: "/locales", icon: Languages, key: "nav.locales" },
             { to: "/audit", icon: ScrollText, key: "nav.audit" },
           ],
         },

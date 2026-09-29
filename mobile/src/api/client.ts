@@ -102,11 +102,12 @@ interface PresignUploadResponse {
  * (e.g. expo-image-picker's fileSize is optional and platform-dependent) —
  * the presigned PUT is only valid for the size declared when it was signed.
  */
-export async function uploadMedia(uri: string, mime: string): Promise<Media> {
+export async function uploadMedia(uri: string, mime: string, folder?: "photos" | "avatars"): Promise<Media> {
   const file = new File(uri);
   const size = file.size ?? 0;
 
-  const presign = await api.post<ItemResponse<PresignUploadResponse>>("/media/presign-upload", { mime, size });
+  // "photos" marks children's photos, which get the nursery watermark server-side.
+  const presign = await api.post<ItemResponse<PresignUploadResponse>>("/media/presign-upload", { mime, size, folder });
   const { media_id, upload_url } = presign.data.data;
 
   const result = await file.upload(upload_url, {

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, Text, View } from "react-native";
 import { useHealthProfile } from "../../src/api/hooks";
 import { EmptyState } from "../../src/components/EmptyState";
 import { HeroCard } from "../../src/components/HeroCard";
@@ -12,6 +12,7 @@ import { Card, Divider, InfoRow, Loading, Screen } from "../../src/components/ui
 import { formatDate } from "../../src/lib/stats";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, radius, spacing, type AccentName } from "../../src/theme";
+import { Tap } from "../../src/components/Tap";
 
 const SEVERITY_ACCENT: Record<string, AccentName> = { mild: "meals", moderate: "community", severe: "health" };
 
@@ -212,11 +213,11 @@ export default function HealthScreen() {
           <IconCircle name="call" accent="meals" size={36} squircle />
           <Text style={styles.infoTitle}>{t("health.contacts")}</Text>
           {(p.emergency_contacts ?? []).map((c) => (
-            <Pressable key={c.id} onPress={() => void Linking.openURL(`tel:${c.phone}`)}>
+            <Tap key={c.id} onPress={() => void Linking.openURL(`tel:${c.phone}`)}>
               <Text style={[styles.infoSub, styles.phone]}>
                 {c.name} ({c.relation}) · {c.phone}
               </Text>
-            </Pressable>
+            </Tap>
           ))}
           {(p.emergency_contacts ?? []).length === 0 && <Text style={styles.infoSub}>{t("health.none")}</Text>}
         </Card>

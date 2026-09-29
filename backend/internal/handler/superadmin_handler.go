@@ -41,6 +41,8 @@ func (h *SuperAdminHandler) Register(protected *echo.Group) {
 	g.GET("/plans", h.ListPlans)
 	g.POST("/plans", h.CreatePlan)
 	g.PUT("/plans/:id", h.UpdatePlan)
+	g.GET("/platform-currency", h.GetPlatformCurrency)
+	g.POST("/plans/apply-currency", h.ApplyPlanCurrency)
 
 	g.GET("/subscription-invoices", h.ListInvoices)
 	g.POST("/subscription-invoices/generate", h.GenerateInvoices)
@@ -219,6 +221,18 @@ func (h *SuperAdminHandler) ListPlans(c echo.Context) error {
 
 func (h *SuperAdminHandler) CreatePlan(c echo.Context) error {
 	return h.savePlan(c, 0)
+}
+
+func (h *SuperAdminHandler) GetPlatformCurrency(c echo.Context) error {
+	return response.OK(c, map[string]string{"currency": h.super.PlatformCurrency(c.Request().Context())})
+}
+
+func (h *SuperAdminHandler) ApplyPlanCurrency(c echo.Context) error {
+	n, err := h.super.ApplyPlatformCurrencyToPlans(c.Request().Context(), mw.AuditActor(c), c.RealIP())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, map[string]int64{"updated": n})
 }
 
 func (h *SuperAdminHandler) UpdatePlan(c echo.Context) error {

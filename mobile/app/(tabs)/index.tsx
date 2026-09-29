@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { errorMessage } from "../../src/api/client";
 import {
@@ -11,6 +11,8 @@ import {
   useRequestAttendance,
   useUnreadCount,
   useChildMedia,
+  useUnreadSummary,
+  type Section,
 } from "../../src/api/hooks";
 import { ChildAvatar } from "../../src/components/ChildAvatar";
 import { ChildSwitcher } from "../../src/components/ChildSwitcher";
@@ -27,19 +29,20 @@ import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { useAuthStore } from "../../src/store/auth";
 import { colors, fonts, radius, safeIcon, spacing, type AccentName } from "../../src/theme";
+import { Tap } from "../../src/components/Tap";
 
 type AttendanceAction = "absent" | "late" | "early_pickup";
 
-const QUICK_ACCESS: { icon: string; accent: AccentName; key: string; href: string }[] = [
-  { icon: "book", accent: "primary", key: "tabs.diary", href: "/diary" },
-  { icon: "images", accent: "activity", key: "home.gallery", href: "/child/gallery" },
+const QUICK_ACCESS: { icon: string; accent: AccentName; key: string; href: string; sections?: Section[] }[] = [
+  { icon: "book", accent: "primary", key: "tabs.diary", href: "/diary", sections: ["diary"] },
+  { icon: "images", accent: "activity", key: "home.gallery", href: "/child/gallery", sections: ["gallery"] },
   { icon: "restaurant", accent: "meals", key: "home.meals", href: "/child/feed" },
-  { icon: "calendar", accent: "events", key: "home.events", href: "/events" },
-  { icon: "chatbubbles", accent: "hydration", key: "tabs.messages", href: "/messages" },
-  { icon: "card", accent: "payments", key: "home.payments", href: "/payments" },
+  { icon: "calendar", accent: "events", key: "home.events", href: "/events", sections: ["events"] },
+  { icon: "chatbubbles", accent: "hydration", key: "tabs.messages", href: "/messages", sections: ["messages", "announcements"] },
+  { icon: "card", accent: "payments", key: "home.payments", href: "/payments", sections: ["payments"] },
   { icon: "heart", accent: "health", key: "home.health", href: "/child/health" },
   { icon: "briefcase", accent: "community", key: "home.whatToBring", href: "/reminders" },
-  { icon: "people", accent: "activity", key: "home.community", href: "/community" },
+  { icon: "people", accent: "activity", key: "home.community", href: "/community", sections: ["community"] },
   { icon: "school", accent: "diaper", key: "home.classroom", href: "/classroom" },
 ];
 
@@ -53,6 +56,9 @@ export default function HomeScreen() {
   const dashboard = useDashboard(child?.id);
   const schedule = useClassroomSchedule(child?.classroom_id);
   const unread = useUnreadCount();
+  const summary = useUnreadSummary(child?.id);
+  const badgeFor = (sections?: Section[]) =>
+    (sections ?? []).reduce((n, s) => n + (summary.data?.by_screen?.[s] ?? 0), 0);
   const mediaQuery = useChildMedia(child?.id, 1);
   const { refreshing, onRefresh } = useRefreshAll(dashboard, schedule, unread, mediaQuery);
   const requestAttendance = useRequestAttendance(child?.id);
@@ -118,14 +124,14 @@ export default function HomeScreen() {
             {t("home.welcomeBack", { name: relationshipLabel(child?.guardians, user?.id) })}
           </Text>
         </View>
-        <Pressable onPress={() => router.push("/notifications")} style={styles.bell} hitSlop={8}>
+        <Tap onPress={() => router.push("/notifications")} style={styles.bell} hitSlop={8}>
           <IconCircle name="notifications" accent="primary" size={42} />
           {unreadCount > 0 && (
             <View style={styles.bellBadge}>
               <Text style={styles.bellBadgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
             </View>
           )}
-        </Pressable>
+        </Tap>
         <ChildAvatar url={user?.avatar?.url} name={user?.name ?? "?"} size={42} />
       </View>
 
@@ -146,6 +152,18 @@ export default function HomeScreen() {
           >
             <View style={styles.heroPills}>
               {presencePill}
+              {user?.role === "parent" && (
+                <Tap
+                  onPress={() => router.push("/child/edit")}
+                  hitSlop={8}
+                  style={styles.heroEdit}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("profile.editChild")}
+                >
+                  <Ionicons name="create-outline" size={16} color={colors.primary} />
+                  <Text style={styles.heroEditText}>{t("profile.edit")}</Text>
+                </Tap>
+              )}
               {presence === "checked_in" && child.checked_in_at ? (
                 <Text style={styles.heroSince}>
                   {t("home.inSince", { time: formatTime(child.checked_in_at, i18n.language) })}
@@ -156,17 +174,17 @@ export default function HomeScreen() {
 
           {/* Unread banner */}
           {unreadCount > 0 && (
-            <Pressable onPress={() => router.push("/notifications")}>
+            <Tap onPress={() => router.push("/notifications")}>
               <Card style={styles.unreadBanner}>
                 <IconCircle name="mail-unread" accent="primary" size={34} />
                 <Text style={styles.unreadText}>{t("home.unreadBanner", { count: unreadCount })}</Text>
                 <Ionicons name="chevron-forward" size={16} color={colors.primary} />
               </Card>
-            </Pressable>
+            </Tap>
           )}
 
           {/* Attendance actions */}
-          <SectionHeader title={t("home.letUsKnow")} />
+          <SectionHeader title={t("home.letUsKnow")} hint={t("home.letUsKnowHint")} />
           <View style={styles.actionRow}>
             {(
               [
@@ -175,10 +193,10 @@ export default function HomeScreen() {
                 { key: "early_pickup", icon: "exit-outline", accent: "hydration", label: t("home.pickUpEarly") },
               ] as { key: AttendanceAction; icon: string; accent: AccentName; label: string }[]
             ).map((a) => (
-              <Pressable key={a.key} onPress={() => setAction(a.key)} style={styles.actionTile}>
+              <Tap key={a.key} haptic onPress={() => setAction(a.key)} style={styles.actionTile}>
                 <IconCircle name={a.icon} accent={a.accent} size={40} />
                 <Text style={styles.actionLabel}>{a.label}</Text>
-              </Pressable>
+              </Tap>
             ))}
           </View>
 
@@ -241,19 +259,27 @@ export default function HomeScreen() {
           )}
 
           {/* Quick access */}
-          <SectionHeader title={t("home.quickAccess")} />
+          <SectionHeader title={t("home.quickAccess")} hint={t("home.quickAccessHint")} />
           <View style={styles.grid}>
             {QUICK_ACCESS.map((q) => (
-              <Pressable
+              <Tap
                 key={q.key}
+                haptic
                 style={styles.gridTile}
                 onPress={() => router.push(q.href as Parameters<typeof router.push>[0])}
               >
-                <IconCircle name={q.icon} accent={q.accent} size={46} squircle />
+                <View>
+                  <IconCircle name={q.icon} accent={q.accent} size={46} squircle />
+                  {badgeFor(q.sections) > 0 && (
+                    <View style={styles.tileBadge}>
+                      <Text style={styles.tileBadgeText}>{badgeFor(q.sections) > 9 ? "9+" : badgeFor(q.sections)}</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.gridLabel} numberOfLines={1}>
                   {t(q.key)}
                 </Text>
-              </Pressable>
+              </Tap>
             ))}
           </View>
         </>
@@ -261,7 +287,10 @@ export default function HomeScreen() {
 
       {/* Attendance modal */}
       <Modal visible={action !== null} transparent animationType="fade" onRequestClose={() => setAction(null)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalBackdrop}
+        >
           <View style={styles.modalCard}>
             {sent ? (
               <View style={styles.sentWrap}>
@@ -287,9 +316,9 @@ export default function HomeScreen() {
                 />
                 {sendError ? <Text style={styles.modalError}>{sendError}</Text> : null}
                 <View style={styles.modalActions}>
-                  <Pressable onPress={() => setAction(null)} style={styles.modalCancel}>
+                  <Tap onPress={() => setAction(null)} style={styles.modalCancel}>
                     <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
-                  </Pressable>
+                  </Tap>
                   <View style={{ flex: 1 }}>
                     <PrimaryButton
                       label={t("home.send")}
@@ -301,7 +330,7 @@ export default function HomeScreen() {
               </>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </Screen>
   );
@@ -327,6 +356,31 @@ const styles = StyleSheet.create({
   bellBadgeText: { color: "#fff", fontSize: 10, fontFamily: fonts.extrabold },
   noChildren: { fontFamily: fonts.semibold, color: colors.textMuted, textAlign: "center" },
   heroPills: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: 4 },
+  heroEdit: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  heroEditText: { fontSize: 12, fontFamily: fonts.bold, color: colors.primary },
+  tileBadge: {
+    position: "absolute",
+    top: -5,
+    right: -7,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    backgroundColor: colors.danger,
+    borderWidth: 2,
+    borderColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tileBadgeText: { color: "#fff", fontSize: 10, fontFamily: fonts.extrabold },
   heroSince: { fontSize: 11, fontFamily: fonts.semibold, color: "rgba(255,255,255,0.85)" },
   unreadBanner: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   unreadText: { flex: 1, fontSize: 13, fontFamily: fonts.bold, color: colors.text },

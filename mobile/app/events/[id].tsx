@@ -15,6 +15,7 @@ import { formatDate, formatTime } from "../../src/lib/stats";
 import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useActiveChild } from "../../src/store/activeChild";
 import { colors, fonts, radius, spacing } from "../../src/theme";
+import { remoteImage } from "../../src/lib/remoteImage";
 
 export default function EventDetailScreen() {
   const { t, i18n } = useTranslation();
@@ -79,7 +80,7 @@ export default function EventDetailScreen() {
           ) : null}
         </View>
         {event.cover_media?.url && (
-          <Image source={{ uri: event.cover_media.url }} style={styles.cover} contentFit="cover" />
+          <Image source={remoteImage(event.cover_media.url)} style={styles.cover} contentFit="cover" />
         )}
       </Card>
 
@@ -93,7 +94,7 @@ export default function EventDetailScreen() {
           />
           <View style={styles.albumGrid}>
             {(showAllPhotos ? albumPhotos : albumPhotos.slice(0, 6)).map((p, i) => (
-              <Image key={i} source={{ uri: p.url }} style={styles.albumPhoto} contentFit="cover" />
+              <Image key={i} source={remoteImage(p.url)} style={styles.albumPhoto} contentFit="cover" />
             ))}
           </View>
         </>

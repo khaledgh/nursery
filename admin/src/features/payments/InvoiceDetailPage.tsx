@@ -7,10 +7,8 @@ import { EmptyState } from "../../components/Tabs";
 import { api, errorMessage } from "../../lib/api";
 import { INVOICE_STATUS_TINT, tint } from "../../lib/tints";
 import type { ItemResponse, Invoice } from "../../types/api";
-
-function money(minor: number, currency: string) {
-  return `${(minor / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} ${currency}`;
-}
+import { useCurrency } from "../../hooks/useCurrency";
+import { MarkPaidModal } from "./MarkPaidModal";
 
 /**
  * One invoice's line items and payment history on its own page.
@@ -22,6 +20,8 @@ function money(minor: number, currency: string) {
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
+  const { formatMoney: money } = useCurrency();
+  const [paying, setPaying] = useState(false);
 
   const { data: invoice, isLoading } = useQuery({
     queryKey: ["invoice", id],
@@ -44,6 +44,11 @@ export function InvoiceDetailPage() {
 
   return (
     <>
+      <MarkPaidModal
+        invoice={paying ? invoice : null}
+        onClose={() => setPaying(false)}
+        onPaid={() => void qc.invalidateQueries({ queryKey: ["invoice", id] })}
+      />
       <PageHeader
         title={invoice.invoice_no}
         subtitle={child ? `${child.first_name} ${child.last_name} · ${invoice.period}` : invoice.period}
@@ -52,6 +57,15 @@ export function InvoiceDetailPage() {
         actions={
           <>
             <span className={`badge ${tint(INVOICE_STATUS_TINT, invoice.status)}`}>{invoice.status}</span>
+            {canCancel && (
+              <button
+                onClick={() => setPaying(true)}
+                className="btn btn-primary"
+                type="button"
+              >
+                <CheckCircle2 size={15} /> Mark as paid
+              </button>
+            )}
             {canCancel && (
               <button
                 onClick={() => cancel.mutate()}
@@ -104,7 +118,7 @@ export function InvoiceDetailPage() {
             {(invoice.payments ?? []).length === 0 ? (
               <EmptyState
                 title="No payments recorded yet"
-                hint="A payment appears here once the family settles this invoice through a provider."
+                hint="Use “Mark as paid” when the family pays at the nursery office."
               />
             ) : (
               <ul className="space-y-3">
@@ -120,7 +134,7 @@ export function InvoiceDetailPage() {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-slate-800">
-                        {money(p.amount_minor, invoice.currency)} via {p.provider}
+                        {money(p.amount_minor, invoice.currency)} via {p.provider.replace("_", " ")}
                       </p>
                       <p className="truncate text-xs font-semibold text-slate-400">
                         {p.provider_ref} {p.paid_at ? `· settled ${p.paid_at.slice(0, 10)}` : ""}

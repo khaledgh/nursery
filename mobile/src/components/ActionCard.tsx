@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { I18nManager, Pressable, StyleSheet, Text, View } from "react-native";
+import { I18nManager, StyleSheet, Text, View } from "react-native";
 import { colors, radius, shadows, spacing, type Accent, type AccentName } from "../theme";
 import { IconCircle } from "./IconCircle";
+import { Tap } from "./Tap";
 
 interface ActionCardProps {
   icon: string;
@@ -15,7 +16,7 @@ interface ActionCardProps {
 /** Tappable row card with icon circle, title/subtitle and a trailing chevron. */
 export function ActionCard({ icon, accent = "primary", title, subtitle, onPress, chevron = true }: ActionCardProps) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, shadows.card, pressed && { opacity: 0.85 }]}>
+    <Tap onPress={onPress} feedback="subtle" style={[styles.card, shadows.card]}>
       <IconCircle name={icon} accent={accent} size={42} />
       <View style={styles.texts}>
         <Text style={styles.title}>{title}</Text>
@@ -24,7 +25,7 @@ export function ActionCard({ icon, accent = "primary", title, subtitle, onPress,
       {chevron && (
         <Ionicons name={I18nManager.isRTL ? "chevron-back" : "chevron-forward"} size={18} color={colors.textMuted} />
       )}
-    </Pressable>
+    </Tap>
   );
 }
 

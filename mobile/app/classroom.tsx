@@ -14,6 +14,7 @@ import { toISODate } from "../src/lib/stats";
 import { useRefreshAll } from "../src/lib/useRefreshAll";
 import { useActiveChild } from "../src/store/activeChild";
 import { colors, fonts, radius, safeIcon, spacing } from "../src/theme";
+import { remoteImage } from "../src/lib/remoteImage";
 
 export default function ClassroomScreen() {
   const { t } = useTranslation();
@@ -54,7 +55,7 @@ export default function ClassroomScreen() {
       {/* Banner */}
       <Card style={styles.banner}>
         {room.image?.url ? (
-          <Image source={{ uri: room.image.url }} style={styles.bannerImage} contentFit="cover" />
+          <Image source={remoteImage(room.image.url)} style={styles.bannerImage} contentFit="cover" />
         ) : (
           <IconCircle name="school" accent="primary" size={56} squircle />
         )}

@@ -25,7 +25,7 @@ export function EventMediaPanel({ eventId }: { eventId: number }) {
 
   const add = useMutation({
     mutationFn: async (file: File) => {
-      const uploaded = await uploadMedia(file);
+      const uploaded = await uploadMedia(file, "photos");
       return api.post(`/events/${eventId}/media`, {
         media_id: uploaded.id,
         caption,

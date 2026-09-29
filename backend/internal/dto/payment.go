@@ -14,10 +14,12 @@ type CreateInvoiceRequest struct {
 	Items       []InvoiceItemInput `json:"items" validate:"required,min=1,max=20,dive"`
 }
 
-type PayInvoiceRequest struct {
-	// PayerAlias is the Swish phone number; optional (m-commerce flow opens
-	// the Swish app via the returned token instead).
-	PayerAlias string `json:"payer_alias" validate:"omitempty,max=15,numeric"`
+// MarkInvoicePaidRequest records a payment the nursery office received.
+type MarkInvoicePaidRequest struct {
+	Method    string `json:"method" validate:"required,oneof=cash bank_transfer card cheque other"`
+	Reference string `json:"reference" validate:"omitempty,max=100"`
+	Note      string `json:"note" validate:"omitempty,max=500"`
+	PaidAt    string `json:"paid_at" validate:"omitempty,datetime=2006-01-02"`
 }
 
 type ListInvoicesQuery struct {

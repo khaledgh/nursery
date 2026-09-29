@@ -26,6 +26,13 @@ type Nursery struct {
 	Status       NurseryStatus `gorm:"type:enum('active','suspended','cancelled');not null;default:'active'" json:"status"`
 	LogoMediaID  *uint64       `json:"logo_media_id"`
 	Logo         *Media        `gorm:"foreignKey:LogoMediaID" json:"logo,omitempty"`
+	// Currency is the ISO code the nursery bills parents in (set by its admin).
+	Currency string `gorm:"size:3;not null;default:'USD'" json:"currency"`
+	// Watermark is burned into child photos on upload when enabled.
+	WatermarkEnabled  bool    `gorm:"not null;default:false" json:"watermark_enabled"`
+	WatermarkMediaID  *uint64 `json:"watermark_media_id"`
+	WatermarkPosition string  `gorm:"type:enum('bottom_right','bottom_left','top_right','top_left','center');not null;default:'bottom_right'" json:"watermark_position"`
+	WatermarkOpacity  uint8   `gorm:"not null;default:60" json:"watermark_opacity"`
 }
 
 func (n Nursery) IsOperational() bool { return n.Status == NurseryActive }

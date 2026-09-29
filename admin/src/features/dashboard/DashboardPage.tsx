@@ -38,7 +38,6 @@ import { useCurrency } from "../../hooks/useCurrency";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import type {
-  AuditLog,
   Child,
   Classroom,
   EventItem,
@@ -61,6 +60,7 @@ export function DashboardPage() {
     queryKey: ["children-dashboard"],
     queryFn: async () =>
       (await api.get<ListResponse<Child>>("/children", { params: { per_page: 300 } })).data.data,
+    refetchInterval: 30_000,
   });
 
   // Classrooms query
@@ -91,12 +91,6 @@ export function DashboardPage() {
       (await api.get<ItemResponse<Reminder[]>>("/reminders")).data.data,
   });
 
-  // Recent audit logs
-  const auditQuery = useQuery({
-    queryKey: ["audit-dashboard"],
-    queryFn: async () =>
-      (await api.get<ListResponse<AuditLog>>("/admin/audit-logs", { params: { page: 1, per_page: 6 } })).data.data,
-  });
 
   // Seats & Plan usage
   const seatsQuery = useQuery({
@@ -761,49 +755,6 @@ export function DashboardPage() {
             </CardBody>
           </Card>
 
-          {/* Recent Live Operations Feed */}
-          <Card shadow="sm" className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
-            <CardHeader className="flex justify-between items-center px-4 pt-3.5 pb-1.5">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  Live Activity Feed
-                </h3>
-                <p className="text-xs font-normal text-slate-400 mt-0.5">Recent system actions</p>
-              </div>
-              <Link to="/settings" className="text-xs font-semibold text-primary hover:underline">
-                Audit logs →
-              </Link>
-            </CardHeader>
-
-            <CardBody className="px-4 pb-3.5 pt-1">
-              <div className="space-y-1.5">
-                {(auditQuery.data ?? []).slice(0, 4).map((log) => {
-                  const dateStr = new Date(log.created_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
-                  return (
-                    <div
-                      key={log.id}
-                      className="flex items-center justify-between text-xs py-1 border-b border-slate-100 dark:border-slate-800 last:border-0"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          {log.action}
-                        </span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate text-[11px]">
-                          {log.entity} #{log.entity_id}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-normal text-slate-400 shrink-0 ml-2">
-                        {dateStr}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardBody>
-          </Card>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useEvents, useRsvp } from "../../src/api/hooks";
 import type { EventItem } from "../../src/api/types";
 import { EmptyState } from "../../src/components/EmptyState";
@@ -13,6 +13,9 @@ import { formatTime } from "../../src/lib/stats";
 import { useActiveChild } from "../../src/store/activeChild";
 import { useAuthStore } from "../../src/store/auth";
 import { accents, colors, fonts, radius, spacing, type AccentName } from "../../src/theme";
+import { useClearSectionBadge } from "../../src/lib/useClearSectionBadge";
+import { remoteImage } from "../../src/lib/remoteImage";
+import { Tap } from "../../src/components/Tap";
 
 type Tab = "upcoming" | "previous";
 
@@ -23,6 +26,7 @@ const RSVP_OPTIONS: { key: "yes" | "maybe" | "no"; accent: AccentName; icon: str
 ];
 
 export default function EventsScreen() {
+  useClearSectionBadge("events");
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("upcoming");
@@ -39,7 +43,7 @@ export default function EventsScreen() {
     const mine = myResponse(event);
     return (
       <Card key={event.id} style={styles.eventCard}>
-        <Pressable onPress={() => router.push(`/events/${event.id}` as never)} style={styles.eventTop}>
+        <Tap onPress={() => router.push(`/events/${event.id}` as never)} style={styles.eventTop}>
           <View style={styles.dateBlock}>
             <Text style={styles.dateMonth}>{starts.toLocaleDateString(i18n.language, { month: "short" })}</Text>
             <Text style={styles.dateDay}>{starts.getDate()}</Text>
@@ -62,9 +66,9 @@ export default function EventsScreen() {
             ) : null}
           </View>
           {event.cover_media?.url && (
-            <Image source={{ uri: event.cover_media.url }} style={styles.cover} contentFit="cover" />
+            <Image source={remoteImage(event.cover_media.url)} style={styles.cover} contentFit="cover" />
           )}
-        </Pressable>
+        </Tap>
         {event.description ? (
           <Text style={styles.description} numberOfLines={2}>
             {event.description}
@@ -80,7 +84,7 @@ export default function EventsScreen() {
               const active = mine === o.key;
               const a = accents[o.accent];
               return (
-                <Pressable
+                <Tap
                   key={o.key}
                   disabled={rsvp.isPending}
                   onPress={() => rsvp.mutate({ eventId: event.id, response: o.key, childId: child?.id })}
@@ -93,7 +97,7 @@ export default function EventsScreen() {
                   ]}
                 >
                   <Text style={[styles.rsvpLabel, { color: active ? "#fff" : a.dark }]}>{t(o.labelKey)}</Text>
-                </Pressable>
+                </Tap>
               );
             })}
           </View>
@@ -103,10 +107,10 @@ export default function EventsScreen() {
   };
 
   const renderPrevious = (event: EventItem) => (
-    <Pressable key={event.id} onPress={() => router.push(`/events/${event.id}` as never)}>
+    <Tap key={event.id} onPress={() => router.push(`/events/${event.id}` as never)}>
       <Card style={styles.prevCard}>
         {event.cover_media?.url ? (
-          <Image source={{ uri: event.cover_media.url }} style={styles.prevCover} contentFit="cover" />
+          <Image source={remoteImage(event.cover_media.url)} style={styles.prevCover} contentFit="cover" />
         ) : (
           <IconCircle name="calendar" accent="events" size={56} squircle />
         )}
@@ -125,7 +129,7 @@ export default function EventsScreen() {
         </View>
         <IconCircle name="chevron-forward" accent="neutral" size={28} />
       </Card>
-    </Pressable>
+    </Tap>
   );
 
   return (

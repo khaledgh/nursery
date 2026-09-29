@@ -11,10 +11,11 @@ interface PresignUploadResponse {
  * key (POST /media/presign-upload) -> PUT the file directly to the returned
  * URL -> tell the API the upload landed (POST /media/:id/confirm).
  */
-export async function uploadMedia(file: File): Promise<Media> {
+export async function uploadMedia(file: File, folder?: "photos" | "branding" | "avatars"): Promise<Media> {
   const presign = await api.post<ItemResponse<PresignUploadResponse>>("/media/presign-upload", {
     mime: file.type,
     size: file.size,
+    folder,
   });
   const { media_id, upload_url } = presign.data.data;
 

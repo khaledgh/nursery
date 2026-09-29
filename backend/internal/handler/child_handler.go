@@ -25,6 +25,7 @@ func (h *ChildHandler) Register(protected *echo.Group) {
 	protected.GET("/children", h.List)
 	protected.GET("/children/:id", h.Get)
 	protected.GET("/children/:id/media", h.ListMedia)
+	protected.PUT("/children/:id/profile", h.UpdateProfile)
 
 	admin := protected.Group("/admin", mw.RequireRole(model.RoleAdmin))
 	admin.POST("/children", h.Create)
@@ -190,4 +191,20 @@ func (h *ChildHandler) ListMedia(c echo.Context) error {
 		return err
 	}
 	return response.List(c, media, response.Meta{Page: q.Page, PerPage: q.PerPage, Total: total})
+}
+
+func (h *ChildHandler) UpdateProfile(c echo.Context) error {
+	id, err := paramID(c)
+	if err != nil {
+		return err
+	}
+	req, err := dto.Bind[dto.UpdateChildProfileRequest](c)
+	if err != nil {
+		return err
+	}
+	child, err := h.children.UpdateProfile(c.Request().Context(), mw.Role(c), mw.UserID(c), id, req, c.RealIP())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, child)
 }

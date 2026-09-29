@@ -1,6 +1,7 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import {
   ActivityIndicator,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -21,6 +22,9 @@ export function Screen({ children, refreshing, onRefresh, padded = true }: Scree
     <ScrollView
       style={styles.screen}
       contentContainerStyle={[styles.screenContent, !padded && { padding: 0 }]}
+      // One tap on a button works even while the keyboard is open.
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       refreshControl={
         onRefresh ? (
           <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} tintColor={colors.primary} />

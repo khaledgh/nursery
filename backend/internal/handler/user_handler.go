@@ -25,6 +25,7 @@ func NewUserHandler(users *service.UserService) *UserHandler {
 func (h *UserHandler) Register(protected *echo.Group) {
 	// Self-service: any signed-in user manages their own photo.
 	protected.PUT("/users/me/avatar", h.UpdateMyAvatar)
+	protected.PUT("/users/me", h.UpdateMe)
 
 	admin := protected.Group("/admin", mw.RequireRole(model.RoleAdmin))
 	admin.GET("/users", h.List)
@@ -32,6 +33,18 @@ func (h *UserHandler) Register(protected *echo.Group) {
 	admin.POST("/users", h.Create)
 	admin.PUT("/users/:id", h.Update)
 	admin.DELETE("/users/:id", h.Delete)
+}
+
+func (h *UserHandler) UpdateMe(c echo.Context) error {
+	req, err := dto.Bind[dto.UpdateMeRequest](c)
+	if err != nil {
+		return err
+	}
+	user, err := h.users.UpdateMe(c.Request().Context(), mw.UserID(c), req, c.RealIP())
+	if err != nil {
+		return err
+	}
+	return response.OK(c, user)
 }
 
 func (h *UserHandler) UpdateMyAvatar(c echo.Context) error {

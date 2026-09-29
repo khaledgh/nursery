@@ -21,6 +21,14 @@ type UpdateChildRequest struct {
 	Status      *string `json:"status" validate:"omitempty,oneof=active inactive"`
 }
 
+// UpdateChildProfileRequest is what a guardian may change about their child.
+type UpdateChildProfileRequest struct {
+	FirstName *string `json:"first_name" validate:"omitempty,min=1,max=100"`
+	LastName  *string `json:"last_name" validate:"omitempty,min=1,max=100"`
+	DOB       *string `json:"dob" validate:"omitempty,datetime=2006-01-02"`
+	AvatarID  *uint64 `json:"avatar_id"`
+}
+
 type AddGuardianRequest struct {
 	ParentUserID uint64 `json:"parent_user_id" validate:"required"`
 	Relationship string `json:"relationship" validate:"required,oneof=mother father guardian grandparent other"`

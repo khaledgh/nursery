@@ -21,7 +21,7 @@ type Invoice struct {
 	Child       *Child `gorm:"foreignKey:ChildID" json:"child,omitempty"`
 	PayerUserID uint64 `gorm:"not null;index" json:"payer_user_id"`
 	InvoiceNo   string `gorm:"size:30;not null;uniqueIndex" json:"invoice_no"`
-	Currency    string `gorm:"size:3;not null;default:'SEK'" json:"currency"`
+	Currency    string `gorm:"size:3;not null;default:'USD'" json:"currency"`
 	// Amounts are stored in minor units (öre/cents) — never floats.
 	TotalMinor int64         `gorm:"not null" json:"total_minor"`
 	DueDate    string        `gorm:"type:date;not null" json:"due_date"`

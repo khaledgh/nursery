@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"strconv"
+
 	"github.com/labstack/echo/v4"
 
 	"github.com/sunnystars/backend/internal/dto"
@@ -57,6 +59,8 @@ func (h *EngagementHandler) Register(protected *echo.Group) {
 	// Notification center + devices
 	protected.GET("/notifications", h.ListNotifications)
 	protected.GET("/notifications/unread-count", h.UnreadCount)
+	protected.GET("/notifications/unread-summary", h.UnreadSummary)
+	protected.POST("/notifications/read-screen", h.MarkScreenRead)
 	protected.POST("/notifications/read-all", h.MarkAllRead)
 	protected.POST("/notifications/:id/read", h.MarkRead)
 	protected.POST("/devices", h.RegisterDevice)
@@ -497,6 +501,32 @@ func (h *EngagementHandler) UnregisterDevice(c echo.Context) error {
 		return apperr.BadRequest("invalid player id")
 	}
 	if err := h.center.UnregisterDevice(c.Request().Context(), mw.UserID(c), playerID); err != nil {
+		return err
+	}
+	return response.NoContent(c)
+}
+
+func (h *EngagementHandler) UnreadSummary(c echo.Context) error {
+	childID, _ := strconv.ParseUint(c.QueryParam("child_id"), 10, 64)
+	summary, err := h.center.UnreadSummary(c.Request().Context(), mw.UserID(c), childID)
+	if err != nil {
+		return err
+	}
+	return response.OK(c, summary)
+}
+
+func (h *EngagementHandler) MarkScreenRead(c echo.Context) error {
+	var req struct {
+		Screen  string `json:"screen" validate:"required,max=30"`
+		ChildID uint64 `json:"child_id"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return apperr.BadRequest("malformed request body")
+	}
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
+	if err := h.center.MarkScreenRead(c.Request().Context(), mw.UserID(c), req.Screen, req.ChildID); err != nil {
 		return err
 	}
 	return response.NoContent(c)

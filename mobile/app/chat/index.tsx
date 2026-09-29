@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useConversations, useGetOrCreateConversation } from "../../src/api/hooks";
 import type { Conversation } from "../../src/api/types";
 import { GhostButton, PrimaryButton } from "../../src/components/Buttons";
@@ -10,6 +10,7 @@ import { addDays, isSameDay } from "../../src/lib/stats";
 import { useRefreshAll } from "../../src/lib/useRefreshAll";
 import { useAuthStore } from "../../src/store/auth";
 import { accents, colors, fonts, spacing } from "../../src/theme";
+import { Tap } from "../../src/components/Tap";
 
 /** "2:30 PM" today, "Yesterday", or a short date further back. */
 function relativeStamp(iso: string, locale: string): string {
@@ -120,7 +121,7 @@ export default function ConversationsScreen() {
           const accent = isAdmin ? accents.secondary : accents.primary;
           const hasUnread = !!c.unread_count && c.unread_count > 0;
           return (
-            <Pressable
+            <Tap
               key={c.id}
               onPress={() => router.push(`/chat/${c.id}`)}
               style={({ pressed }) => [pressed && styles.pressed]}
@@ -157,7 +158,7 @@ export default function ConversationsScreen() {
                   </View>
                 </View>
               </Card>
-            </Pressable>
+            </Tap>
           );
         })
       )}

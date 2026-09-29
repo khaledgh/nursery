@@ -2,12 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { errorMessage } from "../src/api/client";
 import {
   useComment,
   useCommunityPosts,
   useCreatePost,
+  useDeleteComment,
   useMeetupRsvp,
   usePlatformSettings,
   useToggleLike,
@@ -17,21 +18,50 @@ import type { CommunityPost } from "../src/api/types";
 import { ChildAvatar } from "../src/components/ChildAvatar";
 import { EmptyState } from "../src/components/EmptyState";
 import { GhostButton, PrimaryButton } from "../src/components/Buttons";
+import { DateTimeField, withDay, withTime } from "../src/components/form/DateTimeField";
+import { PhotoField } from "../src/components/form/PhotoField";
 import { IconCircle } from "../src/components/IconCircle";
 import { PillBadge } from "../src/components/PillBadge";
 import { Card, Loading, Screen } from "../src/components/ui";
 import { formatDate, formatTime } from "../src/lib/stats";
 import { useAuthStore } from "../src/store/auth";
 import { accents, colors, fonts, radius, spacing } from "../src/theme";
+import { useClearSectionBadge } from "../src/lib/useClearSectionBadge";
+import { remoteImage } from "../src/lib/remoteImage";
+import { Tap } from "../src/components/Tap";
 
 type ComposerKind = "moment" | "activity" | null;
+
+const ROLE_ACCENT = { teacher: "primary", admin: "secondary", parent: "activity" } as const;
+
+/** Shows whether an author is a teacher, the nursery office or a parent. */
+function RoleBadge({ role }: { role?: string }) {
+  const { t } = useTranslation();
+  const key = role === "teacher" || role === "admin" ? role : "parent";
+  return <PillBadge label={t(`community.roles.${key}`)} accent={ROLE_ACCENT[key]} />;
+}
+
+/** Tomorrow at 10:00, the default start for a new activity. */
+function defaultMeetupDate() {
+  const d = new Date(Date.now() + 86400000);
+  d.setHours(10, 0, 0, 0);
+  return d;
+}
 
 function PostCard({ post }: { post: CommunityPost }) {
   const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const like = useToggleLike(user?.id);
   const comment = useComment();
+  const deleteComment = useDeleteComment();
   const meetupRsvp = useMeetupRsvp();
+  const isStaff = user?.role === "teacher" || user?.role === "admin";
+
+  const confirmDeleteComment = (id: number) =>
+    Alert.alert(t("community.deleteComment"), t("community.deleteCommentConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("common.delete"), style: "destructive", onPress: () => deleteComment.mutate(id) },
+    ]);
   const [commentText, setCommentText] = useState("");
   const [showAllComments, setShowAllComments] = useState(false);
 
@@ -52,10 +82,7 @@ function PostCard({ post }: { post: CommunityPost }) {
         <View style={{ flex: 1 }}>
           <View style={styles.authorRow}>
             <Text style={styles.authorName}>{post.author?.name}</Text>
-            <PillBadge
-              label={post.author?.role === "teacher" ? t("community.teacher") : t("community.parent")}
-              accent={post.author?.role === "teacher" ? "primary" : "activity"}
-            />
+            <RoleBadge role={post.author?.role} />
           </View>
           <Text style={styles.postTime}>
             {formatDate(post.created_at, i18n.language)} · {formatTime(post.created_at, i18n.language)}
@@ -81,7 +108,7 @@ function PostCard({ post }: { post: CommunityPost }) {
           {(post.media ?? [])
             .filter((m) => m.media?.url)
             .map((m, i) => (
-              <Image key={i} source={{ uri: m.media!.url }} style={styles.postPhoto} contentFit="cover" />
+              <Image key={i} source={remoteImage(m.media?.url)} style={styles.postPhoto} contentFit="cover" />
             ))}
         </ScrollView>
       )}
@@ -117,10 +144,10 @@ function PostCard({ post }: { post: CommunityPost }) {
 
       {/* Like / comment counts */}
       <View style={styles.countsRow}>
-        <Pressable onPress={() => like.mutate(post.id)} style={styles.countItem} hitSlop={8}>
+        <Tap haptic onPress={() => like.mutate(post.id)} style={styles.countItem} hitSlop={8}>
           <Ionicons name={liked ? "heart" : "heart-outline"} size={20} color={liked ? accents.events.main : colors.textMuted} />
           <Text style={styles.countText}>{likes.length}</Text>
-        </Pressable>
+        </Tap>
         <View style={styles.countItem}>
           <Ionicons name="chatbubble-outline" size={18} color={colors.textMuted} />
           <Text style={styles.countText}>{comments.length}</Text>
@@ -134,15 +161,29 @@ function PostCard({ post }: { post: CommunityPost }) {
             <View key={c.id} style={styles.commentRow}>
               <ChildAvatar url={c.author?.avatar?.url} name={c.author?.name ?? "?"} size={26} />
               <View style={styles.commentBubble}>
-                <Text style={styles.commentAuthor}>{c.author?.name}</Text>
+                <View style={styles.commentHead}>
+                  <Text style={styles.commentAuthor}>{c.author?.name}</Text>
+                  <RoleBadge role={c.author?.role} />
+                </View>
                 <Text style={styles.commentBody}>{c.body}</Text>
               </View>
+              {(c.author?.id === user?.id || isStaff) && (
+                <Tap
+                  onPress={() => confirmDeleteComment(c.id)}
+                  hitSlop={10}
+                  style={styles.commentDelete}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("community.deleteComment")}
+                >
+                  <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
+                </Tap>
+              )}
             </View>
           ))}
           {comments.length > 2 && !showAllComments && (
-            <Pressable onPress={() => setShowAllComments(true)}>
+            <Tap onPress={() => setShowAllComments(true)}>
               <Text style={styles.viewAllComments}>{t("community.viewComments", { count: comments.length })}</Text>
-            </Pressable>
+            </Tap>
           )}
         </View>
       )}
@@ -156,7 +197,7 @@ function PostCard({ post }: { post: CommunityPost }) {
           value={commentText}
           onChangeText={setCommentText}
         />
-        <Pressable
+        <Tap
           disabled={!commentText.trim() || comment.isPending}
           onPress={() =>
             comment.mutate(
@@ -167,13 +208,14 @@ function PostCard({ post }: { post: CommunityPost }) {
           hitSlop={8}
         >
           <IconCircle name="send" accent={commentText.trim() ? "primary" : "neutral"} size={36} />
-        </Pressable>
+        </Tap>
       </View>
     </Card>
   );
 }
 
 export default function CommunityScreen() {
+  useClearSectionBadge("community");
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const posts = useCommunityPosts();
@@ -185,7 +227,8 @@ export default function CommunityScreen() {
   const [body, setBody] = useState("");
   const [meetupTitle, setMeetupTitle] = useState("");
   const [meetupLocation, setMeetupLocation] = useState("");
-  const [meetupWhen, setMeetupWhen] = useState("");
+  const [meetupAt, setMeetupAt] = useState<Date>(defaultMeetupDate);
+  const [mediaIds, setMediaIds] = useState<number[]>([]);
   const [composeError, setComposeError] = useState<string | null>(null);
 
   const isCommunityOpen = platformSettings.data?.feature_community !== false;
@@ -202,12 +245,13 @@ export default function CommunityScreen() {
       {
         type: composer === "activity" ? "activity" : "moment",
         body: body.trim(),
+        media_ids: mediaIds.length > 0 ? mediaIds : undefined,
         meetup:
           composer === "activity" && meetupTitle.trim()
             ? {
                 title: meetupTitle.trim(),
                 location: meetupLocation.trim(),
-                starts_at: meetupWhen.trim() || new Date(Date.now() + 86400000).toISOString(),
+                starts_at: meetupAt.toISOString(),
               }
             : undefined,
       },
@@ -217,7 +261,8 @@ export default function CommunityScreen() {
           setBody("");
           setMeetupTitle("");
           setMeetupLocation("");
-          setMeetupWhen("");
+          setMeetupAt(defaultMeetupDate());
+          setMediaIds([]);
         },
         onError: (err) => setComposeError(errorMessage(err)),
       }
@@ -261,16 +306,16 @@ export default function CommunityScreen() {
       {/* Action cards */}
       {(isCommunityOpen || isAdmin) && (
         <View style={styles.actions}>
-          <Pressable style={[styles.actionCard, { backgroundColor: accents.primary.tint }]} onPress={() => setComposer("moment")}>
+          <Tap style={[styles.actionCard, { backgroundColor: accents.primary.tint }]} onPress={() => setComposer("moment")}>
             <IconCircle name="image" accent="primary" size={40} />
             <Text style={styles.actionTitle}>{t("community.shareMoment")}</Text>
             <Text style={styles.actionSub}>{t("community.shareMomentSub")}</Text>
-          </Pressable>
-          <Pressable style={[styles.actionCard, { backgroundColor: accents.activity.tint }]} onPress={() => setComposer("activity")}>
+          </Tap>
+          <Tap style={[styles.actionCard, { backgroundColor: accents.activity.tint }]} onPress={() => setComposer("activity")}>
             <IconCircle name="calendar" accent="activity" size={40} />
             <Text style={styles.actionTitle}>{t("community.planActivity")}</Text>
             <Text style={styles.actionSub}>{t("community.planActivitySub")}</Text>
-          </Pressable>
+          </Tap>
         </View>
       )}
 
@@ -286,8 +331,11 @@ export default function CommunityScreen() {
 
       {/* Composer modal */}
       <Modal visible={composer !== null} transparent animationType="fade" onRequestClose={() => setComposer(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalBackdrop}
+        >
+          <ScrollView style={styles.modalCard} contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
             <Text style={styles.modalTitle}>
               {composer === "activity" ? t("community.planActivity") : t("community.shareMoment")}
             </Text>
@@ -315,20 +363,29 @@ export default function CommunityScreen() {
                   value={meetupLocation}
                   onChangeText={setMeetupLocation}
                 />
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder={t("community.when")}
-                  placeholderTextColor={colors.textMuted}
-                  value={meetupWhen}
-                  onChangeText={setMeetupWhen}
+                <DateTimeField
+                  label={t("community.date")}
+                  mode="date"
+                  value={meetupAt}
+                  minimumDate={new Date()}
+                  onChange={(d) => setMeetupAt((cur) => withDay(cur, d))}
+                />
+                <DateTimeField
+                  label={t("community.time")}
+                  mode="time"
+                  value={meetupAt}
+                  onChange={(d) => setMeetupAt((cur) => withTime(cur, d))}
                 />
               </>
             )}
+            {composer === "moment" && (
+              <PhotoField label={t("community.addPhotos")} mediaIds={mediaIds} onChange={setMediaIds} max={6} />
+            )}
             {composeError ? <Text style={styles.modalError}>{composeError}</Text> : null}
             <View style={styles.modalActions}>
-              <Pressable onPress={() => setComposer(null)} style={styles.modalCancel}>
+              <Tap onPress={() => setComposer(null)} style={styles.modalCancel}>
                 <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
-              </Pressable>
+              </Tap>
               <View style={{ flex: 1 }}>
                 <PrimaryButton
                   label={t("community.post")}
@@ -338,8 +395,8 @@ export default function CommunityScreen() {
                 />
               </View>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </Screen>
   );
@@ -379,7 +436,9 @@ const styles = StyleSheet.create({
   comments: { gap: spacing.sm },
   commentRow: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" },
   commentBubble: { flex: 1, backgroundColor: colors.bg, borderRadius: radius.md, padding: spacing.sm },
+  commentHead: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 },
   commentAuthor: { fontSize: 12, fontFamily: fonts.extrabold, color: colors.text },
+  commentDelete: { paddingTop: spacing.sm },
   commentBody: { fontSize: 12, fontFamily: fonts.semibold, color: colors.text },
   viewAllComments: { fontSize: 12, fontFamily: fonts.bold, color: colors.primary },
   commentComposer: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
@@ -396,7 +455,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(30,27,46,0.5)", justifyContent: "center", padding: spacing.lg },
-  modalCard: { backgroundColor: colors.card, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.sm },
+  modalCard: { backgroundColor: colors.card, borderRadius: radius.xl, flexGrow: 0, maxHeight: "90%" },
+  modalContent: { padding: spacing.lg, gap: spacing.sm },
   modalTitle: { fontSize: 17, fontFamily: fonts.extrabold, color: colors.text },
   modalInput: {
     backgroundColor: colors.bg,

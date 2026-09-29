@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/sunnystars/backend/internal/database"
 	"github.com/sunnystars/backend/internal/dto"
 	"github.com/sunnystars/backend/internal/model"
 	"github.com/sunnystars/backend/internal/pkg/apperr"
@@ -65,9 +66,9 @@ var settingValidators = map[string]func(v any) bool{
 		s, ok := v.(string)
 		return ok && len(s) <= 256
 	},
-	"onesignal_enabled": func(v any) bool { _, ok := v.(bool); return ok },
-	"feature_community": func(v any) bool { _, ok := v.(bool); return ok },
-	"feature_payments":  func(v any) bool { _, ok := v.(bool); return ok },
+	"onesignal_enabled":       func(v any) bool { _, ok := v.(bool); return ok },
+	"feature_community":       func(v any) bool { _, ok := v.(bool); return ok },
+	"feature_payments":        func(v any) bool { _, ok := v.(bool); return ok },
 	"community_hours_enabled": func(v any) bool { _, ok := v.(bool); return ok },
 	"community_hours_start": func(v any) bool {
 		s, ok := v.(string)
@@ -78,6 +79,25 @@ var settingValidators = map[string]func(v any) bool{
 		return ok && len(s) <= 10
 	},
 	"community_banned_users": func(v any) bool { return true },
+	"platform_currency": func(v any) bool {
+		s, ok := v.(string)
+		return ok && len(s) == 3
+	},
+}
+
+// platformKeys configure the whole platform (storage, push, default language,
+// plan currency). Only a superadmin may read or change them.
+var platformKeys = map[string]bool{
+	"storage_driver": true, "s3_bucket": true, "s3_region": true, "s3_endpoint": true,
+	"s3_access_key": true, "s3_secret_key": true, "s3_public_url": true, "s3_path_style": true,
+	"onesignal_app_id": true, "onesignal_rest_api_key": true, "onesignal_enabled": true,
+	"default_locale": true, "platform_currency": true,
+}
+
+// secretKeys are never returned by any API, even to a superadmin: reads get
+// an empty value plus "<key>_set": true, and an empty write keeps the old value.
+var secretKeys = map[string]bool{
+	"s3_access_key": true, "s3_secret_key": true, "onesignal_rest_api_key": true,
 }
 
 type SettingsService struct {
@@ -89,7 +109,7 @@ func NewSettingsService(db *gorm.DB, audit *AuditService) *SettingsService {
 	return &SettingsService{db: db, audit: audit}
 }
 
-func (s *SettingsService) All(ctx context.Context) (map[string]any, error) {
+func (s *SettingsService) load(ctx context.Context) (map[string]any, error) {
 	var rows []model.Setting
 	if err := s.db.WithContext(ctx).Find(&rows).Error; err != nil {
 		return nil, apperr.Internal(err)
@@ -104,14 +124,61 @@ func (s *SettingsService) All(ctx context.Context) (map[string]any, error) {
 	return out, nil
 }
 
-func (s *SettingsService) Update(ctx context.Context, updates map[string]any, actorID uint64, ip string) error {
+// Nursery returns the settings a nursery admin, teacher or parent may see:
+// everything except platform configuration.
+func (s *SettingsService) Nursery(ctx context.Context) (map[string]any, error) {
+	all, err := s.load(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for k := range all {
+		if platformKeys[k] || secretKeys[k] {
+			delete(all, k)
+		}
+	}
+	return all, nil
+}
+
+// Platform returns every setting for the superadmin console, with secrets masked.
+func (s *SettingsService) Platform(ctx context.Context) (map[string]any, error) {
+	all, err := s.load(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for k := range secretKeys {
+		v, _ := all[k].(string)
+		all[k+"_set"] = v != ""
+		all[k] = ""
+	}
+	return all, nil
+}
+
+// Update writes settings. allowPlatform is true only for superadmin callers.
+func (s *SettingsService) Update(ctx context.Context, updates map[string]any, allowPlatform bool, actorID uint64, ip string) error {
 	for key, value := range updates {
 		validate, ok := settingValidators[key]
 		if !ok {
 			return apperr.BadRequest("unknown or non-editable setting: " + key)
 		}
+		if platformKeys[key] && !allowPlatform {
+			return apperr.Forbidden("only the platform administrator can change: " + key)
+		}
 		if !validate(value) {
 			return apperr.BadRequest("invalid value for setting: " + key)
+		}
+	}
+	// Masked secrets come back empty from the UI: keep the stored value.
+	for key := range secretKeys {
+		if v, isStr := updates[key].(string); isStr && v == "" {
+			delete(updates, key)
+		}
+	}
+	audited := map[string]any{}
+	for key, value := range updates {
+		if secretKeys[key] {
+			audited[key] = "(changed)"
+		} else {
+			audited[key] = value
 		}
 	}
 	for key, value := range updates {
@@ -127,7 +194,7 @@ func (s *SettingsService) Update(ctx context.Context, updates map[string]any, ac
 			return apperr.Internal(err)
 		}
 	}
-	s.audit.Record(ctx, actorID, "update", "settings", 0, updates, ip)
+	s.audit.Record(ctx, actorID, "update", "settings", 0, audited, ip)
 	return nil
 }
 
@@ -135,8 +202,9 @@ func (s *SettingsService) Update(ctx context.Context, updates map[string]any, ac
 
 type AuditQuery struct {
 	dto.PageQuery
-	Entity string `query:"entity"`
-	Actor  uint64 `query:"actor"`
+	Entity    string `query:"entity"`
+	Actor     uint64 `query:"actor"`
+	NurseryID uint64 `query:"nursery_id"`
 }
 
 func (s *SettingsService) AuditLogs(ctx context.Context, q AuditQuery) ([]model.AuditLog, int64, error) {
@@ -144,7 +212,11 @@ func (s *SettingsService) AuditLogs(ctx context.Context, q AuditQuery) ([]model.
 		logs  []model.AuditLog
 		total int64
 	)
-	tx := s.db.WithContext(ctx).Model(&model.AuditLog{})
+	// Audit logs are a superadmin tool, so they read across every nursery.
+	tx := s.db.WithContext(database.WithCrossTenant(ctx)).Model(&model.AuditLog{})
+	if q.NurseryID != 0 {
+		tx = tx.Where("nursery_id = ?", q.NurseryID)
+	}
 	if q.Entity != "" {
 		tx = tx.Where("entity = ?", q.Entity)
 	}

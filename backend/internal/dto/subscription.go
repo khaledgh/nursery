@@ -36,6 +36,7 @@ type NurseryDTO struct {
 	Status          string  `json:"status"`
 	Locale          string  `json:"locale"`
 	Timezone        string  `json:"timezone"`
+	Currency        string  `json:"currency"`
 }
 
 // --- superadmin console ---

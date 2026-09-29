@@ -12,6 +12,10 @@ export const startingPrice = `${currency}${Math.min(...prices)}`;
 
 export const fillPrice = (text: string) => text.replaceAll("{price}", startingPrice);
 
+// Arabic copy wraps "Nursee+" in LTR isolates so the "+" renders on the right;
+// structured data and plain-text outputs get the bare name.
+export const plain = (text: string) => text.replace(/[⁦-⁩]/g, "");
+
 const abs = (path: string) => new URL(path, site.url).toString();
 
 function organization() {
@@ -65,7 +69,7 @@ function application(locale: Locale) {
     inLanguage: ["ar", "en", "fr"],
     image: abs("/og.png"),
     screenshot: abs("/og.png"),
-    featureList: features.map((f) => t.features.items[f.key].t),
+    featureList: features.map((f) => plain(t.features.items[f.key].t)),
     countriesSupported: "LB",
     publisher: { "@id": ORG_ID },
     offers: {
@@ -87,8 +91,8 @@ function faqPage(locale: Locale) {
     inLanguage: locale,
     mainEntity: t.faq.items.map((item) => ({
       "@type": "Question",
-      name: item.q,
-      acceptedAnswer: { "@type": "Answer", text: fillPrice(item.a) },
+      name: plain(item.q),
+      acceptedAnswer: { "@type": "Answer", text: plain(fillPrice(item.a)) },
     })),
   };
 }

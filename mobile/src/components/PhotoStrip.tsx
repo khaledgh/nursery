@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, fonts, radius, spacing } from "../theme";
+import { remoteImage } from "../lib/remoteImage";
 
 export interface StripPhoto {
   url: string;
@@ -23,7 +24,7 @@ export function PhotoStrip({ photos, size = 96, max = 8, onPressMore }: PhotoStr
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {shown.map((photo, i) => (
         <View key={i} style={{ width: photo.caption ? size + 32 : size }}>
-          <Image source={{ uri: photo.url }} style={[styles.photo, { width: "100%", height: size }]} contentFit="cover" transition={150} />
+          <Image source={remoteImage(photo.url)} style={[styles.photo, { width: "100%", height: size }]} contentFit="cover" transition={150} />
           {photo.caption ? (
             <Text style={styles.caption} numberOfLines={2}>
               {photo.caption}
